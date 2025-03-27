@@ -1,3 +1,4 @@
+
 import { DraftType } from '@/types';
 import { identifyPartiesAndRoles } from './partyIdentifier';
 
@@ -50,7 +51,7 @@ async function extractTextFromPDF(file: File): Promise<string> {
                     try {
                       const page = await pdfDocument.getPage(pageNum);
                       const textContent = await page.getTextContent({
-                        normalizeWhitespace: true, // Normalize whitespace for better text extraction
+                        // Remove normalizeWhitespace as it's not a valid property
                         disableCombineTextItems: false // Combine text items for better performance
                       });
                       

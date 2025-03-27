@@ -36,6 +36,14 @@ const roleIdentifiers: Record<DraftType, Record<string, RegExp[]>> = {
     testador: [/testador/i],
     herdeiro: [/herdeiro/i, /legatário/i]
   },
+  'Contrato de Aluguel': {
+    locador: [/locador/i, /proprietário/i],
+    locatário: [/locatário/i, /inquilino/i]
+  },
+  'Contrato Social': {
+    socio1: [/primeiro sócio/i, /sócio administrador/i],
+    socio2: [/segundo sócio/i, /sócio/i]
+  },
   'Outro': {
     parte1: [/primeira parte/i],
     parte2: [/segunda parte/i]
