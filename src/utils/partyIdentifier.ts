@@ -6,157 +6,106 @@ interface ExtractedData {
   nome?: string;
 }
 
-// Regular expressions for identifying different types of entities
-const personNamePattern = /(?:[A-Z][a-zÀ-ÿ]+\s)+(?:[A-Z][a-zÀ-ÿ]+)/g;
-const documentNumberPattern = /(?:\d{3}\.){2}\d{3}-\d{2}|\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2}/g;
-const addressPattern = /(?:Rua|Avenida|Av\.|R\.|Alameda|Al\.|Travessa|Trav\.|Praça|Pç\.)\s.*?(?:,|\s-|\sn[º°]|\snº|\sn°|\sn)\s.*?(?:\d{5}-\d{3}|\d{8}|\d{2}\.\d{3}-\d{3}|$)/g;
+// Simplified regex patterns for better performance
+const personNamePattern = /(?:[A-Z][a-zÀ-ÿ]{1,20}\s){1,3}(?:[A-Z][a-zÀ-ÿ]{1,20})/g;
 
-// Specific role identifiers
+// Specific role identifiers - using a smaller subset for better performance
 const roleIdentifiers: Record<DraftType, Record<string, RegExp[]>> = {
   'Inventário': {
-    falecido: [
-      /falecido/i, /de cujus/i, /autor da herança/i, /inventariado/i, /espólio de/i
-    ],
-    herdeiro: [
-      /herdeiro/i, /herdeira/i, /filho/i, /filha/i, /descendente/i, /neto/i, /neta/i
-    ],
-    cônjuge: [
-      /cônjuge/i, /esposa/i, /esposo/i, /viúvo/i, /viúva/i, /casado com/i, /casada com/i
-    ],
-    inventariante: [
-      /inventariante/i, /representante do espólio/i, /administrador do espólio/i
-    ]
+    falecido: [/falecido/i, /de cujus/i],
+    herdeiro: [/herdeiro/i, /herdeira/i],
+    inventariante: [/inventariante/i]
   },
   'Escritura de Compra e Venda': {
-    vendedor: [
-      /vendedor/i, /outorgante vendedor/i, /primeiro outorgante/i, /alienante/i
-    ],
-    comprador: [
-      /comprador/i, /outorgado comprador/i, /segundo outorgante/i, /adquirente/i
-    ]
+    vendedor: [/vendedor/i, /outorgante vendedor/i],
+    comprador: [/comprador/i, /outorgado comprador/i]
   },
   'Doação': {
-    doador: [
-      /doador/i, /outorgante doador/i, /primeiro outorgante/i
-    ],
-    donatário: [
-      /donatário/i, /outorgado donatário/i, /segundo outorgante/i, /beneficiário/i
-    ]
+    doador: [/doador/i],
+    donatário: [/donatário/i]
   },
   'União Estável': {
-    companheiro1: [
-      /primeiro companheiro/i, /primeiro convivente/i, /primeiro declarante/i
-    ],
-    companheiro2: [
-      /segundo companheiro/i, /segundo convivente/i, /segundo declarante/i
-    ]
+    companheiro1: [/primeiro companheiro/i],
+    companheiro2: [/segundo companheiro/i]
   },
   'Procuração': {
-    outorgante: [
-      /outorgante/i, /mandante/i, /constituinte/i, /poderdante/i
-    ],
-    outorgado: [
-      /outorgado/i, /mandatário/i, /procurador/i, /constituído/i
-    ]
+    outorgante: [/outorgante/i],
+    outorgado: [/outorgado/i, /procurador/i]
   },
   'Testamento': {
-    testador: [
-      /testador/i, /testante/i, /autor do testamento/i
-    ],
-    herdeiro: [
-      /herdeiro/i, /herdeira/i, /legatário/i, /legatária/i, /beneficiário/i
-    ],
-    testemunha: [
-      /testemunha/i
-    ]
-  },
-  'Contrato de Aluguel': {
-    locador: [
-      /locador/i, /proprietário/i, /senhorio/i
-    ],
-    locatário: [
-      /locatário/i, /inquilino/i, /arrendatário/i
-    ]
-  },
-  'Contrato Social': {
-    empresa: [
-      /razão social/i, /denominação social/i, /nome empresarial/i
-    ],
-    sócio: [
-      /sócio/i, /sócia/i, /quotista/i
-    ]
+    testador: [/testador/i],
+    herdeiro: [/herdeiro/i, /legatário/i]
   },
   'Outro': {
-    parte1: [
-      /primeira parte/i, /primeiro interessado/i, /requerente/i
-    ],
-    parte2: [
-      /segunda parte/i, /segundo interessado/i, /requerido/i
-    ]
+    parte1: [/primeira parte/i],
+    parte2: [/segunda parte/i]
   }
 };
 
-// Helper to find names near role patterns with improved error handling
-function findNamesInContext(content: string, rolePatterns: RegExp[], windowSize: number = 100): string[] {
+// Helper to find names near role patterns - optimized with performance restrictions
+function findNamesInContext(content: string, rolePatterns: RegExp[], windowSize: number = 50): string[] {
   if (!content || typeof content !== 'string') {
     return [];
   }
   
+  // Performance optimization - limit content size
+  const maxContentLength = 20000; // Only analyze first 20K characters
+  const trimmedContent = content.substring(0, maxContentLength);
+  
   const foundNames: string[] = [];
   
-  rolePatterns.forEach(pattern => {
+  // Time limit for pattern matching - prevent runaway regex
+  const startTime = Date.now();
+  const maxProcessingTime = 1000; // 1 second maximum per pattern group
+  
+  for (let i = 0; i < Math.min(rolePatterns.length, 3); i++) {
+    // Check if we've exceeded the time limit
+    if (Date.now() - startTime > maxProcessingTime) {
+      console.warn('Tempo limite excedido para análise de padrões de papel');
+      break;
+    }
+    
+    const pattern = rolePatterns[i];
+    
     try {
-      // Create a new RegExp instance to avoid lastIndex issues
-      const patternCopy = new RegExp(pattern.source, pattern.flags);
+      // Find only the first match for this pattern to improve performance
+      const match = pattern.exec(trimmedContent);
+      if (!match) continue;
       
-      let match;
-      while ((match = patternCopy.exec(content)) !== null) {
-        const matchIndex = match.index;
-        const startContext = Math.max(0, matchIndex - windowSize);
-        const endContext = Math.min(content.length, matchIndex + match[0].length + windowSize);
-        
-        const context = content.substring(startContext, endContext);
-        
-        try {
-          // Create a new regex for each iteration to avoid lastIndex issues
-          const nameRegex = new RegExp(personNamePattern);
-          let nameMatch;
-          
-          // Use a safer approach to find all matches
-          const nameMatches: string[] = [];
-          while ((nameMatch = nameRegex.exec(context)) !== null) {
-            if (nameMatch.index !== undefined && 
-                (nameMatch.index < windowSize || nameMatch.index > windowSize + match[0].length)) {
-              nameMatches.push(nameMatch[0]);
-            }
-            
-            // Prevent infinite loops
-            if (nameMatch.index === nameRegex.lastIndex) {
-              nameRegex.lastIndex++;
-            }
-          }
-          
-          // Add all found names
-          nameMatches.forEach(name => foundNames.push(name));
-        } catch (regexError) {
-          console.warn("Error matching names in context:", regexError);
-        }
+      const matchIndex = match.index;
+      const startContext = Math.max(0, matchIndex - windowSize);
+      const endContext = Math.min(trimmedContent.length, matchIndex + match[0].length + windowSize);
+      
+      const context = trimmedContent.substring(startContext, endContext);
+      
+      // Find only up to 2 names in this context for better performance
+      const nameRegex = new RegExp(personNamePattern);
+      const nameMatches = [];
+      let nameMatch;
+      let matchCount = 0;
+      
+      while ((nameMatch = nameRegex.exec(context)) !== null && matchCount < 2) {
+        nameMatches.push(nameMatch[0]);
+        matchCount++;
         
         // Prevent infinite loops
-        if (match.index === patternCopy.lastIndex) {
-          patternCopy.lastIndex++;
+        if (nameMatch.index === nameRegex.lastIndex) {
+          nameRegex.lastIndex++;
         }
       }
+      
+      // Add found names
+      nameMatches.forEach(name => foundNames.push(name));
     } catch (patternError) {
       console.warn("Error with role pattern:", patternError);
     }
-  });
+  }
   
-  // Remove duplicates and return
-  return [...new Set(foundNames)];
+  // Take only first 3 unique names maximum
+  return [...new Set(foundNames)].slice(0, 3);
 }
 
-// Main function to identify parties and their roles in the document
+// Main function to identify parties and their roles - optimized for performance
 export async function identifyPartiesAndRoles(
   files: File[], 
   documentType: DraftType, 
@@ -178,69 +127,69 @@ export async function identifyPartiesAndRoles(
   try {
     // Set an overall timeout for the entire identification process
     const startTime = Date.now();
-    const maxProcessingTime = 30000; // 30 seconds maximum
+    const maxProcessingTime = 10000; // Reduced to 10 seconds maximum
     
-    // Loop through each file to process content
-    for (const file of files) {
-      // Check if we've exceeded the total processing time
-      if (Date.now() - startTime > maxProcessingTime) {
-        console.warn('Tempo máximo de identificação excedido, usando dados básicos');
-        break;
+    // Process only first file for role identification to improve performance
+    const file = files[0];
+    
+    try {
+      if (!file) {
+        console.warn("Invalid file found");
+        return enhancedData;
       }
       
-      try {
-        if (!file) {
-          console.warn("Invalid file found in array");
-          continue;
-        }
-        
-        // Read file content as text
-        const fileContent = await readFileAsText(file);
-        
-        if (!fileContent) {
-          console.warn(`No content extracted from file: ${file.name}`);
-          continue;
-        }
-        
-        // Get role identifiers for the current document type
-        const relevantRoles = roleIdentifiers[documentType] || {};
-        
-        // Process each role
-        for (const [role, patterns] of Object.entries(relevantRoles)) {
-          // Ensure patterns is an array of RegExp
-          if (Array.isArray(patterns)) {
-            try {
-              const namesForRole = findNamesInContext(fileContent, patterns);
-              
-              if (namesForRole.length > 0) {
-                // Assign found names to the appropriate field
-                if (!enhancedData[role]) {
-                  enhancedData[role] = namesForRole.join(', ');
-                } else if (!enhancedData[role].includes(namesForRole[0])) {
-                  // Append if not already included
-                  enhancedData[role] += ', ' + namesForRole.join(', ');
-                }
-              }
-            } catch (roleError) {
-              console.warn(`Error processing role ${role}:`, roleError);
-            }
-          }
-        }
-        
-        // Ensure we at least have a 'nome' field
-        if (!enhancedData.nome && Object.keys(enhancedData).length > 0) {
-          // Use the first found name from any field
-          for (const key of Object.keys(enhancedData)) {
-            if (typeof enhancedData[key] === 'string' && enhancedData[key].match(/[A-Z][a-zÀ-ÿ]+/)) {
-              enhancedData.nome = enhancedData[key].split(',')[0].trim();
-              break;
-            }
-          }
-        }
-        
-      } catch (fileError) {
-        console.warn(`Erro ao processar o arquivo ${file.name}:`, fileError);
+      // Read file content as text
+      const fileContent = await readFileAsText(file);
+      
+      if (!fileContent) {
+        console.warn(`No content extracted from file: ${file.name}`);
+        return enhancedData;
       }
+      
+      // Get role identifiers for the current document type
+      const relevantRoles = roleIdentifiers[documentType] || {};
+      
+      // Process only the 3 most important roles to improve performance
+      const importantRoles = Object.entries(relevantRoles).slice(0, 3);
+      
+      // Process each important role
+      for (const [role, patterns] of importantRoles) {
+        // Check if we've exceeded the total processing time
+        if (Date.now() - startTime > maxProcessingTime) {
+          console.warn('Tempo máximo de identificação excedido, usando dados básicos');
+          break;
+        }
+        
+        // Ensure patterns is an array of RegExp
+        if (Array.isArray(patterns)) {
+          try {
+            const namesForRole = findNamesInContext(fileContent, patterns);
+            
+            if (namesForRole.length > 0) {
+              // Take only the first name found for this role
+              enhancedData[role] = namesForRole[0];
+            }
+          } catch (roleError) {
+            console.warn(`Error processing role ${role}:`, roleError);
+          }
+        }
+        
+        // Small pause between roles to prevent UI freezing
+        await new Promise(resolve => setTimeout(resolve, 10));
+      }
+      
+      // Ensure we at least have a 'nome' field
+      if (!enhancedData.nome && Object.keys(enhancedData).length > 0) {
+        // Use the first found name from any field
+        for (const key of Object.keys(enhancedData)) {
+          if (typeof enhancedData[key] === 'string' && enhancedData[key].match(/[A-Z][a-zÀ-ÿ]+/)) {
+            enhancedData.nome = enhancedData[key].split(',')[0].trim();
+            break;
+          }
+        }
+      }
+    } catch (fileError) {
+      console.warn(`Erro ao processar o arquivo ${file.name}:`, fileError);
     }
   } catch (error) {
     console.warn("Error in party identification process:", error);
@@ -262,7 +211,8 @@ async function readFileAsText(file: File): Promise<string> {
       
       reader.onload = () => {
         if (reader.result && typeof reader.result === 'string') {
-          resolve(reader.result);
+          // Limit the amount of text returned to improve performance
+          resolve(reader.result.substring(0, 30000)); // Only return first 30K chars
         } else {
           console.warn("FileReader did not return a string result");
           resolve("");
@@ -278,7 +228,7 @@ async function readFileAsText(file: File): Promise<string> {
       const timeoutId = setTimeout(() => {
         console.warn("File reading timed out");
         resolve("");
-      }, 10000);
+      }, 5000); // Reduced timeout
       
       reader.onloadend = () => {
         clearTimeout(timeoutId);

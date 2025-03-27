@@ -53,12 +53,32 @@ const FileUpload: React.FC<FileUploadProps> = ({ onUploadComplete, status }) => 
   const handleFileChange = useCallback((selectedFiles: FileList | null) => {
     if (!selectedFiles || selectedFiles.length === 0) return;
     
+    // Prevent handling too many files at once - limit to 5 files maximum
+    if (selectedFiles.length > 5) {
+      toast({
+        title: "Muitos arquivos",
+        description: "Por favor, selecione no máximo 5 arquivos por vez.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
     setValidating(true);
     
-    // Processamento por chunks para evitar bloqueio da UI
-    const processFiles = (index: number, accumulator: File[]) => {
-      if (index >= selectedFiles.length) {
-        // Finalizado o processamento de todos os arquivos
+    // Convert FileList to array first - better for chunked processing
+    const fileArray = Array.from(selectedFiles);
+    
+    // Break files into smaller batches of maximum 2 files each
+    const batchSize = 2;
+    const batches = [];
+    for (let i = 0; i < fileArray.length; i += batchSize) {
+      batches.push(fileArray.slice(i, i + batchSize));
+    }
+    
+    // Process batches sequentially with decent pauses between them
+    const processBatch = (batchIndex: number, accumulator: File[]) => {
+      if (batchIndex >= batches.length) {
+        // All batches processed
         if (accumulator.length > 0) {
           setFiles(prev => [...prev, ...accumulator]);
         }
@@ -66,45 +86,62 @@ const FileUpload: React.FC<FileUploadProps> = ({ onUploadComplete, status }) => 
         return;
       }
       
-      // Processa um arquivo por vez
-      const file = selectedFiles[index];
+      const currentBatch = batches[batchIndex];
       
-      // Verifica tamanho
-      if (file.size > FILE_SIZE_LIMIT) {
-        toast({
-          title: "Arquivo muito grande",
-          description: `O arquivo ${file.name} excede o limite de 50MB.`,
-          variant: "destructive"
-        });
-        // Continua com o próximo arquivo
-        setTimeout(() => processFiles(index + 1, accumulator), 10);
-        return;
-      }
+      // Process each file in the current batch
+      const processFiles = (fileIndex: number, batchAccumulator: File[]) => {
+        if (fileIndex >= currentBatch.length) {
+          // Current batch processed, move to next batch after a pause
+          setTimeout(() => {
+            processBatch(batchIndex + 1, [...accumulator, ...batchAccumulator]);
+          }, 300);
+          return;
+        }
+        
+        const file = currentBatch[fileIndex];
+        
+        // Check file size
+        if (file.size > FILE_SIZE_LIMIT) {
+          toast({
+            title: "Arquivo muito grande",
+            description: `O arquivo ${file.name} excede o limite de 50MB.`,
+            variant: "destructive"
+          });
+          // Continue with the next file
+          setTimeout(() => processFiles(fileIndex + 1, batchAccumulator), 50);
+          return;
+        }
+        
+        // Check file type - but do it asynchronously
+        setTimeout(() => {
+          const isAccepted = isAcceptedFileType(file);
+          if (!isAccepted) {
+            toast({
+              title: "Formato não suportado",
+              description: `O arquivo ${file.name} não é suportado. Por favor, use PDF, DOCX, JPG ou PNG.`,
+              variant: "destructive"
+            });
+            // Continue with the next file
+            processFiles(fileIndex + 1, batchAccumulator);
+            return;
+          }
+          
+          // Valid file, add to accumulator
+          batchAccumulator.push(file);
+          
+          // Move to next file with a small delay
+          setTimeout(() => processFiles(fileIndex + 1, batchAccumulator), 50);
+        }, 10);
+      };
       
-      // Verifica tipo
-      const isAccepted = isAcceptedFileType(file);
-      if (!isAccepted) {
-        toast({
-          title: "Formato não suportado",
-          description: `O arquivo ${file.name} não é suportado. Por favor, use PDF, DOCX, JPG ou PNG.`,
-          variant: "destructive"
-        });
-        // Continua com o próximo arquivo
-        setTimeout(() => processFiles(index + 1, accumulator), 10);
-        return;
-      }
-      
-      // Arquivo válido, adiciona ao acumulador
-      accumulator.push(file);
-      
-      // Processa o próximo arquivo com uma pequena pausa para liberar a UI
-      setTimeout(() => processFiles(index + 1, accumulator), 10);
+      // Start processing the current batch
+      processFiles(0, []);
     };
     
-    // Inicia o processamento
-    setTimeout(() => {
+    // Begin processing batches
+    requestAnimationFrame(() => {
       try {
-        processFiles(0, []);
+        processBatch(0, []);
       } catch (error) {
         console.error("Erro ao validar arquivos:", error);
         toast({
@@ -114,7 +151,7 @@ const FileUpload: React.FC<FileUploadProps> = ({ onUploadComplete, status }) => 
         });
         setValidating(false);
       }
-    }, 100);
+    });
   }, [toast, FILE_SIZE_LIMIT, isAcceptedFileType]);
 
   const handleDrag = useCallback((e: React.DragEvent) => {
@@ -203,6 +240,9 @@ const FileUpload: React.FC<FileUploadProps> = ({ onUploadComplete, status }) => 
           <h3 className="text-lg font-medium mb-1">Arraste arquivos ou clique para selecionar</h3>
           <p className="text-sm text-muted-foreground">
             Suporte para PDF, DOCX, JPG e PNG
+          </p>
+          <p className="text-xs text-muted-foreground mt-1">
+            Máximo 50MB por arquivo
           </p>
           
           {validating && (

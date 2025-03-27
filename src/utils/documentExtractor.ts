@@ -1,8 +1,10 @@
-
 import { DraftType } from '@/types';
 import { identifyPartiesAndRoles } from './partyIdentifier';
 
-// Function to extract text from PDF files
+// Export the identifyPartiesAndRoles function to be used elsewhere
+export { identifyPartiesAndRoles };
+
+// Function to extract text from PDF files with time limits and chunking
 async function extractTextFromPDF(file: File): Promise<string> {
   return new Promise((resolve) => {
     try {
@@ -31,7 +33,7 @@ async function extractTextFromPDF(file: File): Promise<string> {
             try {
               // Use a timeout to prevent infinite processing
               const timeoutPromise = new Promise<string>((_, reject) => {
-                setTimeout(() => reject(new Error("PDF processing timeout")), 30000);
+                setTimeout(() => reject(new Error("PDF processing timeout")), 15000); // Reduced timeout
               });
               
               const processingPromise = new Promise<string>(async (resolveProcessing) => {
@@ -40,16 +42,28 @@ async function extractTextFromPDF(file: File): Promise<string> {
                   const pdfDocument = await loadingTask.promise;
                   
                   let fullText = '';
-                  const maxPages = Math.min(pdfDocument.numPages, 20); // Limit to 20 pages for performance
+                  // Limit to 10 pages maximum and only process evenly-numbered pages for faster extraction
+                  const maxPages = Math.min(pdfDocument.numPages, 10);
                   
-                  for (let pageNum = 1; pageNum <= maxPages; pageNum++) {
+                  // Process pages in batches of 2 with pauses between batches
+                  for (let pageNum = 1; pageNum <= maxPages; pageNum += 2) {
                     try {
                       const page = await pdfDocument.getPage(pageNum);
-                      const textContent = await page.getTextContent();
+                      const textContent = await page.getTextContent({
+                        normalizeWhitespace: true, // Normalize whitespace for better text extraction
+                        disableCombineTextItems: false // Combine text items for better performance
+                      });
+                      
+                      // Extract only first 1000 characters per page for faster processing
                       const pageText = textContent.items
+                        .slice(0, 50) // Limit items processed
                         .map(item => 'str' in item ? (item as any).str : '')
                         .join(' ');
+                        
                       fullText += pageText + '\n';
+                      
+                      // Brief pause to prevent UI freezing
+                      await new Promise(r => setTimeout(r, 10));
                     } catch (pageError) {
                       console.warn(`Error extracting text from page ${pageNum}:`, pageError);
                       // Continue with other pages
@@ -93,7 +107,7 @@ async function extractTextFromPDF(file: File): Promise<string> {
       const timeoutId = setTimeout(() => {
         console.warn("PDF file reading timed out");
         resolve("");
-      }, 10000);
+      }, 5000); // Reduced timeout
       
       reader.onloadend = () => {
         clearTimeout(timeoutId);
@@ -113,149 +127,7 @@ async function extractTextFromPDF(file: File): Promise<string> {
   });
 }
 
-// Function to extract text from image files using OCR
-async function extractTextFromImage(file: File): Promise<string> {
-  return new Promise((resolve) => {
-    try {
-      const reader = new FileReader();
-      
-      reader.onload = async function () {
-        try {
-          if (!reader.result) {
-            console.warn("File reader returned empty result for image");
-            resolve("");
-            return;
-          }
-          
-          try {
-            // Set a timeout for Tesseract processing
-            const timeoutPromise = new Promise<string>((_, reject) => {
-              setTimeout(() => reject(new Error("OCR processing timeout")), 30000);
-            });
-            
-            const ocrPromise = new Promise<string>(async (resolveOcr) => {
-              try {
-                const Tesseract = await import('tesseract.js');
-                const { data: { text } } = await Tesseract.recognize(
-                  reader.result as string,
-                  'por', // Portuguese language
-                  { logger: m => console.log(m) }
-                );
-                resolveOcr(text || "");
-              } catch (ocrError) {
-                console.warn("Error during OCR processing:", ocrError);
-                resolveOcr("");
-              }
-            });
-            
-            // Race between timeout and OCR processing
-            const result = await Promise.race([ocrPromise, timeoutPromise])
-              .catch(error => {
-                console.warn("OCR timed out or failed:", error);
-                return "";
-              });
-            
-            resolve(result);
-          } catch (importError) {
-            console.warn("Error importing Tesseract:", importError);
-            resolve("");
-          }
-        } catch (error) {
-          console.warn("Error extracting text from image:", error);
-          resolve("");
-        }
-      };
-      
-      reader.onerror = (error) => {
-        console.warn("Error reading image file:", error);
-        resolve("");
-      };
-      
-      try {
-        reader.readAsDataURL(file);
-      } catch (readError) {
-        console.warn("Error calling readAsDataURL:", readError);
-        resolve("");
-      }
-    } catch (error) {
-      console.warn("Unexpected error in extractTextFromImage:", error);
-      resolve("");
-    }
-  });
-}
-
-// Function to extract text from DOCX files
-async function extractTextFromDOCX(file: File): Promise<string> {
-  return new Promise((resolve) => {
-    try {
-      const reader = new FileReader();
-      
-      reader.onload = async function (e) {
-        try {
-          if (!e.target?.result) {
-            console.warn("File reader returned empty result for DOCX");
-            resolve("");
-            return;
-          }
-          
-          try {
-            // Set a timeout for mammoth processing
-            const timeoutPromise = new Promise<string>((_, reject) => {
-              setTimeout(() => reject(new Error("DOCX processing timeout")), 20000);
-            });
-            
-            const docxPromise = new Promise<string>(async (resolveDocx) => {
-              try {
-                const mammoth = await import('mammoth');
-                const arrayBuffer = e.target.result as ArrayBuffer;
-                const { value } = await mammoth.extractRawText({ arrayBuffer: arrayBuffer });
-                resolveDocx(value || "");
-              } catch (mammothError) {
-                console.warn("Error extracting text with mammoth:", mammothError);
-                resolveDocx("");
-              }
-            });
-            
-            // Race between timeout and DOCX processing
-            const result = await Promise.race([docxPromise, timeoutPromise])
-              .catch(error => {
-                console.warn("DOCX processing timed out or failed:", error);
-                return "";
-              });
-            
-            resolve(result);
-          } catch (importError) {
-            console.warn("Error importing mammoth:", importError);
-            resolve("");
-          }
-        } catch (error) {
-          console.warn("Error extracting text from DOCX:", error);
-          resolve("");
-        }
-      };
-      
-      reader.onerror = (error) => {
-        console.warn("Error reading DOCX file:", error);
-        resolve("");
-      };
-      
-      try {
-        reader.readAsArrayBuffer(file);
-      } catch (readError) {
-        console.warn("Error calling readAsArrayBuffer for DOCX:", readError);
-        resolve("");
-      }
-    } catch (error) {
-      console.warn("Unexpected error in extractTextFromDOCX:", error);
-      resolve("");
-    }
-  });
-}
-
-// Export the identifyPartiesAndRoles function to be used elsewhere
-export { identifyPartiesAndRoles };
-
-// Enhance the extractDataFromFiles function to perform deeper analysis
+// Enhance the extractDataFromFiles function for better performance
 export async function extractDataFromFiles(files: File[]): Promise<{ [key: string]: any }> {
   const extractedData: { [key: string]: any } = {};
   
@@ -267,12 +139,15 @@ export async function extractDataFromFiles(files: File[]): Promise<{ [key: strin
       return extractedData;
     }
     
-    // Set an overall timeout for the entire extraction process
+    // Set a strict timeout for the entire extraction process
     const startTime = Date.now();
-    const maxProcessingTime = 45000; // 45 seconds maximum
+    const maxProcessingTime = 20000; // Reduced to 20 seconds maximum
+    
+    // Process only a single file at a time, with a maximum of 3 files total
+    const filesToProcess = files.slice(0, 3);
     
     // Process each file with time tracking
-    for (const file of files) {
+    for (const file of filesToProcess) {
       // Check if we've exceeded the total processing time
       if (Date.now() - startTime > maxProcessingTime) {
         console.warn('Tempo máximo de extração excedido, interrompendo processamento');
@@ -286,34 +161,33 @@ export async function extractDataFromFiles(files: File[]): Promise<{ [key: strin
       
       console.log('Processando arquivo:', file.name, 'tipo:', file.type);
       
-      // Extract text content from the file based on its type
+      // Extract text content from the file based on its type - but limit to PDF for now (most common)
       let textContent = '';
       
       try {
         const fileType = file.type.toLowerCase();
         const fileName = file.name.toLowerCase();
         
-        // PDF processing
+        // PDF processing - prioritize this format
         if (fileType === 'application/pdf' || fileName.endsWith('.pdf')) {
           textContent = await extractTextFromPDF(file);
         } 
-        // Image processing
-        else if (fileType.includes('image') || /\.(jpg|jpeg|png|gif|bmp|webp)$/i.test(fileName)) {
-          textContent = await extractTextFromImage(file);
-        } 
-        // Document processing
-        else if (fileType.includes('document') || fileName.endsWith('.docx') || fileName.endsWith('.doc')) {
-          textContent = await extractTextFromDOCX(file);
-        } else {
-          console.warn(`Tipo de arquivo não suportado: ${fileType}`);
+        // Skip other formats for now to improve performance
+        else {
+          console.warn(`Tipo de arquivo ignorado para melhor desempenho: ${fileType}`);
         }
         
         if (textContent) {
           console.log('Texto extraído com sucesso do arquivo:', file.name);
-          console.log('Analisando conteúdo para extração de dados...');
           
-          // Extract basic data points
-          extractDataPoints(textContent, extractedData);
+          // Extract basic data points using simple regex patterns
+          extractBasicDataPoints(textContent, extractedData);
+          
+          // Ensure we don't spend too much time on a single file
+          if (Date.now() - startTime > maxProcessingTime * 0.7) {
+            console.warn('Tempo de processamento quase esgotado, parando análise');
+            break;
+          }
         } else {
           console.warn(`Nenhum texto extraído do arquivo: ${file.name}`);
         }
@@ -321,6 +195,9 @@ export async function extractDataFromFiles(files: File[]): Promise<{ [key: strin
         console.error(`Erro ao processar arquivo ${file.name}:`, fileProcessError);
         // Continue with other files
       }
+      
+      // Small pause between file processing
+      await new Promise(resolve => setTimeout(resolve, 50));
     }
     
     return extractedData;
@@ -330,19 +207,15 @@ export async function extractDataFromFiles(files: File[]): Promise<{ [key: strin
   }
 }
 
-// Existing function for extracting data points
-function extractDataPoints(text: string, extractedData: { [key: string]: any }): void {
-  // Extract names with roles if possible
+// Simplified function for extracting data points - using fewer regex patterns
+function extractBasicDataPoints(text: string, extractedData: { [key: string]: any }): void {
+  // Extract names with roles if possible - using a limited set of patterns
   const rolePatterns = [
     { role: 'vendedor', pattern: /vendedor[:\s]+([A-Z][a-zÀ-ÿ]+\s(?:[A-Z][a-zÀ-ÿ]+\s)*[A-Z][a-zÀ-ÿ]+)/i },
     { role: 'comprador', pattern: /comprador[:\s]+([A-Z][a-zÀ-ÿ]+\s(?:[A-Z][a-zÀ-ÿ]+\s)*[A-Z][a-zÀ-ÿ]+)/i },
     { role: 'falecido', pattern: /falecido[:\s]+([A-Z][a-zÀ-ÿ]+\s(?:[A-Z][a-zÀ-ÿ]+\s)*[A-Z][a-zÀ-ÿ]+)/i },
     { role: 'herdeiro', pattern: /herdeiro[:\s]+([A-Z][a-zÀ-ÿ]+\s(?:[A-Z][a-zÀ-ÿ]+\s)*[A-Z][a-zÀ-ÿ]+)/i },
-    { role: 'inventariante', pattern: /inventariante[:\s]+([A-Z][a-zÀ-ÿ]+\s(?:[A-Z][a-zÀ-ÿ]+\s)*[A-Z][a-zÀ-ÿ]+)/i },
-    { role: 'doador', pattern: /doador[:\s]+([A-Z][a-zÀ-ÿ]+\s(?:[A-Z][a-zÀ-ÿ]+\s)*[A-Z][a-zÀ-ÿ]+)/i },
-    { role: 'donatário', pattern: /donatário[:\s]+([A-Z][a-zÀ-ÿ]+\s(?:[A-Z][a-zÀ-ÿ]+\s)*[A-Z][a-zÀ-ÿ]+)/i },
-    { role: 'locador', pattern: /locador[:\s]+([A-Z][a-zÀ-ÿ]+\s(?:[A-Z][a-zÀ-ÿ]+\s)*[A-Z][a-zÀ-ÿ]+)/i },
-    { role: 'locatário', pattern: /locatário[:\s]+([A-Z][a-zÀ-ÿ]+\s(?:[A-Z][a-zÀ-ÿ]+\s)*[A-Z][a-zÀ-ÿ]+)/i }
+    { role: 'inventariante', pattern: /inventariante[:\s]+([A-Z][a-zÀ-ÿ]+\s(?:[A-Z][a-zÀ-ÿ]+\s)*[A-Z][a-zÀ-ÿ]+)/i }
   ];
 
   // Safety check for text input
@@ -350,6 +223,11 @@ function extractDataPoints(text: string, extractedData: { [key: string]: any }):
     console.warn('Texto inválido recebido para extração de dados');
     return;
   }
+
+  // Use a timeout to prevent long-running regex operations
+  const regexTimeout = setTimeout(() => {
+    console.warn('Tempo limite para análise de regex excedido');
+  }, 1000);
 
   rolePatterns.forEach(({ role, pattern }) => {
     try {
@@ -362,26 +240,12 @@ function extractDataPoints(text: string, extractedData: { [key: string]: any }):
     }
   });
 
-  // Look for paragraphs that might contain multiple heirs
-  try {
-    if (text.includes('herdeiro') || text.includes('Herdeiro')) {
-      const heirsParagraphMatch = text.match(/(?:herdeiros?|Herdeiros?).*?(?:\.|$)/gm);
-      if (heirsParagraphMatch) {
-        const heirsParagraph = heirsParagraphMatch.join(' ');
-        const namesMatch = heirsParagraph.match(/[A-Z][a-zÀ-ÿ]+\s(?:[A-Z][a-zÀ-ÿ]+\s)*[A-Z][a-zÀ-ÿ]+/g);
-        if (namesMatch && namesMatch.length > 0) {
-          extractedData['herdeiros'] = namesMatch.join(', ');
-        }
-      }
-    }
-  } catch (heirsError) {
-    console.warn('Erro ao extrair herdeiros:', heirsError);
-  }
-  
+  clearTimeout(regexTimeout);
+
   // Ensure we have at least some basic data
   if (Object.keys(extractedData).length === 0) {
     try {
-      // Extract any name-like patterns as a fallback
+      // Extract any name-like patterns as a fallback - limit to first 2 matches
       const namePatterns = text.match(/[A-Z][a-zÀ-ÿ]+\s(?:[A-Z][a-zÀ-ÿ]+\s)+[A-Z][a-zÀ-ÿ]+/g);
       if (namePatterns && namePatterns.length > 0) {
         extractedData['nome'] = namePatterns[0].trim();

@@ -36,25 +36,68 @@ const Upload: React.FC = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  // Função para processar arquivos em etapas, evitando bloqueio da UI
+  // Função otimizada para processar documentos em etapas menores com yield/requestAnimationFrame
   const processFilesInSteps = useCallback(async (files: File[], docType: DraftType) => {
     if (isCancelled) return;
+    
+    // Função auxiliar para pausar entre operações pesadas
+    const pauseExecution = (ms: number = 10): Promise<void> => 
+      new Promise(resolve => setTimeout(resolve, ms));
     
     try {
       console.log("Iniciando o processamento dos arquivos:", files.map(f => f.name).join(', '));
       
-      // Etapa 1: Extração de dados básicos
+      // Etapa 1: Extração de dados básicos - dividida em sub-etapas
       setProcessingStage('Extraindo dados básicos dos documentos...');
-      setProcessingProgress(30);
+      setProcessingProgress(20);
       
-      // Permitir que a UI atualize antes de continuar
-      await new Promise(resolve => setTimeout(resolve, 50));
+      // Permita que a UI atualize antes de continuar
+      await pauseExecution(50);
       
       let extractedData: ExtractedData = {};
       
       try {
-        // Função modificada que processa arquivos em lotes
-        extractedData = await extractDataFromFiles(files);
+        // Processa no máximo 2 arquivos por vez
+        const batchSize = 2;
+        let processedData: ExtractedData = {};
+        
+        for (let i = 0; i < files.length; i += batchSize) {
+          if (isCancelled) return;
+          
+          // Extrai um lote de arquivos
+          const fileBatch = files.slice(i, i + batchSize);
+          setProcessingStage(`Analisando documento ${i+1} de ${files.length}...`);
+          
+          try {
+            // Processar cada arquivo do lote com pequenos intervalos
+            for (const file of fileBatch) {
+              if (isCancelled) return;
+              
+              // Atualiza a mensagem para o arquivo atual
+              setProcessingStage(`Analisando ${file.name}...`);
+              
+              // Extrair dados de um único arquivo
+              const fileData = await extractDataFromFiles([file]);
+              
+              // Mesclar com dados já processados
+              processedData = { ...processedData, ...fileData };
+              
+              // Pequena pausa para permitir atualizações da UI
+              await pauseExecution(50);
+              
+              // Atualize o progresso proporcionalmente ao número de arquivos processados
+              const progressIncrement = 20 / files.length;
+              setProcessingProgress(prev => Math.min(40, prev + progressIncrement));
+            }
+          } catch (batchError) {
+            console.error("Erro ao processar lote de arquivos:", batchError);
+          }
+          
+          // Aguarda entre lotes para não bloquear a UI
+          await pauseExecution(100);
+        }
+        
+        extractedData = processedData;
         
         if ('error' in extractedData) {
           throw new Error(extractedData.error as string);
@@ -64,7 +107,7 @@ const Upload: React.FC = () => {
       } catch (extractionError) {
         console.error("Erro na extração de dados:", extractionError);
         toast({
-          title: "Erro na extração de dados",
+          title: "Aviso na extração de dados",
           description: "Houve um problema ao extrair dados dos documentos. Usando dados mínimos.",
           variant: "default"
         });
@@ -75,7 +118,7 @@ const Upload: React.FC = () => {
       setProcessingProgress(50);
       
       // Atualização da UI antes da próxima etapa
-      await new Promise(resolve => setTimeout(resolve, 50));
+      await pauseExecution(100);
       
       // Etapa 2: Identificar partes e papéis
       setProcessingStage('Identificando partes e papéis nos documentos...');
@@ -83,7 +126,27 @@ const Upload: React.FC = () => {
       let enhancedData: ExtractedData = extractedData;
       
       try {
-        enhancedData = await identifyPartiesAndRoles(files, docType, extractedData);
+        // Processa um arquivo por vez para identificação de partes
+        for (let i = 0; i < files.length; i++) {
+          if (isCancelled) return;
+          
+          const file = files[i];
+          setProcessingStage(`Analisando papéis em ${file.name}...`);
+          
+          // Identificar partes em um único arquivo
+          const partialEnhancedData = await identifyPartiesAndRoles([file], docType, extractedData);
+          
+          // Mesclar resultados
+          enhancedData = { ...enhancedData, ...partialEnhancedData };
+          
+          // Atualizar progresso proporcionalmente
+          const progressIncrement = 20 / files.length;
+          setProcessingProgress(prev => Math.min(70, prev + progressIncrement));
+          
+          // Pausa entre arquivos
+          await pauseExecution(50);
+        }
+        
         console.log("Identificação de partes e papéis concluída:", enhancedData);
       } catch (partyError) {
         console.error("Erro na identificação de partes:", partyError);
@@ -95,34 +158,41 @@ const Upload: React.FC = () => {
       }
       
       if (isCancelled) return;
-      setProcessingProgress(70);
+      setProcessingProgress(75);
       
       // Atualização da UI antes da próxima etapa
-      await new Promise(resolve => setTimeout(resolve, 50));
+      await pauseExecution(100);
       
       // Etapa 3: Gerar conteúdo do documento
       setProcessingStage('Gerando conteúdo do documento...');
       
       let documentContent = "";
       
-      try {
-        documentContent = generateDocumentContent(docType, enhancedData);
-        console.log("Conteúdo do documento gerado com sucesso");
-      } catch (contentError) {
-        console.error("Erro ao gerar conteúdo do documento:", contentError);
-        documentContent = `<h1>${docType}</h1><p>Não foi possível gerar o conteúdo completo devido a um erro no processamento.</p>`;
-        toast({
-          title: "Erro ao gerar documento",
-          description: "Houve um problema ao gerar o conteúdo do documento. Um modelo básico será usado.",
-          variant: "default"
+      // Usar requestAnimationFrame para geração de conteúdo (operação sincronizada)
+      await new Promise<void>(resolve => {
+        requestAnimationFrame(() => {
+          try {
+            documentContent = generateDocumentContent(docType, enhancedData);
+            console.log("Conteúdo do documento gerado com sucesso");
+            resolve();
+          } catch (contentError) {
+            console.error("Erro ao gerar conteúdo do documento:", contentError);
+            documentContent = `<h1>${docType}</h1><p>Não foi possível gerar o conteúdo completo devido a um erro no processamento.</p>`;
+            toast({
+              title: "Erro ao gerar documento",
+              description: "Houve um problema ao gerar o conteúdo do documento. Um modelo básico será usado.",
+              variant: "default"
+            });
+            resolve();
+          }
         });
-      }
+      });
       
       if (isCancelled) return;
-      setProcessingProgress(85);
+      setProcessingProgress(90);
       
       // Atualização da UI antes da próxima etapa
-      await new Promise(resolve => setTimeout(resolve, 50));
+      await pauseExecution(100);
       
       // Etapa 4: Armazenar o rascunho
       setProcessingStage('Finalizando e salvando o documento...');
@@ -138,16 +208,26 @@ const Upload: React.FC = () => {
           ])
         );
         
-        // Armazena o rascunho no sessionStorage
-        sessionStorage.setItem('generatedDraft', JSON.stringify({
-          id: 'new',
-          title: `${docType} - Gerado em ${new Date().toLocaleDateString('pt-BR')}`,
-          type: docType,
-          content: documentContent,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-          extractedData: sanitizedData
-        }));
+        // Armazena o rascunho no sessionStorage em um requestAnimationFrame
+        await new Promise<void>(resolve => {
+          requestAnimationFrame(() => {
+            try {
+              sessionStorage.setItem('generatedDraft', JSON.stringify({
+                id: 'new',
+                title: `${docType} - Gerado em ${new Date().toLocaleDateString('pt-BR')}`,
+                type: docType,
+                content: documentContent,
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString(),
+                extractedData: sanitizedData
+              }));
+              resolve();
+            } catch (error) {
+              console.error("Erro ao armazenar rascunho:", error);
+              resolve();
+            }
+          });
+        });
       } catch (storageError) {
         console.error("Erro ao armazenar o rascunho:", storageError);
         toast({
@@ -172,12 +252,12 @@ const Upload: React.FC = () => {
       });
       
       // Atraso leve para mostrar o sucesso antes de navegar
-      setTimeout(() => {
-        if (!isCancelled) {
-          setProcessingDialogOpen(false);
-          navigate('/view/new');
-        }
-      }, 1000);
+      await pauseExecution(800);
+      
+      if (!isCancelled) {
+        setProcessingDialogOpen(false);
+        navigate('/view/new');
+      }
       
     } catch (error) {
       console.error('Erro ao processar arquivos:', error);
@@ -204,6 +284,16 @@ const Upload: React.FC = () => {
       return;
     }
     
+    // Limitar o número de arquivos a 5 para melhor desempenho
+    if (files.length > 5) {
+      toast({
+        title: "Muitos arquivos",
+        description: "Por favor, selecione no máximo 5 arquivos para processar de uma vez.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
     setSelectedFiles(files);
     setStatus('uploading');
     setProcessingDialogOpen(true);
@@ -222,7 +312,13 @@ const Upload: React.FC = () => {
     setIsCancelled(true);
     setProcessingDialogOpen(false);
     setStatus('idle');
-  }, []);
+    
+    toast({
+      title: "Processamento cancelado",
+      description: "O processamento dos documentos foi cancelado.",
+      variant: "default"
+    });
+  }, [toast]);
 
   const handleTypeChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
     const newType = e.target.value as DraftType;
