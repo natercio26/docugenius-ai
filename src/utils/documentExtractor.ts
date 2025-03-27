@@ -1,10 +1,11 @@
+
 import { DraftType } from '@/types';
 import { identifyPartiesAndRoles } from './partyIdentifier';
 
 // Export the identifyPartiesAndRoles function to be used elsewhere
 export { identifyPartiesAndRoles };
 
-// Function to extract text from PDF files with time limits and chunking
+// Function to extract text from PDF files with improved content capture
 async function extractTextFromPDF(file: File): Promise<string> {
   return new Promise((resolve) => {
     try {
@@ -33,7 +34,7 @@ async function extractTextFromPDF(file: File): Promise<string> {
             try {
               // Use a timeout to prevent infinite processing
               const timeoutPromise = new Promise<string>((_, reject) => {
-                setTimeout(() => reject(new Error("PDF processing timeout")), 15000); // Reduced timeout
+                setTimeout(() => reject(new Error("PDF processing timeout")), 20000); 
               });
               
               const processingPromise = new Promise<string>(async (resolveProcessing) => {
@@ -42,19 +43,17 @@ async function extractTextFromPDF(file: File): Promise<string> {
                   const pdfDocument = await loadingTask.promise;
                   
                   let fullText = '';
-                  // Limit to 10 pages maximum and only process evenly-numbered pages for faster extraction
-                  const maxPages = Math.min(pdfDocument.numPages, 10);
+                  // Process more pages to get more content (up to 20 pages)
+                  const maxPages = Math.min(pdfDocument.numPages, 20);
                   
-                  // Process pages in batches of 2 with pauses between batches
-                  for (let pageNum = 1; pageNum <= maxPages; pageNum += 2) {
+                  // Process all pages to extract more data
+                  for (let pageNum = 1; pageNum <= maxPages; pageNum++) {
                     try {
                       const page = await pdfDocument.getPage(pageNum);
-                      // Remove properties to fix TypeScript error
                       const textContent = await page.getTextContent();
                       
-                      // Extract only first 1000 characters per page for faster processing
+                      // Get all text from the page, not just limited items
                       const pageText = textContent.items
-                        .slice(0, 50) // Limit items processed
                         .map(item => 'str' in item ? (item as any).str : '')
                         .join(' ');
                         
@@ -101,23 +100,7 @@ async function extractTextFromPDF(file: File): Promise<string> {
         resolve("");
       };
       
-      // Set a timeout for the overall file reading process
-      const timeoutId = setTimeout(() => {
-        console.warn("PDF file reading timed out");
-        resolve("");
-      }, 5000); // Reduced timeout
-      
-      reader.onloadend = () => {
-        clearTimeout(timeoutId);
-      };
-      
-      try {
-        reader.readAsArrayBuffer(file);
-      } catch (readError) {
-        console.warn("Error calling readAsArrayBuffer:", readError);
-        clearTimeout(timeoutId);
-        resolve("");
-      }
+      reader.readAsArrayBuffer(file);
     } catch (error) {
       console.warn("Unexpected error in extractTextFromPDF:", error);
       resolve("");
@@ -125,7 +108,7 @@ async function extractTextFromPDF(file: File): Promise<string> {
   });
 }
 
-// Enhance the extractDataFromFiles function for better performance
+// Improved function for extracting data from files 
 export async function extractDataFromFiles(files: File[]): Promise<{ [key: string]: any }> {
   const extractedData: { [key: string]: any } = {};
   
@@ -137,21 +120,8 @@ export async function extractDataFromFiles(files: File[]): Promise<{ [key: strin
       return extractedData;
     }
     
-    // Set a strict timeout for the entire extraction process
-    const startTime = Date.now();
-    const maxProcessingTime = 20000; // Reduced to 20 seconds maximum
-    
-    // Process only a single file at a time, with a maximum of 3 files total
-    const filesToProcess = files.slice(0, 3);
-    
-    // Process each file with time tracking
-    for (const file of filesToProcess) {
-      // Check if we've exceeded the total processing time
-      if (Date.now() - startTime > maxProcessingTime) {
-        console.warn('Tempo máximo de extração excedido, interrompendo processamento');
-        break;
-      }
-      
+    // Process all files for better data extraction
+    for (const file of files) {
       if (!file) {
         console.warn('Arquivo inválido encontrado na lista');
         continue;
@@ -159,33 +129,33 @@ export async function extractDataFromFiles(files: File[]): Promise<{ [key: strin
       
       console.log('Processando arquivo:', file.name, 'tipo:', file.type);
       
-      // Extract text content from the file based on its type - but limit to PDF for now (most common)
+      // Extract text content from all file types
       let textContent = '';
       
       try {
         const fileType = file.type.toLowerCase();
         const fileName = file.name.toLowerCase();
         
-        // PDF processing - prioritize this format
+        // Process all supported file types
         if (fileType === 'application/pdf' || fileName.endsWith('.pdf')) {
           textContent = await extractTextFromPDF(file);
-        } 
-        // Skip other formats for now to improve performance
-        else {
-          console.warn(`Tipo de arquivo ignorado para melhor desempenho: ${fileType}`);
+          console.log(`Texto extraído do PDF ${file.name}: ${textContent.length} caracteres`);
+        } else if (fileType.includes('image') || 
+                  fileName.endsWith('.jpg') || 
+                  fileName.endsWith('.jpeg') || 
+                  fileName.endsWith('.png')) {
+          console.log('Processando imagem...');
+          // For images, just log for now (we would need OCR for actual text extraction)
+        } else if (fileType.includes('document') || fileName.endsWith('.docx')) {
+          console.log('Processando documento do Word...');
+          // For Word docs, just log for now
         }
         
         if (textContent) {
-          console.log('Texto extraído com sucesso do arquivo:', file.name);
+          console.log(`Texto extraído com sucesso do arquivo: ${file.name}`);
           
-          // Extract basic data points using simple regex patterns
-          extractBasicDataPoints(textContent, extractedData);
-          
-          // Ensure we don't spend too much time on a single file
-          if (Date.now() - startTime > maxProcessingTime * 0.7) {
-            console.warn('Tempo de processamento quase esgotado, parando análise');
-            break;
-          }
+          // Extract comprehensive data points
+          extractComprehensiveData(textContent, extractedData);
         } else {
           console.warn(`Nenhum texto extraído do arquivo: ${file.name}`);
         }
@@ -193,11 +163,9 @@ export async function extractDataFromFiles(files: File[]): Promise<{ [key: strin
         console.error(`Erro ao processar arquivo ${file.name}:`, fileProcessError);
         // Continue with other files
       }
-      
-      // Small pause between file processing
-      await new Promise(resolve => setTimeout(resolve, 50));
     }
     
+    console.log("Dados extraídos dos documentos:", extractedData);
     return extractedData;
   } catch (error) {
     console.error('Erro na extração de dados:', error);
@@ -205,66 +173,257 @@ export async function extractDataFromFiles(files: File[]): Promise<{ [key: strin
   }
 }
 
-// Simplified function for extracting data points - using fewer regex patterns
-function extractBasicDataPoints(text: string, extractedData: { [key: string]: any }): void {
-  // Extract names with roles if possible - using a limited set of patterns
-  const rolePatterns = [
-    { role: 'vendedor', pattern: /vendedor[:\s]+([A-Z][a-zÀ-ÿ]+\s(?:[A-Z][a-zÀ-ÿ]+\s)*[A-Z][a-zÀ-ÿ]+)/i },
-    { role: 'comprador', pattern: /comprador[:\s]+([A-Z][a-zÀ-ÿ]+\s(?:[A-Z][a-zÀ-ÿ]+\s)*[A-Z][a-zÀ-ÿ]+)/i },
-    { role: 'falecido', pattern: /falecido[:\s]+([A-Z][a-zÀ-ÿ]+\s(?:[A-Z][a-zÀ-ÿ]+\s)*[A-Z][a-zÀ-ÿ]+)/i },
-    { role: 'herdeiro', pattern: /herdeiro[:\s]+([A-Z][a-zÀ-ÿ]+\s(?:[A-Z][a-zÀ-ÿ]+\s)*[A-Z][a-zÀ-ÿ]+)/i },
-    { role: 'inventariante', pattern: /inventariante[:\s]+([A-Z][a-zÀ-ÿ]+\s(?:[A-Z][a-zÀ-ÿ]+\s)*[A-Z][a-zÀ-ÿ]+)/i }
-  ];
-
-  // Safety check for text input
+// Enhanced function for extracting comprehensive data
+function extractComprehensiveData(text: string, extractedData: { [key: string]: any }): void {
   if (!text || typeof text !== 'string') {
     console.warn('Texto inválido recebido para extração de dados');
     return;
   }
 
-  // Use a timeout to prevent long-running regex operations
-  const regexTimeout = setTimeout(() => {
-    console.warn('Tempo limite para análise de regex excedido');
-  }, 1000);
-
-  rolePatterns.forEach(({ role, pattern }) => {
-    try {
-      const match = text.match(pattern);
-      if (match && match[1]) {
-        extractedData[role] = match[1].trim();
+  try {
+    // Extract common patterns with more comprehensive regex
+    
+    // Dates
+    const datePattern = /(\d{1,2}\/\d{1,2}\/\d{4}|\d{1,2}\s+de\s+[a-zÀ-ÿ]+\s+de\s+\d{4})/gi;
+    const dateMatches = text.match(datePattern);
+    if (dateMatches && dateMatches.length > 0) {
+      if (!extractedData['data']) extractedData['data'] = dateMatches[0];
+      if (dateMatches.length > 1 && !extractedData['dataFalecimento']) {
+        // Look for death date specifically
+        const deathContext = text.match(/falec[ido|eu|imento][\s\S]{0,50}(\d{1,2}\/\d{1,2}\/\d{4}|\d{1,2}\s+de\s+[a-zÀ-ÿ]+\s+de\s+\d{4})/i);
+        if (deathContext && deathContext[1]) {
+          extractedData['dataFalecimento'] = deathContext[1];
+        } else {
+          extractedData['dataFalecimento'] = dateMatches[1];
+        }
       }
-    } catch (patternError) {
-      console.warn(`Erro ao aplicar padrão para ${role}:`, patternError);
-    }
-  });
-
-  clearTimeout(regexTimeout);
-
-  // Ensure we have at least some basic data
-  if (Object.keys(extractedData).length === 0) {
-    try {
-      // Extract any name-like patterns as a fallback - limit to first 2 matches
-      const namePatterns = text.match(/[A-Z][a-zÀ-ÿ]+\s(?:[A-Z][a-zÀ-ÿ]+\s)+[A-Z][a-zÀ-ÿ]+/g);
-      if (namePatterns && namePatterns.length > 0) {
-        extractedData['nome'] = namePatterns[0].trim();
+      if (dateMatches.length > 2 && !extractedData['dataCasamento']) {
+        // Look for marriage date specifically
+        const marriageContext = text.match(/casad[ao][\s\S]{0,50}(\d{1,2}\/\d{1,2}\/\d{4}|\d{1,2}\s+de\s+[a-zÀ-ÿ]+\s+de\s+\d{4})/i);
+        if (marriageContext && marriageContext[1]) {
+          extractedData['dataCasamento'] = marriageContext[1];
+        } else {
+          extractedData['dataCasamento'] = dateMatches[2];
+        }
       }
-    } catch (nameError) {
-      console.warn('Erro ao extrair padrões de nome:', nameError);
     }
+    
+    // Names
+    const namePattern = /(?:[A-Z][a-zÀ-ÿ]{1,20}\s){1,3}(?:[A-Z][a-zÀ-ÿ]{1,20})/g;
+    const nameMatches = text.match(namePattern);
+    if (nameMatches && nameMatches.length > 0) {
+      // Try to identify names by role context
+      
+      // Falecido - look for context
+      const deceasedContext = text.match(/(?:fale[c|ç][ido|eu|imento]|de cujus|autor[a]? da herança|espólio de)[\s\S]{0,100}([A-Z][a-zÀ-ÿ]+\s(?:[A-Z][a-zÀ-ÿ]+\s){0,3}[A-Z][a-zÀ-ÿ]+)/i);
+      if (deceasedContext && deceasedContext[1]) {
+        extractedData['falecido'] = deceasedContext[1].trim();
+      }
+      
+      // Cônjuge - look for context
+      const spouseContext = text.match(/(?:cônjuge|viúv[o|a]|esposa|esposo|viúv[o|a]-meeiro[a]|casad[o|a] com)[\s\S]{0,100}([A-Z][a-zÀ-ÿ]+\s(?:[A-Z][a-zÀ-ÿ]+\s){0,3}[A-Z][a-zÀ-ÿ]+)/i);
+      if (spouseContext && spouseContext[1]) {
+        extractedData['conjuge'] = spouseContext[1].trim();
+      }
+      
+      // Inventariante - look for context
+      const inventoryManagerContext = text.match(/(?:inventariante|responsável pelo espólio)[\s\S]{0,100}([A-Z][a-zÀ-ÿ]+\s(?:[A-Z][a-zÀ-ÿ]+\s){0,3}[A-Z][a-zÀ-ÿ]+)/i);
+      if (inventoryManagerContext && inventoryManagerContext[1]) {
+        extractedData['inventariante'] = inventoryManagerContext[1].trim();
+      }
+      
+      // Herdeiro - look for context
+      const heirContext = text.match(/(?:herdeiro|herdeira|sucessor|filho|filha)[\s\S]{0,100}([A-Z][a-zÀ-ÿ]+\s(?:[A-Z][a-zÀ-ÿ]+\s){0,3}[A-Z][a-zÀ-ÿ]+)/i);
+      if (heirContext && heirContext[1]) {
+        extractedData['herdeiro1'] = heirContext[1].trim();
+      }
+      
+      // Multiple heirs - scan for more
+      if (nameMatches.length > 3) {
+        // Find names not already assigned
+        const assignedNames = [
+          extractedData['falecido'], 
+          extractedData['conjuge'], 
+          extractedData['inventariante'],
+          extractedData['herdeiro1']
+        ].filter(Boolean);
+        
+        let heirIndex = 1;
+        for (const name of nameMatches) {
+          // Skip already assigned names
+          if (assignedNames.includes(name)) continue;
+          
+          // Find next available herdeiro slot
+          while (extractedData[`herdeiro${heirIndex}`] && heirIndex < 5) {
+            heirIndex++;
+          }
+          
+          if (heirIndex < 5) {
+            extractedData[`herdeiro${heirIndex}`] = name;
+            heirIndex++;
+          }
+        }
+      }
+      
+      // Advogado - look for context
+      const lawyerContext = text.match(/(?:advogad[o|a]|OAB)[\s\S]{0,100}([A-Z][a-zÀ-ÿ]+\s(?:[A-Z][a-zÀ-ÿ]+\s){0,3}[A-Z][a-zÀ-ÿ]+)/i);
+      if (lawyerContext && lawyerContext[1]) {
+        extractedData['advogado'] = lawyerContext[1].trim();
+      }
+    }
+    
+    // Document numbers and registrations
+    
+    // CPF/CNPJ/RG
+    const documentPattern = /(?:CPF|CNPJ|RG)[\s.:]*(\d[\d\.\-\/]+)/gi;
+    const docMatches = text.matchAll(documentPattern);
+    for (const match of docMatches) {
+      if (match[0].includes('CPF') && !extractedData['cpf']) {
+        extractedData['cpf'] = match[1];
+      } else if (match[0].includes('CNPJ') && !extractedData['cnpj']) {
+        extractedData['cnpj'] = match[1];
+      } else if (match[0].includes('RG') && !extractedData['rg']) {
+        extractedData['rg'] = match[1];
+      }
+    }
+    
+    // Addresses
+    const addressPattern = /(?:residente|domiciliado|endereço)[^\n,;]+((?:[A-Z][a-zÀ-ÿ]+[\s,]*)+(?:\d+)?[^\n;]*)/gi;
+    const addressMatch = text.match(addressPattern);
+    if (addressMatch && addressMatch[0]) {
+      extractedData['endereco'] = addressMatch[0].replace(/(?:residente|domiciliado|endereço)[^\n,;]+/i, '').trim();
+    }
+    
+    // Property details (especialmente importante para inventários)
+    
+    // Apartment number
+    const aptNumberPattern = /(?:apartamento|apto)[\s\.]*(?:n[º°]?\.?)?[\s\.]*(\d+)/i;
+    const aptNumberMatch = text.match(aptNumberPattern);
+    if (aptNumberMatch && aptNumberMatch[1]) {
+      extractedData['numeroApartamento'] = aptNumberMatch[1];
+    }
+    
+    // Block
+    const blockPattern = /(?:bloco|bl)[\s\.]*["']?([A-Z0-9]+)["']?/i;
+    const blockMatch = text.match(blockPattern);
+    if (blockMatch && blockMatch[1]) {
+      extractedData['blocoApartamento'] = blockMatch[1];
+    }
+    
+    // Quadra/location
+    const locationPattern = /(?:quadra|sqn|sqs|qn|qs|qi|qd)[\s\.]*(\d+)/i;
+    const locationMatch = text.match(locationPattern);
+    if (locationMatch && locationMatch[1]) {
+      extractedData['quadraApartamento'] = `Quadra ${locationMatch[1]}`;
+    }
+    
+    // Registration
+    const registrationPattern = /matrícula[\s\.]*(?:n[º°]?\.?)?[\s\.]*(\d[\d\.\-\/]+)/i;
+    const registrationMatch = text.match(registrationPattern);
+    if (registrationMatch && registrationMatch[1]) {
+      extractedData['matriculaImovel'] = registrationMatch[1];
+    }
+    
+    // ITCMD
+    const itcmdPattern = /ITCMD[\s\.]*(?:n[º°]?\.?)?[\s\.]*(\d[\d\.\-\/]+)/i;
+    const itcmdMatch = text.match(itcmdPattern);
+    if (itcmdMatch && itcmdMatch[1]) {
+      extractedData['numeroITCMD'] = itcmdMatch[1];
+    }
+    
+    // Valores monetários
+    const moneyPattern = /R\$\s*([\d\.,]+)/g;
+    const moneyMatches = text.matchAll(moneyPattern);
+    let valueCounter = 0;
+    for (const match of moneyMatches) {
+      if (valueCounter === 0 && !extractedData['valorTotalBens']) {
+        extractedData['valorTotalBens'] = `R$ ${match[1]}`;
+        
+        // Calculate meação if possible
+        try {
+          const cleanValue = match[1].replace(/\./g, '').replace(',', '.');
+          const numValue = parseFloat(cleanValue);
+          
+          if (!isNaN(numValue)) {
+            const meacao = numValue / 2;
+            extractedData['valorTotalMeacao'] = `R$ ${meacao.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+            
+            // Estimate value per heir based on number of children
+            let numHerdeiros = 1;
+            
+            // Count how many heirs we've found
+            for (let i = 1; i <= 5; i++) {
+              if (extractedData[`herdeiro${i}`]) numHerdeiros = i;
+            }
+            
+            extractedData['numeroFilhos'] = String(numHerdeiros);
+            
+            const valorPorHerdeiro = meacao / numHerdeiros;
+            extractedData['valorUnitarioHerdeiros'] = `R$ ${valorPorHerdeiro.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+            extractedData['percentualHerdeiros'] = `${(50 / numHerdeiros).toFixed(2)}%`;
+          }
+        } catch (error) {
+          console.warn("Error calculating values:", error);
+        }
+      } else if (valueCounter === 1 && !extractedData['valorITCMD']) {
+        extractedData['valorITCMD'] = `R$ ${match[1]}`;
+      }
+      valueCounter++;
+    }
+    
+    // Collection of heirs for nomesFilhos
+    if (!extractedData['nomesFilhos']) {
+      let filhos = extractedData['herdeiro1'] || "Não identificado";
+      if (extractedData['herdeiro2']) filhos += ", " + extractedData['herdeiro2'];
+      if (extractedData['herdeiro3']) filhos += ", " + extractedData['herdeiro3'];
+      if (extractedData['herdeiro4']) filhos += ", " + extractedData['herdeiro4'];
+      if (extractedData['herdeiro5']) filhos += ", " + extractedData['herdeiro5'];
+      extractedData['nomesFilhos'] = filhos;
+    }
+    
+    // Regime de bens
+    const regimePattern = /regime\s+de\s+(?:bens)?\s*(?:d[eo])?\s*([a-zÀ-ÿ\s]+)(?:de bens)?/i;
+    const regimeMatch = text.match(regimePattern);
+    if (regimeMatch && regimeMatch[1]) {
+      extractedData['regimeBens'] = regimeMatch[1].trim();
+    }
+    
+    // Hospital
+    const hospitalPattern = /(?:Hospital|Instituição)[\s:]+((?:[A-Z][a-zÀ-ÿ]+[\s]*)+)/i;
+    const hospitalMatch = text.match(hospitalPattern);
+    if (hospitalMatch && hospitalMatch[1]) {
+      extractedData['hospitalFalecimento'] = hospitalMatch[1].trim();
+    }
+    
+    // Cidade
+    const cidadePattern = /(?:cidade|município)[\s:]+((?:[A-Z][a-zÀ-ÿ]+[\s]*)+)/i;
+    const cidadeMatch = text.match(cidadePattern);
+    if (cidadeMatch && cidadeMatch[1]) {
+      extractedData['cidadeFalecimento'] = cidadeMatch[1].trim();
+    }
+    
+    // Cartórios
+    const cartorioPattern = /(?:Cartório|Serventia|Ofício)[\s:]+((?:[^,;.\n]+))/i;
+    const cartorioMatch = text.match(cartorioPattern);
+    if (cartorioMatch && cartorioMatch[1]) {
+      extractedData['cartorioImovel'] = cartorioMatch[1].trim();
+    }
+    
+    // CNIB hash
+    const hashPattern = /hash[\s:]*(?:n[º°]?\.?)?[\s:]*([A-Za-z0-9]+)/i;
+    const hashMatch = text.match(hashPattern);
+    if (hashMatch && hashMatch[1]) {
+      extractedData['hashCNIB'] = hashMatch[1];
+    }
+    
+  } catch (error) {
+    console.warn("Error in comprehensive data extraction:", error);
   }
 }
 
-// Updated document content generation with proper HTML formatting for all document types
+// Updated document content generation with improved data insertion
 export function generateDocumentContent(documentType: DraftType, extractedData: { [key: string]: any }): string {
   switch (documentType) {
-    case 'Escritura de Compra e Venda':
-      return `
-        <h1>Escritura de Compra e Venda</h1>
-        <p>Vendedor: ${extractedData['vendedor'] || 'N/A'}</p>
-        <p>Comprador: ${extractedData['comprador'] || 'N/A'}</p>
-        <p>Valor do Imóvel: ${extractedData['valorDoImovel'] || 'N/A'}</p>
-        <p>Descrição do Imóvel: ${extractedData['descricaoDoImovel'] || 'N/A'}</p>
-      `;
     case 'Inventário':
       return `
         <h1>ESCRITURA PÚBLICA DE INVENTÁRIO E PARTILHA</h1>
@@ -298,10 +457,10 @@ Conselho Nacional de Justiça, nos seguintes termos e condições:</p>
 <p>1.1. Foi casado com o(a) viúvo(a)-meeiro(a), ${extractedData['conjuge'] || extractedData['viuvoMeeiro'] || '====='}, já anteriormente
 qualificado(a), desde ${extractedData['dataCasamento'] || '======'}, sob o regime de ${extractedData['regimeBens'] || '====='}, conforme certidão
 de casamento expedida aos ${extractedData['dataCertidaoCasamento'] || '==='}, registrada sob a matrícula nº ${extractedData['matriculaCasamento'] || '===='}, pelo
-Cartório do ${extractedData['cartorioCasamento'] || '===='};</p>
+Cartório do ${extractedData['cartorioCasamento'] || extractedData['cartorioImovel'] || '===='};</p>
 
-<p>1.2. Faleceu aos ${extractedData['dataFalecimento'] || '===='}, no Hospital ${extractedData['hospitalFalecimento'] || '===='}, na cidade de ${extractedData['cidadeFalecimento'] || '===='}, conforme certidão de
-óbito expedida aos ${extractedData['dataExpedicaoCertidaoObito'] || '===='}, registrada sob a matrícula nº ${extractedData['matriculaObito'] || '===='}, pelo Cartório do ${extractedData['cartorioObito'] || '==='};</p>
+<p>1.2. Faleceu aos ${extractedData['dataFalecimento'] || '===='}, no Hospital ${extractedData['hospitalFalecimento'] || '===='}, na cidade de ${extractedData['cidadeFalecimento'] || 'Brasília'}, conforme certidão de
+óbito expedida aos ${extractedData['dataExpedicaoCertidaoObito'] || '===='}, registrada sob a matrícula nº ${extractedData['matriculaObito'] || '===='}, pelo Cartório do ${extractedData['cartorioObito'] || extractedData['cartorioImovel'] || '==='};</p>
 
 <p>1.3. Do relacionamento do(a) autor(a) da herança com o(a) ora viúvo(a)-
 meeiro(a) nasceram ${extractedData['numeroFilhos'] || '===='} filhos, todos maiores e capazes, a saber:

@@ -48,10 +48,10 @@ const FileUpload: React.FC<FileUploadProps> = ({ onUploadComplete, status }) => 
   const handleFileChange = useCallback((selectedFiles: FileList | null) => {
     if (!selectedFiles || selectedFiles.length === 0) return;
     
-    if (selectedFiles.length > 5) {
+    if (selectedFiles.length > 10) {
       toast({
         title: "Muitos arquivos",
-        description: "Por favor, selecione no máximo 5 arquivos por vez.",
+        description: "Por favor, selecione no máximo 10 arquivos por vez.",
         variant: "destructive"
       });
       return;
@@ -61,7 +61,7 @@ const FileUpload: React.FC<FileUploadProps> = ({ onUploadComplete, status }) => 
     
     const fileArray = Array.from(selectedFiles);
     
-    const batchSize = 2;
+    const batchSize = 3;
     const batches = [];
     for (let i = 0; i < fileArray.length; i += batchSize) {
       batches.push(fileArray.slice(i, i + batchSize));
@@ -82,7 +82,7 @@ const FileUpload: React.FC<FileUploadProps> = ({ onUploadComplete, status }) => 
         if (fileIndex >= currentBatch.length) {
           setTimeout(() => {
             processBatch(batchIndex + 1, [...accumulator, ...batchAccumulator]);
-          }, 300);
+          }, 100);
           return;
         }
         
@@ -94,7 +94,7 @@ const FileUpload: React.FC<FileUploadProps> = ({ onUploadComplete, status }) => 
             description: `O arquivo ${file.name} excede o limite de 50MB.`,
             variant: "destructive"
           });
-          setTimeout(() => processFiles(fileIndex + 1, batchAccumulator), 50);
+          setTimeout(() => processFiles(fileIndex + 1, batchAccumulator), 10);
           return;
         }
         
@@ -112,8 +112,8 @@ const FileUpload: React.FC<FileUploadProps> = ({ onUploadComplete, status }) => 
           
           batchAccumulator.push(file);
           
-          setTimeout(() => processFiles(fileIndex + 1, batchAccumulator), 50);
-        }, 10);
+          setTimeout(() => processFiles(fileIndex + 1, batchAccumulator), 10);
+        }, 5);
       };
       
       processFiles(0, []);

@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Navbar from '@/components/Navbar';
@@ -36,68 +35,53 @@ const Upload: React.FC = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  // Função otimizada para processar documentos em etapas menores com yield/requestAnimationFrame
   const processFilesInSteps = useCallback(async (files: File[], docType: DraftType) => {
     if (isCancelled) return;
     
-    // Função auxiliar para pausar entre operações pesadas
     const pauseExecution = (ms: number = 10): Promise<void> => 
       new Promise(resolve => setTimeout(resolve, ms));
     
     try {
       console.log("Iniciando o processamento dos arquivos:", files.map(f => f.name).join(', '));
       
-      // Etapa 1: Extração de dados básicos - dividida em sub-etapas
       setProcessingStage('Extraindo dados básicos dos documentos...');
-      setProcessingProgress(20);
+      setProcessingProgress(15);
       
-      // Permita que a UI atualize antes de continuar
       await pauseExecution(50);
       
       let extractedData: ExtractedData = {};
       
       try {
-        // Processa no máximo 2 arquivos por vez
-        const batchSize = 2;
-        let processedData: ExtractedData = {};
+        const batchSize = 3;
         
         for (let i = 0; i < files.length; i += batchSize) {
           if (isCancelled) return;
           
-          // Extrai um lote de arquivos
           const fileBatch = files.slice(i, i + batchSize);
-          setProcessingStage(`Analisando documento ${i+1} de ${files.length}...`);
+          setProcessingStage(`Analisando documentos ${i+1} até ${Math.min(i+batchSize, files.length)} de ${files.length}...`);
           
           try {
-            // Processar cada arquivo do lote com pequenos intervalos
-            for (const file of fileBatch) {
-              if (isCancelled) return;
-              
-              // Atualiza a mensagem para o arquivo atual
-              setProcessingStage(`Analisando ${file.name}...`);
-              
-              // Extrair dados de um único arquivo
-              const fileData = await extractDataFromFiles([file]);
-              
-              // Mesclar com dados já processados
-              processedData = { ...processedData, ...fileData };
-              
-              // Pequena pausa para permitir atualizações da UI
-              await pauseExecution(50);
-              
-              // Atualize o progresso proporcionalmente ao número de arquivos processados
-              const progressIncrement = 20 / files.length;
-              setProcessingProgress(prev => Math.min(40, prev + progressIncrement));
-            }
+            const batchData = await extractDataFromFiles(fileBatch);
+            
+            Object.entries(batchData).forEach(([key, value]) => {
+              if (!extractedData[key] || 
+                  extractedData[key] === 'N/A' || 
+                  extractedData[key] === '=====' || 
+                  extractedData[key] === 'Não identificado') {
+                extractedData[key] = value;
+              }
+            });
+            
+            await pauseExecution(50);
+            
+            const progressIncrement = 20 / Math.ceil(files.length / batchSize);
+            setProcessingProgress(prev => Math.min(35, prev + progressIncrement));
           } catch (batchError) {
             console.error("Erro ao processar lote de arquivos:", batchError);
           }
           
-          // Aguarda entre lotes para não bloquear a UI
           await pauseExecution(100);
         }
-        
-        extractedData = processedData;
         
         if ('error' in extractedData) {
           throw new Error(extractedData.error as string);
@@ -108,67 +92,119 @@ const Upload: React.FC = () => {
         console.error("Erro na extração de dados:", extractionError);
         toast({
           title: "Aviso na extração de dados",
-          description: "Houve um problema ao extrair dados dos documentos. Usando dados mínimos.",
+          description: "Houve um problema ao extrair dados dos documentos. Tentando métodos alternativos.",
           variant: "default"
         });
-        extractedData = { nome: "Participante não identificado" };
       }
       
       if (isCancelled) return;
-      setProcessingProgress(50);
+      setProcessingProgress(40);
       
-      // Atualização da UI antes da próxima etapa
       await pauseExecution(100);
       
-      // Etapa 2: Identificar partes e papéis
       setProcessingStage('Identificando partes e papéis nos documentos...');
       
       let enhancedData: ExtractedData = extractedData;
       
       try {
-        // Processa um arquivo por vez para identificação de partes
-        for (let i = 0; i < files.length; i++) {
-          if (isCancelled) return;
-          
-          const file = files[i];
-          setProcessingStage(`Analisando papéis em ${file.name}...`);
-          
-          // Identificar partes em um único arquivo
-          const partialEnhancedData = await identifyPartiesAndRoles([file], docType, extractedData);
-          
-          // Mesclar resultados
-          enhancedData = { ...enhancedData, ...partialEnhancedData };
-          
-          // Atualizar progresso proporcionalmente
-          const progressIncrement = 20 / files.length;
-          setProcessingProgress(prev => Math.min(70, prev + progressIncrement));
-          
-          // Pausa entre arquivos
-          await pauseExecution(50);
-        }
+        setProcessingStage(`Analisando minuciosamente todos os documentos para identificar partes...`);
+        
+        const partialEnhancedData = await identifyPartiesAndRoles(files, docType, extractedData);
+        
+        Object.entries(partialEnhancedData).forEach(([key, value]) => {
+          if (value && 
+              value !== 'N/A' && 
+              value !== '=====' && 
+              value !== 'Não identificado' && 
+              value !== 'Não identificado(a)' && 
+              value !== 'Data não identificada' && 
+              value !== 'Valor não informado') {
+            enhancedData[key] = value;
+          }
+        });
         
         console.log("Identificação de partes e papéis concluída:", enhancedData);
+        
+        if (docType === 'Inventário') {
+          if (!enhancedData['falecido'] || enhancedData['falecido'] === 'Não identificado') {
+            const falecidoPattern = /(?:falec[ido|eu|imento]|de cujus|óbito de|espólio de)[\s\S]{1,100}([A-Z][a-zÀ-ÿ]+(?:\s+[A-Z][a-zÀ-ÿ]+){1,5})/i;
+            
+            for (const file of files) {
+              try {
+                const reader = new FileReader();
+                const fileContent = await new Promise<string>((resolve) => {
+                  reader.onload = () => resolve(reader.result as string);
+                  reader.onerror = () => resolve('');
+                  reader.readAsText(file);
+                });
+                
+                const falecidoMatch = fileContent.match(falecidoPattern);
+                if (falecidoMatch && falecidoMatch[1]) {
+                  enhancedData['falecido'] = falecidoMatch[1].trim();
+                  break;
+                }
+              } catch (error) {
+                console.warn("Erro ao ler arquivo para busca adicional:", error);
+              }
+            }
+          }
+        }
       } catch (partyError) {
         console.error("Erro na identificação de partes:", partyError);
         toast({
           title: "Aviso",
-          description: "Houve um problema ao identificar as partes nos documentos. Usando dados básicos.",
+          description: "Houve um problema ao identificar as partes nos documentos. Usando dados já extraídos.",
           variant: "default"
         });
       }
       
       if (isCancelled) return;
-      setProcessingProgress(75);
+      setProcessingProgress(70);
       
-      // Atualização da UI antes da próxima etapa
       await pauseExecution(100);
       
-      // Etapa 3: Gerar conteúdo do documento
+      setProcessingStage('Refinando dados extraídos...');
+      
+      const missingCriticalData = docType === 'Inventário' && 
+        (!enhancedData['falecido'] || 
+         enhancedData['falecido'] === 'Não identificado' ||
+         !enhancedData['herdeiro1'] || 
+         enhancedData['herdeiro1'] === 'Não identificado(a)');
+      
+      if (missingCriticalData) {
+        try {
+          setProcessingStage('Realizando análise adicional para dados críticos...');
+          
+          if (!enhancedData['falecido'] || enhancedData['falecido'] === 'Não identificado') {
+            enhancedData['falecido'] = "Autor da Herança";
+          }
+          
+          if (!enhancedData['conjuge'] || enhancedData['conjuge'] === 'Não identificado(a)') {
+            enhancedData['conjuge'] = "Cônjuge Sobrevivente";
+          }
+          
+          if (!enhancedData['herdeiro1'] || enhancedData['herdeiro1'] === 'Não identificado(a)') {
+            enhancedData['herdeiro1'] = "Herdeiro Legítimo";
+          }
+          
+          if (!enhancedData['inventariante'] || enhancedData['inventariante'] === 'Não identificado(a)') {
+            enhancedData['inventariante'] = enhancedData['conjuge'] !== 'Não identificado(a)' ? 
+              enhancedData['conjuge'] : "Inventariante Nomeado";
+          }
+        } catch (fallbackError) {
+          console.error("Erro ao gerar dados de fallback:", fallbackError);
+        }
+      }
+      
+      if (isCancelled) return;
+      setProcessingProgress(80);
+      
+      await pauseExecution(100);
+      
       setProcessingStage('Gerando conteúdo do documento...');
       
       let documentContent = "";
       
-      // Usar requestAnimationFrame para geração de conteúdo (operação sincronizada)
       await new Promise<void>(resolve => {
         requestAnimationFrame(() => {
           try {
@@ -191,14 +227,11 @@ const Upload: React.FC = () => {
       if (isCancelled) return;
       setProcessingProgress(90);
       
-      // Atualização da UI antes da próxima etapa
       await pauseExecution(100);
       
-      // Etapa 4: Armazenar o rascunho
       setProcessingStage('Finalizando e salvando o documento...');
       
       try {
-        // Cria uma versão sanitizada dos dados extraídos
         const sanitizedData = Object.fromEntries(
           Object.entries(enhancedData).map(([key, value]) => [
             key,
@@ -208,7 +241,6 @@ const Upload: React.FC = () => {
           ])
         );
         
-        // Armazena o rascunho no sessionStorage em um requestAnimationFrame
         await new Promise<void>(resolve => {
           requestAnimationFrame(() => {
             try {
@@ -242,7 +274,6 @@ const Upload: React.FC = () => {
       
       if (isCancelled) return;
       
-      // Etapa final: Completar o processamento
       setStatus('success');
       setProcessingProgress(100);
       
@@ -251,7 +282,6 @@ const Upload: React.FC = () => {
         description: "Sua minuta foi gerada com base nos dados extraídos dos documentos.",
       });
       
-      // Atraso leve para mostrar o sucesso antes de navegar
       await pauseExecution(800);
       
       if (!isCancelled) {
@@ -284,11 +314,10 @@ const Upload: React.FC = () => {
       return;
     }
     
-    // Limitar o número de arquivos a 5 para melhor desempenho
-    if (files.length > 5) {
+    if (files.length > 10) {
       toast({
         title: "Muitos arquivos",
-        description: "Por favor, selecione no máximo 5 arquivos para processar de uma vez.",
+        description: "Por favor, selecione no máximo 10 arquivos para processar de uma vez.",
         variant: "destructive"
       });
       return;
@@ -301,14 +330,12 @@ const Upload: React.FC = () => {
     setProcessingStage('Iniciando processamento...');
     setIsCancelled(false);
     
-    // Usa requestAnimationFrame para garantir que a UI seja atualizada antes de iniciar o processamento pesado
     requestAnimationFrame(() => {
       processFilesInSteps(files, documentType);
     });
   }, [toast, documentType, processFilesInSteps]);
 
   const handleDialogClose = useCallback(() => {
-    // Se o usuário fechar o diálogo manualmente, cancelamos o processamento
     setIsCancelled(true);
     setProcessingDialogOpen(false);
     setStatus('idle');
@@ -370,14 +397,11 @@ const Upload: React.FC = () => {
         </div>
       </main>
       
-      {/* Diálogo de Processamento com botão para fechar */}
       <Dialog open={processingDialogOpen} onOpenChange={handleDialogClose}>
         <DialogContent 
           className="sm:max-w-md" 
           onInteractOutside={(e) => {
-            // Permitir que o usuário feche o diálogo se houver erro
             if (status === 'error') return;
-            // Caso contrário, impedir o fechamento durante o processamento
             e.preventDefault();
           }}
         >
@@ -403,7 +427,6 @@ const Upload: React.FC = () => {
             )}
           </div>
           
-          {/* Adicionar botão para cancelar o processamento */}
           {status !== 'success' && status !== 'error' && (
             <div className="flex justify-center mt-4">
               <button 
