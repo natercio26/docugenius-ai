@@ -10,7 +10,11 @@ import { extractDataFromFiles, generateDocumentContent } from '@/utils/documentE
 const Upload: React.FC = () => {
   const [status, setStatus] = useState<UploadStatus>('idle');
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
-  const [documentType, setDocumentType] = useState<DraftType>('Escritura de Compra e Venda');
+  const [documentType, setDocumentType] = useState<DraftType>(() => {
+    // Get the saved document type from localStorage or use default
+    const savedType = localStorage.getItem('selectedDocumentType');
+    return savedType as DraftType || 'Escritura de Compra e Venda';
+  });
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -20,17 +24,22 @@ const Upload: React.FC = () => {
     setStatus('uploading');
     
     try {
-      // Simulate upload time
+      // Simulate upload time (3 seconds for visual feedback)
       setTimeout(async () => {
         setStatus('processing');
         
         try {
+          console.log("Starting data extraction from files");
+          
           // Extract data from the uploaded files
           const extractedData = await extractDataFromFiles(files);
-          console.log('Extracted data:', extractedData);
+          
+          console.log("Data extraction complete:", extractedData);
           
           // Generate document content based on the extracted data
           const documentContent = generateDocumentContent(documentType, extractedData);
+          
+          console.log("Document content generated successfully");
           
           // Store generated content in sessionStorage
           sessionStorage.setItem('generatedDraft', JSON.stringify({
@@ -64,7 +73,7 @@ const Upload: React.FC = () => {
             variant: "destructive"
           });
         }
-      }, 1500);
+      }, 3000);
     } catch (error) {
       console.error('Error handling upload:', error);
       setStatus('error');
@@ -78,7 +87,10 @@ const Upload: React.FC = () => {
   };
 
   const handleTypeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setDocumentType(e.target.value as DraftType);
+    const newType = e.target.value as DraftType;
+    setDocumentType(newType);
+    // Save the selected document type to localStorage
+    localStorage.setItem('selectedDocumentType', newType);
   };
 
   return (
@@ -129,3 +141,4 @@ const Upload: React.FC = () => {
 };
 
 export default Upload;
+

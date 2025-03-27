@@ -71,6 +71,12 @@ const FileUpload: React.FC<FileUploadProps> = ({ onUploadComplete, status }) => 
       return;
     }
     
+    // Inform user about processing
+    toast({
+      title: "Processando documentos",
+      description: "Seus documentos estão sendo analisados para extrair os dados. Aguarde um momento.",
+    });
+    
     onUploadComplete(files);
   }, [files, onUploadComplete, toast]);
 
@@ -170,3 +176,4 @@ const FileUpload: React.FC<FileUploadProps> = ({ onUploadComplete, status }) => 
 };
 
 export default FileUpload;
+

@@ -1,5 +1,6 @@
-
 import { DraftType } from '@/types';
+import * as pdfjs from 'pdf-parse';
+import Tesseract from 'tesseract.js';
 
 // Function to read file contents
 export const readFileContents = async (file: File): Promise<string> => {
@@ -7,8 +8,13 @@ export const readFileContents = async (file: File): Promise<string> => {
     const reader = new FileReader();
     
     reader.onload = (event) => {
-      if (event.target && typeof event.target.result === 'string') {
-        resolve(event.target.result);
+      if (event.target && event.target.result) {
+        if (typeof event.target.result === 'string') {
+          resolve(event.target.result);
+        } else {
+          // For array buffers (PDF files)
+          resolve("Array buffer read successfully");
+        }
       } else {
         reject(new Error('Failed to read file content'));
       }
@@ -19,13 +25,68 @@ export const readFileContents = async (file: File): Promise<string> => {
     };
     
     if (file.type === 'application/pdf') {
-      // For PDF files, read as array buffer (for future PDF.js processing)
       reader.readAsArrayBuffer(file);
+    } else if (file.type.startsWith('image/')) {
+      reader.readAsDataURL(file);
     } else {
-      // For text files, read as text
       reader.readAsText(file);
     }
   });
+};
+
+// Parse PDF content
+const parsePdfContent = async (file: File): Promise<string> => {
+  try {
+    const arrayBuffer = await file.arrayBuffer();
+    const data = await pdfjs(new Uint8Array(arrayBuffer));
+    console.log("PDF extracted text:", data.text);
+    return data.text;
+  } catch (error) {
+    console.error("Error parsing PDF:", error);
+    return "";
+  }
+};
+
+// Extract text from images using OCR
+const extractTextFromImage = async (file: File): Promise<string> => {
+  try {
+    const reader = new FileReader();
+    return new Promise((resolve, reject) => {
+      reader.onload = async (event) => {
+        if (event.target && event.target.result) {
+          const imageData = event.target.result.toString();
+          
+          console.log("Starting OCR processing for image");
+          
+          const result = await Tesseract.recognize(
+            imageData,
+            'por', // Portuguese language
+            { 
+              logger: msg => {
+                if (msg.status === 'recognizing text') {
+                  console.log(`OCR progress: ${(msg.progress * 100).toFixed(2)}%`);
+                }
+              } 
+            }
+          );
+          
+          console.log("OCR completed, extracted text:", result.data.text);
+          resolve(result.data.text);
+        } else {
+          reject(new Error('Failed to read image'));
+        }
+      };
+      
+      reader.onerror = () => {
+        reject(new Error('Error reading image file'));
+      };
+      
+      reader.readAsDataURL(file);
+    });
+  } catch (error) {
+    console.error("Error extracting text from image:", error);
+    return "";
+  }
 };
 
 // Extract data from files based on their content
@@ -33,25 +94,34 @@ export const extractDataFromFiles = async (files: File[]): Promise<Record<string
   const extractedData: Record<string, string> = {};
   
   try {
+    console.log(`Processing ${files.length} files for data extraction`);
+    
     // Process each uploaded file
     for (const file of files) {
       let content = "";
       
       try {
-        if (file.type === 'application/pdf' || 
-            file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
-          // For PDFs and DOCXs, we'll use the file name for now
-          // In a production app, you'd use a PDF/DOCX parsing library
-          content = file.name;
+        console.log(`Processing file: ${file.name}, type: ${file.type}`);
+        
+        if (file.type === 'application/pdf') {
+          // For PDFs, extract text content
+          content = await parsePdfContent(file);
+          console.log(`PDF content extracted, length: ${content.length} characters`);
         } else if (file.type.startsWith('image/')) {
-          // For images, we use the file name (in production, you'd use OCR)
+          // For images, use OCR to extract text
+          content = await extractTextFromImage(file);
+          console.log(`Image OCR completed, extracted text length: ${content.length} characters`);
+        } else if (file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+          // For DOCX, we're still using filename (would need mammoth.js for full implementation)
           content = file.name;
+          console.log("DOCX processing not fully implemented, using filename");
         } else {
-          // For text files, read the content
+          // For text files, read the content directly
           content = await readFileContents(file);
+          console.log(`Text file content read, length: ${content.length} characters`);
         }
         
-        // Extract information based on content and filename
+        // Extract information based on content
         extractDataFromFileContent(file.name, content, extractedData);
         
       } catch (error) {
@@ -59,6 +129,7 @@ export const extractDataFromFiles = async (files: File[]): Promise<Record<string
       }
     }
     
+    console.log("Extracted data:", extractedData);
     return extractedData;
   } catch (error) {
     console.error('Error extracting data from files:', error);
@@ -76,6 +147,8 @@ const extractDataFromFileContent = (
   const lowerFileName = fileName.toLowerCase();
   const lowerContent = content.toLowerCase();
   
+  console.log(`Extracting data from: ${fileName}`);
+  
   // Extract data based on filename and content patterns
   
   // RG/Identity document patterns
@@ -84,10 +157,13 @@ const extractDataFromFileContent = (
       lowerContent.includes('documento de identidade') || 
       lowerContent.includes('registro geral')) {
     
+    console.log("Identified as identity document");
+    
     // Try to extract name pattern (usually "Nome: [name]" or similar)
     const nameMatch = content.match(/Nome:?\s+([A-Za-zÀ-ÖØ-öø-ÿ\s]+)/i);
     if (nameMatch && nameMatch[1]) {
       extractedData.nome = nameMatch[1].trim();
+      console.log(`Extracted name: ${extractedData.nome}`);
     }
     
     // Try to extract RG number
@@ -95,6 +171,7 @@ const extractDataFromFileContent = (
                     content.match(/([\d]{1,2}\.[\d]{3}\.[\d]{3}-[0-9A-Za-z])/i);
     if (rgMatch && rgMatch[1]) {
       extractedData.rg = rgMatch[1].trim();
+      console.log(`Extracted RG: ${extractedData.rg}`);
     }
     
     // Try to extract CPF number
@@ -102,6 +179,7 @@ const extractDataFromFileContent = (
                      content.match(/([\d]{3}\.[\d]{3}\.[\d]{3}-[\d]{2})/i);
     if (cpfMatch && cpfMatch[1]) {
       extractedData.cpf = cpfMatch[1].trim();
+      console.log(`Extracted CPF: ${extractedData.cpf}`);
     }
   }
   
@@ -112,11 +190,14 @@ const extractDataFromFileContent = (
       lowerContent.includes('imóvel') ||
       lowerContent.includes('matrícula')) {
     
+    console.log("Identified as property document");
+    
     // Try to extract property address
     const addressMatch = content.match(/endereço:?\s+([^,.]+(,|\.)[^,.]+)/i) ||
                          content.match(/situado\s+(?:na|no|em)\s+([^,.]+(,|\.)[^,.]+)/i);
     if (addressMatch && addressMatch[1]) {
       extractedData.enderecoImovel = addressMatch[1].trim();
+      console.log(`Extracted property address: ${extractedData.enderecoImovel}`);
     }
     
     // Try to extract property value
@@ -124,18 +205,21 @@ const extractDataFromFileContent = (
                        content.match(/(R\$\s*[\d.,]+\s*(?:\(.*?\))?)/i);
     if (valueMatch && valueMatch[1]) {
       extractedData.valorImovel = valueMatch[1].trim();
+      console.log(`Extracted property value: ${extractedData.valorImovel}`);
     }
     
     // Try to extract property registration number
     const regMatch = content.match(/matrícula\s+(?:n[º°]|número)?\s*([\d.]+)/i);
     if (regMatch && regMatch[1]) {
       extractedData.registroImovel = `matrícula nº ${regMatch[1].trim()}`;
+      console.log(`Extracted property registration: ${extractedData.registroImovel}`);
     }
     
     // Try to extract property area
     const areaMatch = content.match(/área\s+(?:de)?\s*([\d,.]+\s*m²)/i);
     if (areaMatch && areaMatch[1]) {
       extractedData.areaImovel = areaMatch[1].trim();
+      console.log(`Extracted property area: ${extractedData.areaImovel}`);
     }
   }
   
@@ -144,11 +228,14 @@ const extractDataFromFileContent = (
       lowerFileName.includes('venda') || 
       lowerContent.includes('compra e venda')) {
     
+    console.log("Identified as purchase/sale document");
+    
     // Try to extract seller name
     const sellerMatch = content.match(/vendedor:?\s+([A-Za-zÀ-ÖØ-öø-ÿ\s]+)/i) ||
                         content.match(/outorgante:?\s+([A-Za-zÀ-ÖØ-öø-ÿ\s]+)/i);
     if (sellerMatch && sellerMatch[1]) {
       extractedData.vendedor = sellerMatch[1].trim();
+      console.log(`Extracted seller: ${extractedData.vendedor}`);
     }
     
     // Try to extract buyer name
@@ -156,7 +243,38 @@ const extractDataFromFileContent = (
                        content.match(/outorgado:?\s+([A-Za-zÀ-ÖØ-öø-ÿ\s]+)/i);
     if (buyerMatch && buyerMatch[1]) {
       extractedData.nome = buyerMatch[1].trim();
+      console.log(`Extracted buyer: ${extractedData.nome}`);
     }
+  }
+  
+  // Extended pattern matching for more data points
+  
+  // Try to extract any dates (birth dates, issue dates, etc.)
+  const dateMatches = content.match(/data\s+(?:de\s+)?(?:nascimento|emissão|expedição):?\s+(\d{2}\/\d{2}\/\d{4})/gi);
+  if (dateMatches && dateMatches.length > 0) {
+    extractedData.data = dateMatches[0].split(':')[1]?.trim() || dateMatches[0];
+    console.log(`Extracted date: ${extractedData.data}`);
+  }
+  
+  // Try to extract professions
+  const professionMatch = content.match(/profissão:?\s+([A-Za-zÀ-ÖØ-öø-ÿ\s]+?)(?:,|\.|;)/i);
+  if (professionMatch && professionMatch[1]) {
+    extractedData.profissao = professionMatch[1].trim();
+    console.log(`Extracted profession: ${extractedData.profissao}`);
+  }
+  
+  // Try to extract civil status
+  const civilStatusMatch = content.match(/(?:estado\s+civil|estado):?\s+([A-Za-zÀ-ÖØ-öø-ÿ\s]+?)(?:,|\.|;)/i);
+  if (civilStatusMatch && civilStatusMatch[1]) {
+    extractedData.estadoCivil = civilStatusMatch[1].trim();
+    console.log(`Extracted civil status: ${extractedData.estadoCivil}`);
+  }
+  
+  // Try to extract nationality
+  const nationalityMatch = content.match(/(?:nacionalidade):?\s+([A-Za-zÀ-ÖØ-öø-ÿ\s]+?)(?:,|\.|;)/i);
+  if (nationalityMatch && nationalityMatch[1]) {
+    extractedData.nacionalidade = nationalityMatch[1].trim();
+    console.log(`Extracted nationality: ${extractedData.nacionalidade}`);
   }
 };
 
