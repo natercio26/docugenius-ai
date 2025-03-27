@@ -42,7 +42,7 @@ export const readFileContents = async (file: File): Promise<string> => {
 // Parse PDF content using PDF.js (browser-compatible)
 const parsePdfContent = async (file: File): Promise<string> => {
   try {
-    console.log("Starting PDF extraction process");
+    console.log("Starting PDF extraction process for:", file.name);
     const arrayBuffer = await file.arrayBuffer();
     
     // Load the PDF document using PDF.js
@@ -57,27 +57,29 @@ const parsePdfContent = async (file: File): Promise<string> => {
       const textContent = await page.getTextContent();
       const pageText = textContent.items.map((item: any) => item.str).join(' ');
       fullText += pageText + '\n';
-      console.log(`Extracted text from page ${i}`);
+      console.log(`Extracted text from page ${i}, length: ${pageText.length} characters`);
     }
     
-    console.log("PDF extraction complete, text length:", fullText.length);
+    console.log("PDF extraction complete, full text length:", fullText.length);
+    console.log("Sample text content:", fullText.substring(0, 200) + "...");
     return fullText;
   } catch (error) {
     console.error("Error parsing PDF:", error);
-    return "";
+    throw new Error(`Failed to parse PDF: ${error.message}`);
   }
 };
 
 // Extract text from images using OCR
 const extractTextFromImage = async (file: File): Promise<string> => {
   try {
+    console.log("Starting OCR for image:", file.name);
     const reader = new FileReader();
     return new Promise((resolve, reject) => {
       reader.onload = async (event) => {
         if (event.target && event.target.result) {
           const imageData = event.target.result.toString();
           
-          console.log("Starting OCR processing for image");
+          console.log("Image loaded, beginning OCR processing");
           
           const result = await Tesseract.recognize(
             imageData,
@@ -91,7 +93,8 @@ const extractTextFromImage = async (file: File): Promise<string> => {
             }
           );
           
-          console.log("OCR completed, extracted text:", result.data.text);
+          console.log("OCR completed, extracted text length:", result.data.text.length);
+          console.log("Sample OCR text:", result.data.text.substring(0, 200) + "...");
           resolve(result.data.text);
         } else {
           reject(new Error('Failed to read image'));
@@ -106,7 +109,7 @@ const extractTextFromImage = async (file: File): Promise<string> => {
     });
   } catch (error) {
     console.error("Error extracting text from image:", error);
-    return "";
+    throw new Error(`Failed to extract text from image: ${error.message}`);
   }
 };
 
@@ -115,7 +118,12 @@ export const extractDataFromFiles = async (files: File[]): Promise<Record<string
   const extractedData: Record<string, string> = {};
   
   try {
-    console.log(`Processing ${files.length} files for data extraction`);
+    console.log(`Starting to process ${files.length} files for data extraction`);
+    
+    if (files.length === 0) {
+      console.error("No files provided for extraction");
+      return extractedData;
+    }
     
     // Process each uploaded file
     for (const file of files) {
@@ -142,7 +150,13 @@ export const extractDataFromFiles = async (files: File[]): Promise<Record<string
           console.log(`Text file content read, length: ${content.length} characters`);
         }
         
+        if (!content || content.trim() === '') {
+          console.warn(`No content extracted from file: ${file.name}`);
+          continue;
+        }
+        
         // Extract information based on content
+        console.log("Attempting to extract data from content");
         extractDataFromFileContent(file.name, content, extractedData);
         
       } catch (error) {
@@ -150,11 +164,18 @@ export const extractDataFromFiles = async (files: File[]): Promise<Record<string
       }
     }
     
-    console.log("Extracted data:", extractedData);
+    console.log("Final extracted data:", extractedData);
+    
+    // If we didn't extract any meaningful data, add a warning
+    if (Object.keys(extractedData).length === 0) {
+      console.warn("No data could be extracted from the provided files");
+      extractedData.warning = "Não foi possível extrair dados dos documentos fornecidos.";
+    }
+    
     return extractedData;
   } catch (error) {
     console.error('Error extracting data from files:', error);
-    return {};
+    return { error: "Falha ao processar documentos: " + error.message };
   }
 };
 
@@ -169,6 +190,7 @@ const extractDataFromFileContent = (
   const lowerContent = content.toLowerCase();
   
   console.log(`Extracting data from: ${fileName}`);
+  console.log("Content sample for pattern matching:", content.substring(0, 500) + "...");
   
   // Extract data based on filename and content patterns
   
@@ -268,12 +290,25 @@ const extractDataFromFileContent = (
     }
   }
   
-  // Extended pattern matching for more data points
+  // Additional pattern matching for common text found in Brazilian documents
+  
+  // Look for any name patterns with common Brazilian document formatting
+  if (!extractedData.nome) {
+    const brazilianNameMatch = 
+      content.match(/(?:nome completo|nome)[:;]\s*([A-Za-zÀ-ÖØ-öø-ÿ\s]+?)(?:[,\.]|$)/i) || 
+      content.match(/\b([A-Za-zÀ-ÖØ-öø-ÿ]{2,}\s+[A-Za-zÀ-ÖØ-öø-ÿ]{2,}(?:\s+[A-Za-zÀ-ÖØ-öø-ÿ]{2,}){0,3})\b/);
+    
+    if (brazilianNameMatch && brazilianNameMatch[1]) {
+      extractedData.nome = brazilianNameMatch[1].trim();
+      console.log(`Extracted name using Brazilian pattern: ${extractedData.nome}`);
+    }
+  }
   
   // Try to extract any dates (birth dates, issue dates, etc.)
   const dateMatches = content.match(/data\s+(?:de\s+)?(?:nascimento|emissão|expedição):?\s+(\d{2}\/\d{2}\/\d{4})/gi);
   if (dateMatches && dateMatches.length > 0) {
-    extractedData.data = dateMatches[0].split(':')[1]?.trim() || dateMatches[0];
+    const dateStr = dateMatches[0].split(':')[1]?.trim() || dateMatches[0];
+    extractedData.data = dateStr;
     console.log(`Extracted date: ${extractedData.data}`);
   }
   
@@ -304,6 +339,7 @@ export const generateDocumentContent = (
   type: DraftType, 
   data: Record<string, string>
 ): string => {
+  console.log("Generating document content with data:", data);
   let content = '';
   
   // Get month name in Portuguese
@@ -319,6 +355,19 @@ export const generateDocumentContent = (
   const today = new Date();
   const formattedDate = `${today.getDate()} de ${getMonthName(today)} de ${today.getFullYear()}`;
   
+  // If there's a warning message, show a placeholder document with the warning
+  if (data.warning) {
+    return `ATENÇÃO: ${data.warning}
+
+Não foi possível extrair dados suficientes dos documentos fornecidos para gerar uma minuta completa. 
+Por favor, verifique se os documentos estão legíveis e contêm as informações necessárias.
+
+Você também pode editar esta minuta manualmente para incluir os dados corretos.
+
+MODELO DE DOCUMENTO - ${type}
+Data: ${formattedDate}`;
+  }
+
   switch(type) {
     case 'Escritura de Compra e Venda':
       content = `ESCRITURA PÚBLICA DE COMPRA E VENDA

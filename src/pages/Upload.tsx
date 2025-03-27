@@ -20,11 +20,22 @@ const Upload: React.FC = () => {
 
   // Process the uploaded files and generate the document
   const handleUploadComplete = async (files: File[]) => {
+    if (!files || files.length === 0) {
+      toast({
+        title: "Nenhum arquivo selecionado",
+        description: "Por favor, selecione pelo menos um arquivo para processar.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
     setSelectedFiles(files);
     setStatus('uploading');
     
     try {
-      // Simulate upload time (3 seconds for visual feedback)
+      console.log("Starting processing for files:", files.map(f => f.name).join(', '));
+      
+      // Upload simulation (1.5 seconds for visual feedback)
       setTimeout(async () => {
         setStatus('processing');
         
@@ -34,7 +45,20 @@ const Upload: React.FC = () => {
           // Extract data from the uploaded files
           const extractedData = await extractDataFromFiles(files);
           
+          if (extractedData.error) {
+            throw new Error(extractedData.error);
+          }
+          
           console.log("Data extraction complete:", extractedData);
+          
+          if (Object.keys(extractedData).length <= 1 && !extractedData.nome) {
+            console.warn("Insufficient data extracted from documents");
+            toast({
+              title: "Dados insuficientes",
+              description: "Não foi possível extrair dados suficientes dos documentos. A minuta será criada com dados mínimos.",
+              variant: "warning"
+            });
+          }
           
           // Generate document content based on the extracted data
           const documentContent = generateDocumentContent(documentType, extractedData);
@@ -73,7 +97,7 @@ const Upload: React.FC = () => {
             variant: "destructive"
           });
         }
-      }, 3000);
+      }, 1500);
     } catch (error) {
       console.error('Error handling upload:', error);
       setStatus('error');
@@ -141,4 +165,3 @@ const Upload: React.FC = () => {
 };
 
 export default Upload;
-
