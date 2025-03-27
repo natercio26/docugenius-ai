@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Navbar from '@/components/Navbar';
@@ -8,7 +9,8 @@ import { useToast } from '@/hooks/use-toast';
 
 const sampleContent = `ESCRITURA PÚBLICA DE COMPRA E VENDA
 
-SAIBAM todos quantos esta Escritura Pública de Compra e Venda virem que, aos 15 (quinze) dias do mês de setembro do ano de 2023 (dois mil e vinte e três), nesta cidade e comarca de São Paulo, Estado de São Paulo, perante mim, Tabelião, compareceram as partes entre si justas e contratadas, a saber:
+SAIBAM todos quantos esta Escritura Pública de Compra e Venda virem que, aos 15 (quinze) dias do mês de setembro do ano de 2023 (dois mil e vinte e três), nesta cidade e comarca de São Paulo, Estado de São Paulo, perante
+mim, Tabelião, compareceram as partes entre si justas e contratadas, a saber:
 
 OUTORGANTE VENDEDOR: JOÃO DA SILVA, brasileiro, casado, empresário, portador da Cédula de Identidade RG nº 12.345.678-9 SSP/SP, inscrito no CPF/MF sob nº 123.456.789-00, residente e domiciliado na Rua das Flores, nº 123, Bairro Jardim, CEP 01234-567, nesta Capital;
 
@@ -122,7 +124,7 @@ expedida pela Secretaria de Estado da Fazenda do Distrito Federal sob o nº
 
 <p>Certifica que, foi feita a consulta prévia junto a Central Nacional de Indisponibilidade de Bens - CNIB, no(s) CPF do(a) autor(a) da herança, conforme código hash sob o nº A1B2C3D4E5F6, com o resultado NEGATIVO.</p>
 
-<p>Assim o disseram, pediram-me e eu Escrevente lhes lavrei a presente escritura, que feita e lhes sendo lida, foi achada em tudo conforme, aceitam e assinam.</p>;
+<p>Assim o disseram, pediram-me e eu Escrevente lhes lavrei a presente escritura, que feita e lhes sendo lida, foi achada em tudo conforme, aceitam e assinam.</p>`;
 
 const sampleExtractedData = {
   falecido: "João Silva",
