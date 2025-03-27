@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import Navbar from '@/components/Navbar';
 import { useToast } from '@/hooks/use-toast';
@@ -13,6 +14,8 @@ const defaultDraftTypes: DraftType[] = [
   'União Estável',
   'Procuração',
   'Testamento',
+  'Contrato de Aluguel',
+  'Contrato Social',
   'Outro'
 ];
 
@@ -53,6 +56,21 @@ const defaultFieldsByType: Record<DraftType, { name: string, type: string, requi
     { name: 'Herdeiros', type: 'text', required: true },
     { name: 'Legados', type: 'text', required: false },
     { name: 'Testemunhas', type: 'text', required: true },
+  ],
+  'Contrato de Aluguel': [
+    { name: 'Locador', type: 'text', required: true },
+    { name: 'Locatário', type: 'text', required: true },
+    { name: 'Endereço do Imóvel', type: 'text', required: true },
+    { name: 'Valor do Aluguel', type: 'text', required: true },
+    { name: 'Prazo do Contrato', type: 'text', required: true },
+  ],
+  'Contrato Social': [
+    { name: 'Nome da Empresa', type: 'text', required: true },
+    { name: 'CNPJ', type: 'text', required: false },
+    { name: 'Sócio 1', type: 'text', required: true },
+    { name: 'Sócio 2', type: 'text', required: true },
+    { name: 'Capital Social', type: 'text', required: true },
+    { name: 'Objeto Social', type: 'text', required: true },
   ],
   'Outro': [
     { name: 'Título do Documento', type: 'text', required: true },
