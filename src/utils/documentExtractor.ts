@@ -1,4 +1,3 @@
-
 import { DraftType } from '@/types';
 import { identifyPartiesAndRoles } from './partyIdentifier';
 
@@ -50,10 +49,8 @@ async function extractTextFromPDF(file: File): Promise<string> {
                   for (let pageNum = 1; pageNum <= maxPages; pageNum += 2) {
                     try {
                       const page = await pdfDocument.getPage(pageNum);
-                      const textContent = await page.getTextContent({
-                        // Remove normalizeWhitespace as it's not a valid property
-                        disableCombineTextItems: false // Combine text items for better performance
-                      });
+                      // Remove all properties from getTextContent as they're causing TypeScript errors
+                      const textContent = await page.getTextContent();
                       
                       // Extract only first 1000 characters per page for faster processing
                       const pageText = textContent.items
