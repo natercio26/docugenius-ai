@@ -1,8 +1,10 @@
-
 import React, { useState } from 'react';
 import Navbar from '@/components/Navbar';
 import { useToast } from '@/hooks/use-toast';
 import { DraftType } from '@/types';
+import TypeSelector from '@/components/model-config/TypeSelector';
+import FieldList from '@/components/model-config/FieldList';
+import ActionButtons from '@/components/model-config/ActionButtons';
 
 const draftTypes: DraftType[] = [
   'Inventário',
@@ -111,99 +113,23 @@ const ModelConfig: React.FC = () => {
         </div>
         
         <div className="glass rounded-lg p-8 max-w-3xl mx-auto animate-scale-in" style={{ animationDelay: '100ms' }}>
-          <div className="mb-6">
-            <label htmlFor="documentType" className="block text-sm font-medium mb-2">
-              Tipo de Documento
-            </label>
-            <select
-              id="documentType"
-              value={selectedType}
-              onChange={handleTypeChange}
-              className="input-field"
-            >
-              {draftTypes.map(type => (
-                <option key={type} value={type}>{type}</option>
-              ))}
-            </select>
-          </div>
+          <TypeSelector 
+            selectedType={selectedType} 
+            onTypeChange={handleTypeChange}
+            draftTypes={draftTypes}
+          />
           
-          <div className="mb-6">
-            <h3 className="text-lg font-medium mb-4">Campos Personalizáveis para {selectedType}</h3>
-            <div className="space-y-4">
-              {currentFields.map((field, index) => (
-                <div key={index} className="grid grid-cols-12 gap-4 items-center">
-                  <div className="col-span-5">
-                    <input
-                      type="text"
-                      value={field.name}
-                      onChange={(e) => {
-                        updateField(index, { ...field, name: e.target.value });
-                      }}
-                      className="input-field"
-                      placeholder="Nome do campo"
-                    />
-                  </div>
-                  <div className="col-span-3">
-                    <select
-                      value={field.type}
-                      onChange={(e) => {
-                        updateField(index, { ...field, type: e.target.value });
-                      }}
-                      className="input-field"
-                    >
-                      <option value="text">Texto</option>
-                      <option value="date">Data</option>
-                      <option value="select">Seleção</option>
-                      <option value="checkbox">Checkbox</option>
-                    </select>
-                  </div>
-                  <div className="col-span-3">
-                    <label className="flex items-center space-x-2">
-                      <input
-                        type="checkbox"
-                        checked={field.required}
-                        onChange={(e) => {
-                          updateField(index, { ...field, required: e.target.checked });
-                        }}
-                        className="rounded border-input h-4 w-4 text-accent focus:ring-accent"
-                      />
-                      <span className="text-sm">Obrigatório</span>
-                    </label>
-                  </div>
-                  <div className="col-span-1">
-                    <button
-                      onClick={() => removeField(index)}
-                      className="text-destructive hover:text-destructive/80"
-                      aria-label="Remover campo"
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M3 6h18"></path>
-                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"></path>
-                        <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                        <line x1="10" y1="11" x2="10" y2="17"></line>
-                        <line x1="14" y1="11" x2="14" y2="17"></line>
-                      </svg>
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
+          <FieldList 
+            fields={currentFields}
+            documentType={selectedType}
+            onFieldUpdate={updateField}
+            onFieldRemove={removeField}
+          />
           
-          <div className="flex items-center justify-between mt-8">
-            <button
-              onClick={addField}
-              className="button-outline"
-            >
-              Adicionar Campo
-            </button>
-            <button
-              onClick={handleSave}
-              className="button-primary"
-            >
-              Salvar Configurações
-            </button>
-          </div>
+          <ActionButtons 
+            onAddField={addField}
+            onSave={handleSave}
+          />
         </div>
       </main>
     </div>

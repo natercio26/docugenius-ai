@@ -46,7 +46,7 @@ export const generateDocumentContent = (
     case 'Escritura de Compra e Venda':
       content = `ESCRITURA PÚBLICA DE COMPRA E VENDA
 
-SAIBAM todos quantos esta Escritura Pública de Compra e Venda virem que, aos ${new Date().getDate()} (${new Date().toLocaleString('pt-BR', {day: 'long'})}) dias do mês de ${new Date().toLocaleString('pt-BR', {month: 'long'})} do ano de ${new Date().getFullYear()} (${new Date().getFullYear()} por extenso), nesta cidade e comarca de São Paulo, Estado de São Paulo, perante mim, Tabelião, compareceram as partes entre si justas e contratadas, a saber:
+SAIBAM todos quantos esta Escritura Pública de Compra e Venda virem que, aos ${new Date().getDate()} dias do mês de ${new Date().toLocaleString('pt-BR', {month: 'long'})} do ano de ${new Date().getFullYear()}, nesta cidade e comarca de São Paulo, Estado de São Paulo, perante mim, Tabelião, compareceram as partes entre si justas e contratadas, a saber:
 
 OUTORGANTE VENDEDOR: ${data.vendedor || 'JOÃO DA SILVA'}, brasileiro, casado, empresário, portador da Cédula de Identidade RG nº 12.345.678-9 SSP/SP, inscrito no CPF/MF sob nº 123.456.789-00, residente e domiciliado na Rua das Flores, nº 123, Bairro Jardim, CEP 01234-567, nesta Capital;
 
