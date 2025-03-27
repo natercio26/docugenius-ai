@@ -11,7 +11,7 @@ import ViewDraft from "./pages/ViewDraft";
 import ModelConfig from "./pages/ModelConfig";
 import NotFound from "./pages/NotFound";
 
-const App = () => {
+const App: React.FC = () => {
   // Create QueryClient inside the component
   const [queryClient] = React.useState(() => new QueryClient());
 
