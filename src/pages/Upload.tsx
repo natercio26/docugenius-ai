@@ -8,6 +8,11 @@ import { useToast } from '@/hooks/use-toast';
 import { extractDataFromFiles, generateDocumentContent } from '@/utils/documentExtractor';
 import { identifyPartiesAndRoles } from '@/utils/partyIdentifier';
 
+interface ExtractedData {
+  [key: string]: any;
+  nome?: string;
+}
+
 const Upload: React.FC = () => {
   const [status, setStatus] = useState<UploadStatus>('idle');
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
@@ -59,8 +64,8 @@ const Upload: React.FC = () => {
         // Extract basic data from the uploaded files
         const extractedData = await extractDataFromFiles(files);
         
-        if (extractedData.error) {
-          throw new Error(extractedData.error);
+        if ('error' in extractedData) {
+          throw new Error(extractedData.error as string);
         }
         
         console.log("Extração de dados básicos concluída:", extractedData);
@@ -69,7 +74,7 @@ const Upload: React.FC = () => {
         console.log("Identificando partes e seus papéis nos documentos");
         
         // Add error handling around the party identification
-        let enhancedData = {};
+        let enhancedData: ExtractedData = {};
         try {
           enhancedData = await identifyPartiesAndRoles(files, docType, extractedData);
           console.log("Identificação de partes e papéis concluída:", enhancedData);
