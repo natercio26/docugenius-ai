@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Navbar from '@/components/Navbar';
@@ -13,7 +12,7 @@ SAIBAM todos quantos esta Escritura Pública de Compra e Venda virem que, aos 15
 
 OUTORGANTE VENDEDOR: JOÃO DA SILVA, brasileiro, casado, empresário, portador da Cédula de Identidade RG nº 12.345.678-9 SSP/SP, inscrito no CPF/MF sob nº 123.456.789-00, residente e domiciliado na Rua das Flores, nº 123, Bairro Jardim, CEP 01234-567, nesta Capital;
 
-OUTORGADO COMPRADOR: MARIA OLIVEIRA, brasileira, solteira, advogada, portadora da Cédula de Identidade RG nº 98.765.432-1 SSP/SP, inscrita no CPF/MF sob nº 987.654.321-00, residente e domiciliada na Avenida Central, nº 456, Bairro Centro, CEP 12345-678, nesta Capital;
+OUTORGADO COMPRADOR: MARIA OLIVEIRA, brasileira, solteira, advogada, portadora da Cédula de Identidade RG nº 98.765.432-1 SSP/SP, inscrito no CPF/MF sob nº 987.654.321-00, residente e domiciliada na Avenida Central, nº 456, Bairro Centro, CEP 12345-678, nesta Capital;
 
 Os presentes, juridicamente capazes, identificados por mim, Tabelião, conforme documentos apresentados, do que dou fé.
 
@@ -49,35 +48,81 @@ E, assim, lida em voz alta e clara esta escritura às partes e achada conforme, 
 
 Eu, Tabelião, lavrei a presente escritura, conferi, dou fé e assino.`;
 
-const inventarioSampleContent = `AUTO DE ABERTURA DE INVENTÁRIO
+const inventarioSampleContent = `<h1>ESCRITURA PÚBLICA DE INVENTÁRIO E PARTILHA</h1>
+        
+<p><strong>= S A I B A M =</strong> quantos esta virem que, aos vinte dias do mês de março do ano de dois mil e vinte e três, nesta cidade de Brasília, Distrito
+Federal, Capital da República Federativa do Brasil, nesta Serventia, perante
+mim, Escrevente, compareceram como Outorgantes e reciprocamente
+Outorgados, na qualidade de viúvo(a)-meeiro(a):</p>
+<p>MARIA SILVA, brasileira, viúva, aposentada, portadora da cédula de identidade RG nº 1.234.567 SSP/DF, inscrita no CPF/MF sob nº 123.456.789-00, residente e domiciliada na QI 5, Conjunto 7, Casa 15, Lago Sul, Brasília-DF</p>
 
-Aos 20 (vinte) dias do mês de março do ano de 2023 (dois mil e vinte e três), nesta cidade e comarca de São Paulo, Estado de São Paulo, perante o MM. Juiz de Direito da 2ª Vara de Família e Sucessões, Dr. Paulo Ferreira Lima, compareceu ROBERTO SANTOS, brasileiro, viúvo, engenheiro, portador da Cédula de Identidade RG nº 23.456.789-0 SSP/SP, inscrito no CPF/MF sob nº 234.567.890-12, residente e domiciliado na Rua das Palmeiras, nº 456, Bairro Jardim América, CEP 01456-789, nesta Capital, para requerer a abertura de inventário dos bens deixados por MARIA HELENA SANTOS, falecida em 15/01/2023, conforme certidão de óbito anexa.
+<p>e, na qualidade de herdeiros-filhos:</p>
+<p>JOSÉ SILVA, brasileiro, casado, engenheiro, portador da cédula de identidade RG nº 2.345.678 SSP/DF, inscrito no CPF/MF sob nº 234.567.890-00, residente e domiciliado na SQSW 304, Bloco C, Apto. 204, Sudoeste, Brasília-DF</p>
+<p>PAULA SILVA, brasileira, solteira, médica, portadora da cédula de identidade RG nº 3.456.789 SSP/DF, inscrita no CPF/MF sob nº 345.678.901-00, residente e domiciliada na SQN 107, Bloco H, Apto. 404, Asa Norte, Brasília-DF</p>
 
-O requerente declara, sob as penas da lei, que a falecida não deixou testamento, sendo seus herdeiros:
+<p>e, na qualidade de advogado:</p>
+<p>DR. ANTÔNIO FERREIRA, brasileiro, casado, advogado, inscrito na OAB/DF sob nº 12.345, com escritório profissional na SCN Quadra 1, Bloco F, Sala 1505, Asa Norte, Brasília-DF</p>
 
-1. ROBERTO SANTOS, já qualificado, cônjuge sobrevivente, casado sob o regime de comunhão parcial de bens;
-2. CARLOS EDUARDO SANTOS, brasileiro, solteiro, estudante, portador da Cédula de Identidade RG nº 34.567.890-1 SSP/SP, inscrito no CPF/MF sob nº 345.678.901-23, residente e domiciliado no mesmo endereço do inventariante, filho da falecida;
-3. ANA PAULA SANTOS, brasileira, solteira, médica, portadora da Cédula de Identidade RG nº 45.678.901-2 SSP/SP, inscrita no CPF/MF sob nº 456.789.012-34, residente e domiciliada na Avenida Paulista, nº 789, Apto. 1001, Bairro Bela Vista, CEP 01310-300, nesta Capital, filha da falecida.
+<p>Todos os presentes foram reconhecidos e identificados como os próprios de que
+trato, pelos documentos apresentados, cuja capacidade jurídica reconheço e dou
+fé. E, pelos Outorgantes e reciprocamente Outorgados, devidamente orientados
+pelo(a) advogado(a), acima nomeado e qualificado, legalmente constituído(a)
+para este ato, me foi requerida a lavratura do inventário e partilha amigável
+dos bens e direitos deixados pelo falecimento de JOÃO SILVA, conforme dispõe na Lei
+nº 13.105/2015, regulamentada pela Resolução nº 35 de 24 abril de 2007, do
+Conselho Nacional de Justiça, nos seguintes termos e condições:</p>
 
-O requerente indica como bens do espólio:
+<p><strong>1. DO(A) AUTOR(A) DA HERANÇA</strong> – O(A) autor(a) da herança,</p>
+<p>1.1. Foi casado com o(a) viúvo(a)-meeiro(a), MARIA SILVA, já anteriormente
+qualificado(a), desde 10/05/1980, sob o regime de comunhão parcial de bens, conforme certidão
+de casamento expedida aos 15/05/1980, registrada sob a matrícula nº 123456789012345, pelo
+Cartório do 1º Ofício de Registro Civil de Brasília-DF;</p>
 
-1. Um apartamento situado na Rua das Palmeiras, nº 456, Apto. 701, Edifício Orquídeas, Bairro Jardim América, CEP 01456-789, nesta Capital, com área privativa de 150,00m² (cento e cinquenta metros quadrados), registrado sob a matrícula nº 54.321 no 4º Oficial de Registro de Imóveis desta Capital, avaliado em R$ 1.200.000,00 (um milhão e duzentos mil reais);
-2. Um veículo marca Toyota, modelo Corolla, ano 2020, placa ABC-1234, RENAVAM 12345678901, avaliado em R$ 90.000,00 (noventa mil reais);
-3. Saldos em contas bancárias no valor aproximado de R$ 150.000,00 (cento e cinquenta mil reais);
-4. Aplicações financeiras no valor aproximado de R$ 300.000,00 (trezentos mil reais).
+<p>1.2. Faleceu aos 10/01/2023, no Hospital Santa Lúcia, na cidade de Brasília-DF, conforme certidão de
+óbito expedida aos 12/01/2023, registrada sob a matrícula nº 987654321098765, pelo Cartório do 2º Ofício de Registro Civil de Brasília-DF;</p>
 
-Face ao exposto, requer a V. Exa. a abertura do inventário, nomeando-o como inventariante, comprometendo-se a apresentar as primeiras declarações no prazo legal.
+<p>1.3. Do relacionamento do(a) autor(a) da herança com o(a) ora viúvo(a)-
+meeiro(a) nasceram 2 filhos, todos maiores e capazes, a saber:
+JOSÉ SILVA e PAULA SILVA, declarando os presentes que desconhece(m) a existência de
+outros herdeiros, a não ser o(s) mencionado(s) no presente ato.</p>
 
-Nestes termos, pede deferimento.
+<p><strong>DAS DECLARAÇÕES DAS PARTES</strong> - As partes declaram sob as penas da lei,
+que:</p>
+<p>a) o(a) autor(a) da herança não deixou testamento conhecido, por qualquer
+natureza;</p>
 
-São Paulo, 20 de março de 2023.
+<p><strong>3. DA NOMEAÇÃO DE INVENTARIANTE</strong> - Os Outorgantes e reciprocamente
+Outorgados, de comum acordo, nomeiam como inventariante do espólio, MARIA SILVA, já anteriormente qualificado(a), conferindo-lhe todos os poderes que se fizerem
+necessários para representar o espólio em Juízo ou fora dele; podendo ainda,
+praticar todos os atos de administração dos bens, constituir advogado(a) em
+nome do espólio, ingressar em juízo, ativa ou passivamente; podendo enfim
+praticar todos os atos que se fizerem necessários em defesa do espólio e ao
+cumprimento de suas eventuais obrigações;</p>
 
-Roberto Santos
-Inventariante
+<p><strong>4. DOS BENS E SEUS VALORES</strong> - O(A) autor(a) da herança deixou, por
+ocasião da abertura da sucessão, o(s) seguinte(s) bem(s):</p>
+<p>4.1. Apartamento nº 101, do Bloco "A", da SQS 308, desta Capital,
+com direito a vaga na garagem, melhor descrito e caracterizado na
+matrícula nº 123456, do 2º Ofício do Registro de Imóveis do
+Distrito Federal. Inscrição do imóvel junto ao GDF sob o nº 12345678</p>
 
-Dr. Fernando Mello Barros
-OAB/SP 123.456
-Advogado`;
+<p><strong>5. DA PARTILHA</strong> - O(s) bem(s) constante(s) do item "4." da presente, soma(m)
+ou valor de R$ 1.200.000,00 e será(ão) partilhado(s) da seguinte forma:</p>
+<p>5.1. Caberá ao(a) viúvo(a)-meeiro(a), MARIA SILVA, em razão de sua meação, 50%
+(cinquenta por cento) de todos os bens descritos e caracterizados no item "4."
+da presente, correspondendo ao valor de R$ 600.000,00;</p>
+<p>5.2. Caberá a cada um do(s) herdeiro(s), JOSÉ SILVA e PAULA SILVA, em razão da sucessão legítima,
+25% cada, de todos o(s) bem(s) descrito(s) e caracterizados no item "4." da presente,
+correspondendo ao valor unitário de R$ 300.000,00.</p>
+
+<p><strong>7. DO IMPOSTO DE TRANSMISSÃO "CAUSA MORTIS" E DOAÇÃO</strong> - Guia de
+transmissão causa mortis e doação de quaisquer bens e direitos - ITCMD,
+expedida pela Secretaria de Estado da Fazenda do Distrito Federal sob o nº
+123456789, no valor de R$ 24.000,00</p>
+
+<p>Certifica que, foi feita a consulta prévia junto a Central Nacional de Indisponibilidade de Bens - CNIB, no(s) CPF do(a) autor(a) da herança, conforme código hash sob o nº A1B2C3D4E5F6, com o resultado NEGATIVO.</p>
+
+<p>Assim o disseram, pediram-me e eu Escrevente lhes lavrei a presente escritura, que feita e lhes sendo lida, foi achada em tudo conforme, aceitam e assinam.</p>`;
 
 const newDraft: Draft = {
   id: 'new',

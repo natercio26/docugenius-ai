@@ -49,7 +49,7 @@ async function extractTextFromPDF(file: File): Promise<string> {
                   for (let pageNum = 1; pageNum <= maxPages; pageNum += 2) {
                     try {
                       const page = await pdfDocument.getPage(pageNum);
-                      // Remove all properties from getTextContent as they're causing TypeScript errors
+                      // Remove properties to fix TypeScript error
                       const textContent = await page.getTextContent();
                       
                       // Extract only first 1000 characters per page for faster processing
@@ -267,15 +267,84 @@ export function generateDocumentContent(documentType: DraftType, extractedData: 
       `;
     case 'Inventário':
       return `
-        <h1>Inventário</h1>
-        <p>Nome do Autor da Herança: ${extractedData['falecido'] || extractedData['nomeDoAutorDaHeranca'] || 'N/A'}</p>
-        <p>Data do Falecimento: ${extractedData['dataFalecimento'] || extractedData['dataDoFalecimento'] || 'N/A'}</p>
-        <p>Inventariante: ${extractedData['inventariante'] || 'N/A'}</p>
-        <p>Existência de Testamento: ${extractedData['existenciaDeTestamento'] ? 'Sim' : 'Não'}</p>
-        <p>Regime de Bens: ${extractedData['regimeBens'] || extractedData['regimeDeBens'] || 'N/A'}</p>
-        ${extractedData['herdeiro1'] ? `<p>Herdeiro 1: ${extractedData['herdeiro1']}</p>` : ''}
-        ${extractedData['herdeiro2'] ? `<p>Herdeiro 2: ${extractedData['herdeiro2']}</p>` : ''}
-        ${extractedData['herdeiro3'] ? `<p>Herdeiro 3: ${extractedData['herdeiro3']}</p>` : ''}
+        <h1>ESCRITURA PÚBLICA DE INVENTÁRIO E PARTILHA</h1>
+        
+        <p><strong>= S A I B A M =</strong> quantos esta virem que, ${extractedData['data'] || '====='}, nesta cidade de Brasília, Distrito
+Federal, Capital da República Federativa do Brasil, nesta Serventia, perante
+mim, Escrevente, compareceram como Outorgantes e reciprocamente
+Outorgados, na qualidade de viúvo(a)-meeiro(a):</p>
+<p>${extractedData['conjuge'] || extractedData['viuvoMeeiro'] || '====='}</p>
+
+<p>e, na qualidade de herdeiros-filhos:</p>
+<p>${extractedData['herdeiro1'] || '====='}</p>
+${extractedData['herdeiro2'] ? `<p>${extractedData['herdeiro2']}</p>` : ''}
+${extractedData['herdeiro3'] ? `<p>${extractedData['herdeiro3']}</p>` : ''}
+${extractedData['herdeiro4'] ? `<p>${extractedData['herdeiro4']}</p>` : ''}
+${extractedData['herdeiro5'] ? `<p>${extractedData['herdeiro5']}</p>` : ''}
+
+<p>e, na qualidade de advogado:</p>
+<p>${extractedData['advogado'] || '====='}</p>
+
+<p>Todos os presentes foram reconhecidos e identificados como os próprios de que
+trato, pelos documentos apresentados, cuja capacidade jurídica reconheço e dou
+fé. E, pelos Outorgantes e reciprocamente Outorgados, devidamente orientados
+pelo(a) advogado(a), acima nomeado e qualificado, legalmente constituído(a)
+para este ato, me foi requerida a lavratura do inventário e partilha amigável
+dos bens e direitos deixados pelo falecimento de ${extractedData['falecido'] || '====='}, conforme dispõe na Lei
+nº 13.105/2015, regulamentada pela Resolução nº 35 de 24 abril de 2007, do
+Conselho Nacional de Justiça, nos seguintes termos e condições:</p>
+
+<p><strong>1. DO(A) AUTOR(A) DA HERANÇA</strong> – O(A) autor(a) da herança,</p>
+<p>1.1. Foi casado com o(a) viúvo(a)-meeiro(a), ${extractedData['conjuge'] || extractedData['viuvoMeeiro'] || '====='}, já anteriormente
+qualificado(a), desde ${extractedData['dataCasamento'] || '======'}, sob o regime de ${extractedData['regimeBens'] || '====='}, conforme certidão
+de casamento expedida aos ${extractedData['dataCertidaoCasamento'] || '==='}, registrada sob a matrícula nº ${extractedData['matriculaCasamento'] || '===='}, pelo
+Cartório do ${extractedData['cartorioCasamento'] || '===='};</p>
+
+<p>1.2. Faleceu aos ${extractedData['dataFalecimento'] || '===='}, no Hospital ${extractedData['hospitalFalecimento'] || '===='}, na cidade de ${extractedData['cidadeFalecimento'] || '===='}, conforme certidão de
+óbito expedida aos ${extractedData['dataExpedicaoCertidaoObito'] || '===='}, registrada sob a matrícula nº ${extractedData['matriculaObito'] || '===='}, pelo Cartório do ${extractedData['cartorioObito'] || '==='};</p>
+
+<p>1.3. Do relacionamento do(a) autor(a) da herança com o(a) ora viúvo(a)-
+meeiro(a) nasceram ${extractedData['numeroFilhos'] || '===='} filhos, todos maiores e capazes, a saber:
+${extractedData['nomesFilhos'] || '=========='}, declarando os presentes que desconhece(m) a existência de
+outros herdeiros, a não ser o(s) mencionado(s) no presente ato.</p>
+
+<p><strong>DAS DECLARAÇÕES DAS PARTES</strong> - As partes declaram sob as penas da lei,
+que:</p>
+<p>a) o(a) autor(a) da herança não deixou testamento conhecido, por qualquer
+natureza;</p>
+
+<p><strong>3. DA NOMEAÇÃO DE INVENTARIANTE</strong> - Os Outorgantes e reciprocamente
+Outorgados, de comum acordo, nomeiam como inventariante do espólio, ${extractedData['inventariante'] || '==='}, já anteriormente qualificado(a), conferindo-lhe todos os poderes que se fizerem
+necessários para representar o espólio em Juízo ou fora dele; podendo ainda,
+praticar todos os atos de administração dos bens, constituir advogado(a) em
+nome do espólio, ingressar em juízo, ativa ou passivamente; podendo enfim
+praticar todos os atos que se fizerem necessários em defesa do espólio e ao
+cumprimento de suas eventuais obrigações;</p>
+
+<p><strong>4. DOS BENS E SEUS VALORES</strong> - O(A) autor(a) da herança deixou, por
+ocasião da abertura da sucessão, o(s) seguinte(s) bem(s):</p>
+<p>4.1. Apartamento nº ${extractedData['numeroApartamento'] || '======'}, do Bloco "${extractedData['blocoApartamento'] || '====='}", da ${extractedData['quadraApartamento'] || '======'}, desta Capital,
+========com direito a vaga na garagem, melhor descrito e caracterizado na
+matrícula nº ${extractedData['matriculaImovel'] || '========='}, do ${extractedData['cartorioImovel'] || '====='} º Ofício do Registro de Imóveis do
+Distrito Federal. Inscrição do imóvel junto ao GDF sob o nº ${extractedData['inscricaoGDF'] || '========='}</p>
+
+<p><strong>5. DA PARTILHA</strong> - O(s) bem(s) constante(s) do item "4." da presente, soma(m)
+ou valor de ${extractedData['valorTotalBens'] || '===='} e será(ão) partilhado(s) da seguinte forma:</p>
+<p>5.1. Caberá ao(a) viúvo(a)-meeiro(a), ${extractedData['conjuge'] || '====='}, em razão de sua meação, 50%
+(cinquenta por cento) de todos os bens descritos e caracterizados no item "4."
+da presente, correspondendo ao valor de ${extractedData['valorTotalMeacao'] || '===='};</p>
+<p>5.2. Caberá a cada um do(s) herdeiro(s), ${extractedData['herdeiro1'] || '===='}, em razão da sucessão legítima,
+${extractedData['percentualHerdeiros'] || '===='}, de todos o(s) bem(s) descrito(s) e caracterizados no item "4." da presente,
+correspondendo ao valor unitário de ${extractedData['valorUnitarioHerdeiros'] || '==='}.</p>
+
+<p><strong>7. DO IMPOSTO DE TRANSMISSÃO "CAUSA MORTIS" E DOAÇÃO</strong> - Guia de
+transmissão causa mortis e doação de quaisquer bens e direitos - ITCMD,
+expedida pela Secretaria de Estado da Fazenda do Distrito Federal sob o nº
+${extractedData['numeroITCMD'] || '==='}, no valor de ${extractedData['valorITCMD'] || '===='}</p>
+
+<p>Certifica que, foi feita a consulta prévia junto a Central Nacional de Indisponibilidade de Bens - CNIB, no(s) CPF do(a) autor(a) da herança, conforme código hash sob o nº ${extractedData['hashCNIB'] || '===='}, com o resultado NEGATIVO.</p>
+
+<p>Assim o disseram, pediram-me e eu Escrevente lhes lavrei a presente escritura, que feita e lhes sendo lida, foi achada em tudo conforme, aceitam e assinam.</p>
       `;
     case 'Doação':
       return `
