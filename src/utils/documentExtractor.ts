@@ -1,8 +1,6 @@
 import { DraftType } from '@/types';
 import { identifyPartiesAndRoles } from './partyIdentifier';
 
-// Existing code and functions
-
 // Function to extract text from PDF files
 async function extractTextFromPDF(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -18,7 +16,12 @@ async function extractTextFromPDF(file: File): Promise<string> {
         for (let pageNum = 1; pageNum <= pdfDocument.numPages; pageNum++) {
           const page = await pdfDocument.getPage(pageNum);
           const textContent = await page.getTextContent();
-          const pageText = textContent.items.map(item => item.str).join(' ');
+          const pageText = textContent.items
+            .map(item => {
+              // Check if the item has a 'str' property before accessing it
+              return 'str' in item ? item.str : '';
+            })
+            .join(' ');
           fullText += pageText + '\n';
         }
         resolve(fullText);
@@ -67,7 +70,7 @@ async function extractTextFromDOCX(file: File): Promise<string> {
     const reader = new FileReader();
     reader.onload = async function (e) {
       try {
-        const mammoth = await import('mammoth');
+        const mammoth = await import('mammoth/mammoth.browser');
         const arrayBuffer = e.target?.result as ArrayBuffer;
         const { value } = await mammoth.extractRawText({ arrayBuffer: arrayBuffer });
         resolve(value);

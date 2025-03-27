@@ -11,7 +11,7 @@ const documentNumberPattern = /(?:\d{3}\.){2}\d{3}-\d{2}|\d{2}\.\d{3}\.\d{3}\/\d
 const addressPattern = /(?:Rua|Avenida|Av\.|R\.|Alameda|Al\.|Travessa|Trav\.|Praça|Pç\.)\s.*?(?:,|\s-|\sn[º°]|\snº|\sn°|\sn)\s.*?(?:\d{5}-\d{3}|\d{8}|\d{2}\.\d{3}-\d{3}|$)/g;
 
 // Specific role identifiers
-const roleIdentifiers = {
+const roleIdentifiers: Record<DraftType, Record<string, RegExp[]>> = {
   'Inventário': {
     falecido: [
       /falecido/i, /de cujus/i, /autor da herança/i, /inventariado/i, /espólio de/i
@@ -141,15 +141,18 @@ export async function identifyPartiesAndRoles(
       
       // Process each role
       for (const [role, patterns] of Object.entries(relevantRoles)) {
-        const namesForRole = findNamesInContext(fileContent, patterns);
-        
-        if (namesForRole.length > 0) {
-          // Assign found names to the appropriate field
-          if (!enhancedData[role]) {
-            enhancedData[role] = namesForRole.join(', ');
-          } else if (!enhancedData[role].includes(namesForRole[0])) {
-            // Append if not already included
-            enhancedData[role] += ', ' + namesForRole.join(', ');
+        // Ensure patterns is an array of RegExp
+        if (Array.isArray(patterns)) {
+          const namesForRole = findNamesInContext(fileContent, patterns);
+          
+          if (namesForRole.length > 0) {
+            // Assign found names to the appropriate field
+            if (!enhancedData[role]) {
+              enhancedData[role] = namesForRole.join(', ');
+            } else if (!enhancedData[role].includes(namesForRole[0])) {
+              // Append if not already included
+              enhancedData[role] += ', ' + namesForRole.join(', ');
+            }
           }
         }
       }
