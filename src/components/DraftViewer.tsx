@@ -25,7 +25,7 @@ const DraftViewer: React.FC<DraftViewerProps> = ({ draft }) => {
         </div>
       </header>
       
-      <div className="legal-text prose-legal">
+      <div className="legal-text prose prose-legal">
         {draft.content.split('\n').map((paragraph, index) => (
           <p key={index} className="mb-4 text-justify">
             {paragraph}

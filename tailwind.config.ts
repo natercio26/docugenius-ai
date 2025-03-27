@@ -127,7 +127,35 @@ export default {
       transitionDuration: {
         '400': '400ms',
       },
-    }
+      typography: {
+        DEFAULT: {
+          css: {
+            maxWidth: 'none',
+            color: 'inherit',
+            a: {
+              color: 'inherit',
+              textDecoration: 'underline',
+              fontWeight: '500',
+            },
+            h1: {
+              fontFamily: 'var(--font-serif)',
+            },
+            h2: {
+              fontFamily: 'var(--font-serif)',
+            },
+            h3: {
+              fontFamily: 'var(--font-serif)',
+            },
+            h4: {
+              fontFamily: 'var(--font-serif)',
+            },
+          },
+        },
+      },
+    },
   },
-  plugins: [require("tailwindcss-animate")],
+  plugins: [
+    require("tailwindcss-animate"),
+    require("@tailwindcss/typography"),
+  ],
 } satisfies Config;
