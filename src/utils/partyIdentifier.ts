@@ -1,3 +1,4 @@
+
 import { DraftType } from '@/types';
 
 interface ExtractedData {
@@ -22,7 +23,54 @@ const roleIdentifiers: Record<DraftType, Record<string, RegExp[]>> = {
     conjuge: [/cônjuge/i, /viúv[o|a]/i, /esposa/i, /esposo/i, /viúv[o|a]-meeiro[a]/i],
     advogado: [/advogad[o|a]/i, /representante legal/i, /OAB/i]
   },
-  // ... keep existing code for other document types
+  'Escritura de Compra e Venda': {
+    vendedor: [/vendedor/i, /outorgante vendedor/i, /transmitente/i],
+    comprador: [/comprador/i, /outorgado comprador/i, /adquirente/i],
+    advogado: [/advogad[o|a]/i, /representante legal/i, /OAB/i],
+    testemunha: [/testemunha/i]
+  },
+  'Doação': {
+    doador: [/doador/i, /outorgante doador/i],
+    donatario: [/donatário/i, /outorgado donatário/i, /beneficiário/i],
+    advogado: [/advogad[o|a]/i, /representante legal/i, /OAB/i],
+    testemunha: [/testemunha/i]
+  },
+  'União Estável': {
+    companheiro1: [/companheiro/i, /convivente/i, /primeiro declarante/i],
+    companheiro2: [/companheira/i, /convivente/i, /segundo declarante/i],
+    advogado: [/advogad[o|a]/i, /representante legal/i, /OAB/i],
+    testemunha: [/testemunha/i]
+  },
+  'Procuração': {
+    outorgante: [/outorgante/i, /mandante/i, /representado/i],
+    procurador: [/outorgado/i, /procurador/i, /mandatário/i, /representante/i],
+    advogado: [/advogad[o|a]/i, /OAB/i],
+    testemunha: [/testemunha/i]
+  },
+  'Testamento': {
+    testador: [/testador/i, /autor do testamento/i],
+    beneficiario: [/beneficiário/i, /herdeiro/i, /legatário/i],
+    advogado: [/advogad[o|a]/i, /OAB/i],
+    testemunha: [/testemunha/i]
+  },
+  'Contrato de Aluguel': {
+    locador: [/locador/i, /proprietário/i],
+    locatario: [/locatário/i, /inquilino/i],
+    fiador: [/fiador/i, /garantidor/i],
+    advogado: [/advogad[o|a]/i, /OAB/i]
+  },
+  'Contrato Social': {
+    socio1: [/sócio/i, /primeiro sócio/i, /sócio administrador/i],
+    socio2: [/segundo sócio/i, /sócio quotista/i],
+    advogado: [/advogad[o|a]/i, /OAB/i, /contador/i],
+    testemunha: [/testemunha/i]
+  },
+  'Outro': {
+    parte1: [/parte/i, /requerente/i, /autor/i, /outorgante/i],
+    parte2: [/parte/i, /requerido/i, /réu/i, /outorgado/i],
+    advogado: [/advogad[o|a]/i, /OAB/i],
+    testemunha: [/testemunha/i]
+  }
 };
 
 // Helper to find names near role patterns - enhanced to extract more context
