@@ -1,3 +1,4 @@
+
 import { DraftType } from '@/types';
 import * as PDFJS from 'pdfjs-dist';
 import Tesseract from 'tesseract.js';
@@ -569,4 +570,216 @@ E, pelo OUTORGANTE VENDEDOR, me foi dito que é legítimo proprietário do segui
 
 IMÓVEL: ${data.descricaoImovel || `Apartamento nº 101, localizado no 10º andar do Edifício Residencial Primavera`}, situado na ${data.enderecoImovel || 'Rua dos Ipês, nº 789, Bairro Jardim Paulista'}, nesta Capital, com área privativa de ${data.areaImovel || '120,00m² (cento e vinte metros quadrados)'}, área comum de 40,00m² (quarenta metros quadrados), perfazendo a área total de 160,00m² (cento e sessenta metros quadrados), correspondendo-lhe uma fração ideal no terreno de 2,5% (dois vírgula cinco por cento), registrado sob a ${data.registroImovel || 'matrícula nº 12.345 no 5º Oficial de Registro de Imóveis desta Capital'}.
 
-TÍTULO AQUISITIVO: O referido imóvel foi adquirido pelo OUTORGANTE VENDEDOR através de Escritura Pública de Compra e Venda lavrada no 10º Tabelionato de Notas desta
+TÍTULO AQUISITIVO: O referido imóvel foi adquirido pelo OUTORGANTE VENDEDOR através de Escritura Pública de Compra e Venda lavrada no 10º Tabelionato de Notas desta Capital.`;
+      break;
+    
+    case 'Contrato de Aluguel':
+      content = `CONTRATO DE LOCAÇÃO DE IMÓVEL RESIDENCIAL
+
+Pelo presente instrumento particular, de um lado, ${data.locador || 'JOÃO DA SILVA'}, ${data.nacionalidadeLocador || 'brasileiro'}, ${data.estadoCivilLocador || 'casado'}, ${data.profissaoLocador || 'empresário'}, portador da Cédula de Identidade RG nº ${data.rgLocador || '12.345.678-9 SSP/SP'}, inscrito no CPF/MF sob nº ${data.cpfLocador || '123.456.789-00'}, residente e domiciliado na ${data.enderecoLocador || 'Rua das Flores, nº 123, Bairro Jardim, CEP 01234-567, nesta Capital'}, doravante denominado simplesmente LOCADOR, e de outro lado, ${data.nome || 'MARIA OLIVEIRA'}, ${data.nacionalidade || 'brasileira'}, ${data.estadoCivil || 'solteira'}, ${data.profissao || 'advogada'}, portadora da Cédula de Identidade RG nº ${data.rg || '98.765.432-1 SSP/SP'}, inscrita no CPF/MF sob nº ${data.cpf || '987.654.321-00'}, residente e domiciliada na ${data.endereco || 'Avenida Central, nº 456, Bairro Centro, CEP 12345-678, nesta Capital'}, doravante denominada simplesmente LOCATÁRIA, têm entre si, justo e contratado o seguinte:`;
+      break;
+      
+    case 'Inventário':
+      content = `ESCRITURA PÚBLICA DE INVENTÁRIO E PARTILHA, na forma abaixo:
+= S A I B A M = quantos esta virem que, ${formattedDate}, nesta cidade de Brasília, Distrito
+Federal, Capital da República Federativa do Brasil, nesta Serventia, perante
+mim, Escrevente, compareceram como Outorgantes e reciprocamente
+Outorgados, na qualidade de viúvo(a)-meeiro(a):
+${data.inventariante || data.conjuge || 'Nome do viúvo(a)-meeiro(a) não identificado'}, ${data.nacionalidade || 'brasileiro(a)'}, ${data.estadoCivil || 'viúvo(a)'}, ${data.profissao || 'profissão não identificada'}, portador(a) da Cédula de Identidade RG nº ${data.rg || 'não informado'}, inscrito(a) no CPF/MF sob nº ${data.cpf || 'não informado'}, residente e domiciliado(a) em ${data.endereco || 'endereço não informado'};
+
+e, na qualidade de herdeiros-filhos:
+${data.herdeiro1 || 'Nome do herdeiro 1 não identificado'}, ${data.nacionalidadeHerdeiro1 || 'brasileiro(a)'}, ${data.estadoCivilHerdeiro1 || 'estado civil não informado'}, ${data.profissaoHerdeiro1 || 'profissão não identificada'}, portador(a) da Cédula de Identidade RG nº ${data.rgHerdeiro1 || 'não informado'}, inscrito(a) no CPF/MF sob nº ${data.cpfHerdeiro1 || 'não informado'}, residente e domiciliado(a) em ${data.enderecoHerdeiro1 || 'endereço não informado'};
+${data.herdeiro2 ? `${data.herdeiro2}, ${data.nacionalidadeHerdeiro2 || 'brasileiro(a)'}, ${data.estadoCivilHerdeiro2 || 'estado civil não informado'}, ${data.profissaoHerdeiro2 || 'profissão não identificada'}, portador(a) da Cédula de Identidade RG nº ${data.rgHerdeiro2 || 'não informado'}, inscrito(a) no CPF/MF sob nº ${data.cpfHerdeiro2 || 'não informado'}, residente e domiciliado(a) em ${data.enderecoHerdeiro2 || 'endereço não informado'};` : ''}
+${data.herdeiro3 ? `${data.herdeiro3}, ${data.nacionalidadeHerdeiro3 || 'brasileiro(a)'}, ${data.estadoCivilHerdeiro3 || 'estado civil não informado'}, ${data.profissaoHerdeiro3 || 'profissão não identificada'}, portador(a) da Cédula de Identidade RG nº ${data.rgHerdeiro3 || 'não informado'}, inscrito(a) no CPF/MF sob nº ${data.cpfHerdeiro3 || 'não informado'}, residente e domiciliado(a) em ${data.enderecoHerdeiro3 || 'endereço não informado'};` : ''}
+
+e, na qualidade de advogado:
+${data.advogado || 'Nome do advogado não identificado'}, ${data.nacionalidadeAdvogado || 'brasileiro(a)'}, ${data.estadoCivilAdvogado || 'estado civil não informado'}, advogado(a) inscrito(a) na OAB sob nº ${data.oabAdvogado || 'não informado'}, portador(a) da Cédula de Identidade RG nº ${data.rgAdvogado || 'não informado'}, inscrito(a) no CPF/MF sob nº ${data.cpfAdvogado || 'não informado'};
+
+Todos os presentes foram reconhecidos e identificados como os próprios de que
+trato, pelos documentos apresentados, cuja capacidade jurídica reconheço e dou
+fé. E, pelos Outorgantes e reciprocamente Outorgados, devidamente orientados
+pelo(a) advogado(a), acima nomeado e qualificado, legalmente constituído(a)
+para este ato, me foi requerida a lavratura do inventário e partilha amigável
+dos bens e direitos deixados pelo falecimento de ${data.falecido || 'Nome do falecido não identificado'}, conforme dispõe na Lei
+nº 13.105/2015, regulamentada pela Resolução nº 35 de 24 abril de 2007, do
+Conselho Nacional de Justiça, nos seguintes termos e condições:
+
+1. DO(A) AUTOR(A) DA HERANÇA – O(A) autor(a) da herança, ${data.falecido || 'Nome do falecido não identificado'}, ${data.nacionalidadeFalecido || 'brasileiro(a)'}, ${data.estadoCivilFalecido || 'estado civil não informado'}, ${data.profissaoFalecido || 'profissão não identificada'}, portador(a) da Cédula de Identidade RG nº ${data.rgFalecido || 'não informado'}, inscrito(a) no CPF/MF sob nº ${data.cpfFalecido || 'não informado'}.
+1.1. Foi casado com o(a) viúvo(a)-meeiro(a), ${data.inventariante || data.conjuge || 'Nome do cônjuge não identificado'}, já anteriormente
+qualificado(a), desde ${data.dataCasamento || 'data não informada'}, sob o regime de ${data.regimeBens || 'comunhão parcial de bens'}, conforme certidão
+de casamento expedida aos ${data.dataCertidaoCasamento || 'data não informada'}, registrada sob a matrícula nº ${data.matriculaCasamento || 'não informado'}, pelo
+Cartório do ${data.cartorioCasamento || 'não informado'};
+1.2. Faleceu aos ${data.dataFalecimento || 'data não informada'}, no Hospital ${data.hospitalFalecimento || 'não informado'}, na cidade de ${data.cidadeFalecimento || 'Brasília'}, conforme certidão de
+óbito expedida aos ${data.dataCertidaoObito || 'data não informada'}, registrada sob a matrícula nº ${data.matriculaObito || 'não informado'}, pelo Cartório do ${data.cartorioObito || 'não informado'};
+1.3. Do relacionamento do(a) autor(a) da herança com o(a) ora viúvo(a)-
+meeiro(a) nasceram ${data.numeroFilhos || 'não informado'} filhos, todos maiores e capazes, a saber:
+${data.herdeiro1 || 'Nome do herdeiro 1 não identificado'}, ${data.herdeiro2 ? data.herdeiro2 + ', ' : ''}${data.herdeiro3 ? data.herdeiro3 + ', ' : ''}${data.herdeiro4 ? data.herdeiro4 + ', ' : ''}${data.herdeiro5 ? data.herdeiro5 : ''} declarando os presentes que desconhece(m) a existência de
+outros herdeiros, a não ser o(s) mencionado(s) no presente ato.
+
+DAS DECLARAÇÕES DAS PARTES - As partes declaram sob as penas da lei,
+que:
+a) o(a) autor(a) da herança não deixou testamento conhecido, por qualquer
+natureza;
+${data.temTestamento ? `CASO TENHA DEIXADO TESTAMENTO - CONSTAR O SEGUINTE TEXTO:
+a) o(a) falecido(a) deixou testamento que foi aberto nos autos do processo nº${data.processoTestamento || '---'}
+----------------------------------------- e teve autorização expressa para realização
+do inventário por meio de Escritura Pública emanada pelo (a) Juiz (a) ${data.juizTestamento || '---'}
+-----------------------------, em${data.dataTestamento || '---'}, tudo conforme o
+estabelecido no artigo 12-B da resolução 35 do Conselho Nacional de Justiça.` : ''}
+b) desconhecem quaisquer débitos em nome do(a) autor(a) da herança, por
+ocasião da abertura da sucessão; c) desconhecem quaisquer obrigações
+assumidas pelo(a) autor(a) da herança; d) desconhecem a existência de outros
+herdeiros, a não ser os que estão presentes nesta escritura; e) a presente
+escritura não prejudica os direitos adquiridos e interesses de terceiros; f) não
+existem feitos ajuizados fundados em ações reais, pessoais ou reipersecutórias
+que afetem os bens e direitos partilhados; g) o(a) falecido(a) não era
+empregador(a) ou, de qualquer forma, responsável por recolhimento de
+contribuições à Previdência Social; h) os bens ora partilhados encontram-se
+livres e desembaraçados de quaisquer ônus, dívidas, tributos de quaisquer
+naturezas; i) não tramita inventário e partilha na via judicial.
+
+3. DA NOMEAÇÃO DE INVENTARIANTE - Os Outorgantes e reciprocamente
+Outorgados, de comum acordo, nomeiam como inventariante do espólio, ${data.inventariante || 'Nome do inventariante não identificado'},
+já anteriormente qualificado(a), conferindo-lhe todos os poderes que se fizerem
+necessários para representar o espólio em Juízo ou fora dele; podendo ainda,
+praticar todos os atos de administração dos bens, constituir advogado(a) em
+nome do espólio, ingressar em juízo, ativa ou passivamente; podendo enfim
+praticar todos os atos que se fizerem necessários em defesa do espólio e ao
+cumprimento de suas eventuais obrigações; 3.1. O(A) nomeado(a) declara que
+aceita este encargo, prestando, aqui, o compromisso de cumprir, fiel e
+eficazmente, seu ofício; 3.2. O(A) inventariante declara estar ciente da
+responsabilidade civil e criminal que envolve o desempenho de seu encargo,
+inclusive pelas declarações aqui prestadas.
+
+4. DOS BENS E SEUS VALORES - O(A) autor(a) da herança deixou, por
+ocasião da abertura da sucessão, o(s) seguinte(s) bem(s):
+${data.numeroApartamento ? `4.1. Apartamento nº ${data.numeroApartamento || '101'}, do Bloco "${data.blocoApartamento || 'A'}", da ${data.quadraApartamento || 'SQN 000'}, desta Capital,
+${data.descricaoAdicionalImovel || ''} com direito a vaga na garagem, melhor descrito e caracterizado na
+matrícula nº ${data.matriculaImovel || '00000'}, do ${data.oficioImovel || '0'}º Ofício do Registro de Imóveis do
+Distrito Federal. Inscrição do imóvel junto ao GDF sob o nº ${data.inscricaoGDF || '00000000000'}. Que
+referido imóvel foi adquirido pelo(a) autor(a) da herança e seu cônjuge da
+seguinte forma: conforme R-${data.registroImovel || '00'}, na matrícula nº ${data.matriculaImovel || '00000'}, do mencionado registro
+imobiliário, e ao referido imóvel o(a)(s) herdeiro(a)(s) atribui(em) meramente
+para fins em partilha o valor de ${data.valorPartilhaImovel || 'R$ 1.000.000,00 (um milhão de reais)'}, sendo o valor para fins em
+meação em ${data.valorMeacaoImovel || 'R$ 500.000,00 (quinhentos mil reais)'}, e o valor arbitrado pela SEFAZ/DF para fins de
+cálculo de ITCD em 2025 no valor de ${data.valorImovelITCD || 'R$ 1.000.000,00 (um milhão de reais)'};` : ''}
+
+${data.veiculoMarca ? `4.2. VEÍCULO marca ${data.veiculoMarca || 'não informado'}, cor ${data.veiculoCor || 'não informado'}, categoria PARTICULAR, combustível
+${data.veiculoCombustivel || 'ÁLCOOL/GASOLINA'}, placa ${data.veiculoPlaca || 'não informado'}, chassi nº ${data.veiculoChassi || 'não informado'}, ano ${data.veiculoAno || 'não informado'}, modelo ${data.veiculoModelo || 'não informado'},
+renavam nº ${data.veiculoRenavam || 'não informado'}, e ao referido veículo o(a)(s) herdeiro(a)(s) atribui(em)
+meramente para fins em partilha o valor de ${data.valorPartilhaVeiculo || 'R$ 50.000,00 (cinquenta mil reais)'}, sendo o valor para
+fins em meação em ${data.valorMeacaoVeiculo || 'R$ 25.000,00 (vinte e cinco mil reais)'}, e o valor arbitrado pela SEFAZ/DF para fins
+de cálculo de ITCD em 2025 no valor de ${data.valorVeiculoITCD || 'R$ 50.000,00 (cinquenta mil reais)'};` : ''}
+
+${data.saldoBancario ? `4.3. Saldo em Conta corrente/poupança nº ${data.numeroConta || 'não informado'}, Agência nº ${data.numeroAgencia || 'não informado'}, junto ao
+Banco ${data.nomeBanco || 'não informado'}, no valor de ${data.saldoBancario || 'R$ 10.000,00 (dez mil reais)'} e acréscimos ou deduções se houver;` : ''}
+
+${data.cotasSociais ? `4.4. ${data.quantidadeCotasSociais || 'não informado'} cotas de Capital Social da Empresa
+${data.nomeEmpresa || 'não informado'}, inscrita no CNPJ sob o nº ${data.cnpjEmpresa || 'não informado'}, correspondente a
+${data.percentualEmpresa || 'não informado'}% do patrimônio liquido. As partes atribuem o valor de
+R$ ${data.valorCotasSociais || 'não informado'}, para fins de partilha. Conforme Contrato Social o valor do capital
+social é de R$ ${data.valorCapitalSocial || 'não informado'}, conforme balanço patrimonial o valor do patrimônio
+líquido é de R$ ${data.valorPatrimonioLiquido || 'não informado'};` : ''}
+
+5. DA PARTILHA - O(s) bem(s) constante(s) do item "4." da presente, soma(m)
+ou valor de ${data.valorTotalBens || 'R$ 1.060.000,00 (um milhão e sessenta mil reais)'} e será(ão) partilhado(s) da seguinte forma:
+5.1. Caberá ao(a) viúvo(a)-meeiro(a), ${data.inventariante || data.conjuge || 'Nome do viúvo(a)-meeiro(a) não identificado'}, em razão de sua meação, 50%
+(cinquenta por cento) de todos os bens descritos e caracterizados no item "4."
+da presente, correspondendo ao valor de ${data.valorTotalMeacao || 'R$ 530.000,00 (quinhentos e trinta mil reais)'};
+5.2. Caberá a cada um do(s) herdeiro(s), ${data.herdeiro1 || 'Nome do herdeiro 1 não identificado'}${data.herdeiro2 ? ', ' + data.herdeiro2 : ''}${data.herdeiro3 ? ', ' + data.herdeiro3 : ''}, em razão da sucessão legítima,
+${data.percentualHerdeiros || 'não informado'}, de todos o(s) bem(s) descrito(s) e caracterizados no item "4." da presente,
+correspondendo ao valor unitário de ${data.valorUnitarioHerdeiros || 'R$ 265.000,00 (duzentos e sessenta e cinco mil reais)'}.
+
+6. DAS CERTIDÕES E DOCUMENTOS APRESENTADOS - Foram-me
+apresentados e aqui arquivados os seguintes documentos e certidões para esta:
+a) Os documentos mencionados no artigo 22 da Resolução nº 35 do Conselho
+Nacional de Justiça, de 24 de abril de 2007, bem como os especificados na lei
+7.433/85, regulamentada pelo Decreto-Lei 93.240/86; b) Certidão de matrícula e
+ônus reais e pessoais reipersecutórias, relativa(s) ao(s) imóvel(s) objeto(s) desta
+escritura, bem como os documentos comprobatórios dos demais bens descritos
+e caracterizados no item "4." da presente; c) Certidão Negativa de Débitos
+relativos aos Tributos Federais e à Dívida Ativa da União, expedida pela
+Procuradoria-Geral da Fazenda Nacional e Secretaria da Receita Federal sob o
+nº ${data.numeroCertidaoPGFN || 'não informado'}, emitida aos ${data.dataCertidaoPGFN || 'não informado'}, às ${data.horaCertidaoPGFN || 'não informado'}, válida até ${data.validadeCertidaoPGFN || 'não informado'}, em nome e CPF do(a) falecido(a);
+d) Certidão Negativa de Débitos, expedida pelo GDF sob o nº ${data.numeroCertidaoGDF || 'não informado'}, emitida aos ${data.dataCertidaoGDF || 'não informado'},
+válida até ${data.validadeCertidaoGDF || 'não informado'}, em nome e CPF do(a) falecido(a);
+e) Certidão Negativa de Débitos de Tributos Imobiliários, expedida pelo GDF sob
+o nº ${data.numeroCertidaoImobiliaria || 'não informado'}, emitida aos ${data.dataCertidaoImobiliaria || 'não informado'}, válida até ${data.validadeCertidaoImobiliaria || 'não informado'}, referente ao imóvel descrito no subitem ${data.subItemImovel || 'não informado'},
+inscrição ${data.inscricaoTributaria || 'não informado'};
+f) Certidão Negativa de Testamento, emitida pela Central de Serviços Eletrônicos
+Compartilhados - CENSEC, em nome do(a)(s) autor(a)(es) da herança.
+
+${data.imovelOutroEstado ? `g) Certidão Negativa de Débitos, expedida pela Prefeitura de ${data.nomePrefeitura || 'não informado'} sob o nº
+${data.numeroCertidaoPrefeitura || 'não informado'}, emitida aos ${data.dataCertidaoPrefeitura || 'não informado'}, válida até ${data.validadeCertidaoPrefeitura || 'não informado'}, em nome e CPF do(a) falecido(a);` : ''}
+
+${data.imovelRural ? `g) Certificado de Cadastro de Imóvel Rural - CCIR, sob o nº ${data.numeroCCIR || 'não informado'}, código do imóvel
+rural ${data.codigoImovelRural || 'não informado'}, referente ao exercício ${data.exercicioCCIR || 'não informado'}, com as seguintes medidas: área total ${data.areaTotalRural || 'não informado'},
+denominação do imóvel ${data.denominacaoImovelRural || 'não informado'}, indicações para localização do imóvel: ${data.localizacaoImovelRural || 'não informado'}, município
+sede do imóvel: ${data.municipioImovelRural || 'não informado'}, classificação fundiária ${data.classificacaoFundiaria || 'não informado'}, nºs. de módulos fiscais ${data.modulosFiscais || 'não informado'}, fração
+mínima de parcelamento ${data.fracaoMinimaParcelamento || 'não informado'}, área registrada ${data.areaRegistrada || 'não informado'}, posse a justo título ${data.posseJustoTitulo || 'não informado'}, em relação ao
+imóvel descrito e caracterizado no item ${data.itemImovelRural || 'não informado'};
+
+h) Certidão Negativa de Débitos Relativos ao Imposto sobre a Propriedade
+Territorial Rural, expedida pela SRFB, sob o nº ${data.numeroCertidaoITR || 'não informado'}, emitida às ${data.horaCertidaoITR || 'não informado'} horas, dia ${data.dataCertidaoITR || 'não informado'}, válida
+até ${data.validadeCertidaoITR || 'não informado'}, CIB: ${data.cibCertidaoITR || 'não informado'}, em relação ao imóvel descrito e caracterizado no item ${data.itemImovelCertidaoITR || 'não informado'};
+
+i) Certidão Negativa de Débitos - Ministério do Meio Ambiente - MMA - Instituto
+Brasileiro do Meio Ambiente e dos Recursos Naturais Renováveis - IBAMA, sob
+os nº ${data.numeroCertidaoIBAMA || 'não informado'}, expedida em ${data.dataCertidaoIBAMA || 'não informado'}, válida até ${data.validadeCertidaoIBAMA || 'não informado'}, em nome do autor da herança.` : ''}
+
+7. DO IMPOSTO DE TRANSMISSÃO "CAUSA MORTIS" E DOAÇÃO - Guia de
+transmissão causa mortis e doação de quaisquer bens e direitos - ITCMD,
+expedida pela Secretaria de Estado da Fazenda do Distrito Federal sob o nº
+${data.numeroITCMD || 'não informado'}, no valor de ${data.valorITCMD || 'não informado'}, paga aos ${data.dataPagamentoITCMD || 'não informado'}, no mesmo valor, sob a alíquota de 4% sobre o valor
+total tributável de ${data.valorTributavelITCMD || 'não informado'}, em relação à sucessão legítima.
+
+8. DAS DECLARAÇÕES DO(A) ADVOGADO(A) - Pelo(a) advogado(a) me foi
+dito que, na qualidade de advogado(a) das partes, assessorou e aconselhou
+seus constituintes, tendo conferido a correção da partilha e seus valores de
+acordo com a Lei. 9. DAS DECLARAÇÕES FINAIS - Os comparecentes
+requerem e autorizam ao Cartório do Registro de Imóveis competente ${data.cartorioCompetente || 'não informado'} e
+demais órgãos, a praticar(em) todos os atos que se fizerem necessários ao
+cumprimento da presente escritura; 9.1. Os comparecentes que figuram neste
+instrumento declaram estar cientes da responsabilidade civil e criminal, pelas
+declarações de bens e pela inexistência de outros herdeiros conhecidos e pela
+veracidade de todos os fatos relatados neste instrumento de Inventário e
+Partilha; 9.2. Declaram, ainda, que em relação ao(s) imóvel(s) descrito(s) e
+caracterizado(s) no item 4, encontram-se quites com suas obrigações
+condominiais; 9.3. Pelo(s) mandatário(s) foi declarado sob responsabilidade civil
+e penal, que não ocorreram quaisquer das causas de extinção do mandato,
+tratadas no artigo 682, do Código Civil brasileiro. 9.4. As partes declaram-se
+cientes sobre a possibilidade de obtenção prévia das certidões de feitos
+ajuizados expedidas pela Justiça do Distrito Federal e dos Territórios ou
+Estadual, Justiça Federal e Justiça do Trabalho, em nome do(s) autor(es) da
+herança, em atendimento ao disposto no artigo 45, § 6º do Provimento Geral da
+Corregedoria da Justiça do Distrito Federal e dos Territórios, inclusive Certidão
+Negativa de Débitos Trabalhistas - CNDT, expedida pelo TST - Tribunal Superior
+do Trabalho. Demais taxas, certidões e impostos serão apresentados por
+ocasião do registro. As partes declaram ter conhecimento de que outros
+documentos poderão ser solicitados por ocasião do registro da presente
+escritura no Cartório de Registro de Imóveis competente. Certifica que, foi feita
+a consulta prévia junto a Central Nacional de Indisponibilidade de Bens - CNIB,
+no(s) CPF do(a) autor(a) da herança, conforme código hash sob o nº ${data.hashCNIB || 'não informado'}, com o
+resultado NEGATIVO, conforme dispõe o artigo 7º, do Provimento nº 39/2014,
+da Corregedoria Nacional de Justiça, datado de 25 de Julho de 2014. Emitida a
+DOI - Declaração sobre operação imobiliária, conforme instrução normativa da
+Receita Federal do Brasil. Ficam ressalvados eventuais erros, omissões ou
+direitos de terceiros porventura existentes. Assim o disseram, pediram-me e eu
+Escrevente lhes lavrei a presente escritura, que feita e lhes sendo lida, foi achada
+em tudo conforme, aceitam e assinam.`;
+      break;
+      
+    case 'Contrato Social':
+      content = `CONTRATO DE CONSTITUIÇÃO DE SOCIEDADE LIMITADA`;
+      break;
+      
+    default:
+      content = `DOCUMENTO GENÉRICO
+
+Este é um modelo genérico de documento jurídico.
+Data: ${formattedDate}`;
+      break;
+  }
+  
+  return content;
+};
