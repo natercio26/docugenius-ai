@@ -467,28 +467,188 @@ E pela presente escritura e nos melhores termos de direito, o OUTORGANTE VENDEDO
       break;
       
     case 'Inventário':
-      content = `TERMO DE INVENTÁRIO E PARTILHA
+      content = `ESCRITURA PÚBLICA DE INVENTÁRIO E PARTILHA, na forma abaixo:
+= S A I B A M = quantos esta virem que, ${formattedDate}, nesta cidade de Brasília, Distrito
+Federal, Capital da República Federativa do Brasil, nesta Serventia, perante
+mim, Escrevente, compareceram como Outorgantes e reciprocamente
+Outorgados, na qualidade de viúvo(a)-meeiro(a):
+${data.inventariante || data.nome || 'MARIA OLIVEIRA'}, ${data.nacionalidade || 'brasileira'}, ${data.estadoCivil || 'viúva'}, ${data.profissao || 'professora'}, portadora da Cédula de Identidade RG nº ${data.rg || '98.765.432-1 SSP/SP'}, inscrita no CPF/MF sob nº ${data.cpf || '987.654.321-00'}, residente e domiciliada na ${data.endereco || 'Avenida Central, nº 456, Bairro Centro, CEP 12345-678, nesta Capital'};
 
-Aos ${formattedDate}, na cidade de São Paulo, Estado de São Paulo, procede-se ao INVENTÁRIO E PARTILHA dos bens deixados por falecimento de ${data.falecido || 'JOSÉ SANTOS'}, falecido em ${data.dataFalecimento || '10/01/2023'}, conforme certidão de óbito apresentada.
+e, na qualidade de herdeiros-filhos:
+${data.herdeiro1 || 'PEDRO SANTOS'}, brasileiro, solteiro, estudante, CPF nº ${data.cpfHerdeiro1 || '111.222.333-44'}, residente e domiciliado na ${data.enderecoHerdeiro1 || 'Rua A, nº 123, CEP 12345-678, Brasília-DF'};
+${data.herdeiro2 ? `${data.herdeiro2}, brasileiro(a), ${data.estadoCivilHerdeiro2 || 'solteiro(a)'}, ${data.profissaoHerdeiro2 || 'estudante'}, CPF nº ${data.cpfHerdeiro2 || '555.666.777-88'}, residente e domiciliado(a) na ${data.enderecoHerdeiro2 || 'Rua B, nº 456, CEP 12345-678, Brasília-DF'};` : ''}
 
-INVENTARIANTE: ${data.inventariante || data.nome || 'MARIA OLIVEIRA'}, ${data.nacionalidade || 'brasileira'}, ${data.estadoCivil || 'viúva'}, ${data.profissao || 'professora'}, portadora da Cédula de Identidade RG nº ${data.rg || '98.765.432-1 SSP/SP'}, inscrita no CPF/MF sob nº ${data.cpf || '987.654.321-00'}, residente e domiciliada na ${data.endereco || 'Avenida Central, nº 456, Bairro Centro, CEP 12345-678, nesta Capital'}.
+e, na qualidade de advogado:
+Dr(a). ${data.advogado || 'JOSÉ SILVA'}, inscrito(a) na OAB/DF sob o nº ${data.oabAdvogado || '12345'}, com escritório na ${data.enderecoAdvogado || 'Rua dos Advogados, nº 789, CEP 12345-678, Brasília-DF'};
 
-HERDEIROS:
-1. ${data.herdeiro1 || 'PEDRO SANTOS'}, filho do falecido, brasileiro, solteiro, estudante, CPF nº ${data.cpfHerdeiro1 || '111.222.333-44'};
-2. ${data.herdeiro2 || 'ANA SANTOS'}, filha do falecido, brasileira, casada, médica, CPF nº ${data.cpfHerdeiro2 || '555.666.777-88'}.
+Todos os presentes foram reconhecidos e identificados como os próprios de que
+trato, pelos documentos apresentados, cuja capacidade jurídica reconheço e dou
+fé. E, pelos Outorgantes e reciprocamente Outorgados, devidamente orientados
+pelo(a) advogado(a), acima nomeado e qualificado, legalmente constituído(a)
+para este ato, me foi requerida a lavratura do inventário e partilha amigável
+dos bens e direitos deixados pelo falecimento de ${data.falecido || 'JOSÉ SANTOS'}, conforme dispõe na Lei
+nº 13.105/2015, regulamentada pela Resolução nº 35 de 24 abril de 2007, do
+Conselho Nacional de Justiça, nos seguintes termos e condições:
 
-BENS A SEREM PARTILHADOS:
-1. IMÓVEL: ${data.descricaoImovel || data.enderecoImovel || 'Apartamento situado na Rua dos Ipês, nº 789, Bairro Jardim Paulista'}, registrado sob a ${data.registroImovel || 'matrícula nº 12.345 no 5º Oficial de Registro de Imóveis desta Capital'}, avaliado em ${data.valorImovel || 'R$ 800.000,00 (oitocentos mil reais)'}.
-2. VEÍCULO: ${data.veiculo || 'Automóvel marca Toyota, modelo Corolla, ano 2020, placa ABC-1234'}, avaliado em R$ 90.000,00 (noventa mil reais).
-3. CONTAS BANCÁRIAS: Saldo em conta corrente no valor de R$ 30.000,00 (trinta mil reais).
+1. DO(A) AUTOR(A) DA HERANÇA – O(A) autor(a) da herança,
+1.1. Foi casado com o(a) viúvo(a)-meeiro(a), ${data.inventariante || data.nome || 'MARIA OLIVEIRA'}, já anteriormente
+qualificado(a), desde ${data.dataCasamento || '10/05/1990'}, sob o regime de ${data.regimeBens || 'comunhão parcial de bens'}, conforme certidão
+de casamento expedida aos ${data.dataCertidaoCasamento || '15/05/1990'}, registrada sob a matrícula nº ${data.matriculaCasamento || '123456'}, pelo
+Cartório do ${data.cartorioCasamento || '1º Ofício de Registro Civil de Brasília-DF'};
 
-TOTAL DO ESPÓLIO: R$ 920.000,00 (novecentos e vinte mil reais).
+1.2. Faleceu aos ${data.dataFalecimento || '10/01/2023'}, no Hospital ${data.hospitalFalecimento || 'Santa Luzia'}, na cidade de ${data.cidadeFalecimento || 'Brasília-DF'}, conforme certidão de
+óbito expedida aos ${data.dataCertidaoObito || '12/01/2023'}, registrada sob a matrícula nº ${data.matriculaObito || '987654'}, pelo Cartório do ${data.cartorioObito || '2º Ofício de Registro Civil de Brasília-DF'};
 
-PLANO DE PARTILHA:
-- Ao herdeiro ${data.herdeiro1 || 'PEDRO SANTOS'} caberá o imóvel descrito no item 1, avaliado em ${data.valorImovel || 'R$ 800.000,00'};
-- À herdeira ${data.herdeiro2 || 'ANA SANTOS'} caberão o veículo descrito no item 2 e os valores em conta bancária descritos no item 3, totalizando R$ 120.000,00.
+1.3. Do relacionamento do(a) autor(a) da herança com o(a) ora viúvo(a)-
+meeiro(a) nasceram ${data.quantidadeFilhos || 'dois'} filhos, todos maiores e capazes, a saber:
+${data.herdeiro1 || 'PEDRO SANTOS'} e ${data.herdeiro2 || 'ANA SANTOS'}, declarando os presentes que desconhece(m) a existência de
+outros herdeiros, a não ser o(s) mencionado(s) no presente ato.
 
-Os herdeiros declaram estar de acordo com a presente partilha, dando-se mútua quitação quanto aos bens do espólio.`;
+DAS DECLARAÇÕES DAS PARTES - As partes declaram sob as penas da lei,
+que:
+a) o(a) autor(a) da herança não deixou testamento conhecido, por qualquer
+natureza;
+${data.temTestamento ? `a) o(a) falecido(a) deixou testamento que foi aberto nos autos do processo nº ${data.processoTestamento || '12345-67.2023.8.07.0001'} e teve autorização expressa para realização do inventário por meio de Escritura Pública emanada pelo (a) Juiz (a) ${data.juizTestamento || 'Dr. Paulo Souza'}, em ${data.dataAutorizacao || '20/01/2023'}, tudo conforme o estabelecido no artigo 12-B da resolução 35 do Conselho Nacional de Justiça.` : ''}
+b) desconhecem quaisquer débitos em nome do(a) autor(a) da herança, por
+ocasião da abertura da sucessão; c) desconhecem quaisquer obrigações
+assumidas pelo(a) autor(a) da herança; d) desconhecem a existência de outros
+herdeiros, a não ser os que estão presentes nesta escritura; e) a presente
+escritura não prejudica os direitos adquiridos e interesses de terceiros; f) não
+existem feitos ajuizados fundados em ações reais, pessoais ou reipersecutórias
+que afetem os bens e direitos partilhados; g) o(a) falecido(a) não era
+empregador(a) ou, de qualquer forma, responsável por recolhimento de
+contribuições à Previdência Social; h) os bens ora partilhados encontram-se
+livres e desembaraçados de quaisquer ônus, dívidas, tributos de quaisquer
+naturezas; i) não tramita inventário e partilha na via judicial.
+
+3. DA NOMEAÇÃO DE INVENTARIANTE - Os Outorgantes e reciprocamente
+Outorgados, de comum acordo, nomeiam como inventariante do espólio, ${data.inventariante || data.nome || 'MARIA OLIVEIRA'},
+já anteriormente qualificado(a), conferindo-lhe todos os poderes que se fizerem
+necessários para representar o espólio em Juízo ou fora dele; podendo ainda,
+praticar todos os atos de administração dos bens, constituir advogado(a) em
+nome do espólio, ingressar em juízo, ativa ou passivamente; podendo enfim
+praticar todos os atos que se fizerem necessários em defesa do espólio e ao
+cumprimento de suas eventuais obrigações; 3.1. O(A) nomeado(a) declara que
+aceita este encargo, prestando, aqui, o compromisso de cumprir, fiel e
+eficazmente, seu ofício; 3.2. O(A) inventariante declara estar ciente da
+responsabilidade civil e criminal que envolve o desempenho de seu encargo,
+inclusive pelas declarações aqui prestadas.
+
+4. DOS BENS E SEUS VALORES - O(A) autor(a) da herança deixou, por
+ocasião da abertura da sucessão, o(s) seguinte(s) bem(s):
+4.1. Apartamento nº ${data.numeroApartamento || '101'}, do Bloco "${data.blocoApartamento || 'A'}", da ${data.quadraApartamento || 'SQN 123'}, desta Capital,
+${data.descricaoAdicionalImovel || 'com área privativa de 120,00m²'} com direito a vaga na garagem, melhor descrito e caracterizado na
+matrícula nº ${data.matriculaImovel || '12345'}, do ${data.cartorioRegistroImovel || '2º'} Ofício do Registro de Imóveis do
+Distrito Federal. Inscrição do imóvel junto ao GDF sob o nº ${data.inscricaoGDF || '12345678901'}. Que
+referido imóvel foi adquirido pelo(a) autor(a) da herança e seu cônjuge da
+seguinte forma: conforme R-${data.registroMatricula || '1'}, na matrícula nº ${data.matriculaImovel || '12345'}, do mencionado registro
+imobiliário, e ao referido imóvel o(a)(s) herdeiro(a)(s) atribui(em) meramente
+para fins em partilha o valor de ${data.valorPartilhaImovel || 'R$ 800.000,00 (oitocentos mil reais)'}, sendo o valor para fins em
+meação em ${data.valorMeacaoImovel || 'R$ 400.000,00 (quatrocentos mil reais)'}, e o valor arbitrado pela SEFAZ/DF para fins de
+cálculo de ITCD em 2025 no valor de ${data.valorITCDImovel || 'R$ 800.000,00 (oitocentos mil reais)'};
+
+${data.temVeiculo ? `4.2. VEÍCULO marca ${data.marcaVeiculo || 'Toyota'}, cor ${data.corVeiculo || 'prata'}, categoria PARTICULAR, combustível
+ÁLCOOL/GASOLINA, placa ${data.placaVeiculo || 'ABC1234'}, chassi nº ${data.chassiVeiculo || '9BRBLWHEXG0107721'}, ano ${data.anoVeiculo || '2020'}, modelo ${data.modeloVeiculo || 'Corolla'}, 
+renavam nº ${data.renavamVeiculo || '01234567890'}, e ao referido veículo o(a)(s) herdeiro(a)(s) atribui(em) 
+meramente para fins em partilha o valor de ${data.valorPartilhaVeiculo || 'R$ 90.000,00 (noventa mil reais)'}, sendo o valor para 
+fins em meação em ${data.valorMeacaoVeiculo || 'R$ 45.000,00 (quarenta e cinco mil reais)'}, e o valor arbitrado pela SEFAZ/DF para fins 
+de cálculo de ITCD em 2025 no valor de ${data.valorITCDVeiculo || 'R$ 90.000,00 (noventa mil reais)'};` : ''}
+
+${data.temContaBancaria ? `4.3. Saldo em Conta corrente/poupança nº ${data.numeroConta || '12345-6'}, Agência nº ${data.numeroAgencia || '1234'}, junto ao
+Banco ${data.nomeBanco || 'Banco do Brasil'}, no valor de ${data.valorConta || 'R$ 30.000,00 (trinta mil reais)'} e acréscimos ou deduções se houver;` : ''}
+
+${data.temCotas ? `4.4. ${data.quantidadeCotas || '1.000 (mil)'} cotas de Capital Social da Empresa 
+${data.nomeEmpresa || 'XYZ Empreendimentos Ltda.'}, inscrita no CNPJ sob o nº ${data.cnpjEmpresa || '12.345.678/0001-90'}, correspondente a 
+${data.percentualCotas || '50% (cinquenta por cento)'} do patrimônio liquido. As partes atribuem o valor de 
+R$ ${data.valorCotas || '100.000,00 (cem mil reais)'}, para fins de partilha. Conforme Contrato Social o valor do capital 
+social é de R$ ${data.valorCapitalSocial || '200.000,00 (duzentos mil reais)'}, conforme balanço patrimonial o valor do patrimônio 
+líquido é de R$ ${data.valorPatrimonioLiquido || '300.000,00 (trezentos mil reais)'};` : ''}
+
+5. DA PARTILHA - O(s) bem(s) constante(s) do item "4." da presente, soma(m)
+ou valor de ${data.valorTotalBens || 'R$ 920.000,00 (novecentos e vinte mil reais)'} e será(ão) partilhado(s) da seguinte forma:
+5.1. Caberá ao(a) viúvo(a)-meeiro(a), ${data.inventariante || data.nome || 'MARIA OLIVEIRA'}, em razão de sua meação, 50%
+(cinquenta por cento) de todos os bens descritos e caracterizados no item "4."
+da presente, correspondendo ao valor de ${data.valorMeacao || 'R$ 460.000,00 (quatrocentos e sessenta mil reais)'};
+5.2. Caberá a cada um do(s) herdeiro(s), ${data.herdeiro1 || 'PEDRO SANTOS'}${data.herdeiro2 ? ` e ${data.herdeiro2}` : ''}, em razão da sucessão legítima,
+${data.percentualHerdeiros || '25% (vinte e cinco por cento)'}, de todos o(s) bem(s) descrito(s) e caracterizados no item "4." da presente,
+correspondendo ao valor unitário de ${data.valorParteHerdeiro || 'R$ 230.000,00 (duzentos e trinta mil reais)'}.
+
+6. DAS CERTIDÕES E DOCUMENTOS APRESENTADOS - Foram-me
+apresentados e aqui arquivados os seguintes documentos e certidões para esta:
+a) Os documentos mencionados no artigo 22 da Resolução nº 35 do Conselho
+Nacional de Justiça, de 24 de abril de 2007, bem como os especificados na lei
+7.433/85, regulamentada pelo Decreto-Lei 93.240/86; b) Certidão de matrícula e
+ônus reais e pessoais reipersecutórias, relativa(s) ao(s) imóvel(s) objeto(s) desta
+escritura, bem como os documentos comprobatórios dos demais bens descritos
+e caracterizados no item "4." da presente; c) Certidão Negativa de Débitos
+relativos aos Tributos Federais e à Dívida Ativa da União, expedida pela
+Procuradoria-Geral da Fazenda Nacional e Secretaria da Receita Federal sob o
+nº ${data.numeroDebitosFederais || '12345678'}, emitida aos ${data.dataDebitosFederais || '15/01/2023'}, às ${data.horaDebitosFederais || '10:15'}, válida até ${data.validadeDebitosFederais || '15/07/2023'}, em nome e CPF do(a) falecido(a);
+d) Certidão Negativa de Débitos, expedida pelo GDF sob o nº ${data.numeroDebitosGDF || '87654321'}, emitida aos ${data.dataDebitosGDF || '16/01/2023'}, 
+válida até ${data.validadeDebitosGDF || '16/07/2023'}, em nome e CPF do(a) falecido(a);
+e) Certidão Negativa de Débitos de Tributos Imobiliários, expedida pelo GDF sob
+o nº ${data.numeroDebitosImobiliarios || '12348765'}, emitida aos ${data.dataDebitosImobiliarios || '17/01/2023'}, válida até ${data.validadeDebitosImobiliarios || '17/07/2023'}, referente ao imóvel descrito no subitem ${data.subitemImovel || '4.1'}, 
+inscrição ${data.inscricaoImovel || '12345678901'};
+f) Certidão Negativa de Testamento, emitida pela Central de Serviços Eletrônicos
+Compartilhados - CENSEC, em nome do(a)(s) autor(a)(es) da herança.
+
+${data.temImovelOutroEstado ? `g) Certidão Negativa de Débitos, expedida pela Prefeitura de ${data.cidadePrefeitura || 'São Paulo'} sob o nº 
+${data.numeroDebitosPrefeitura || '123456'}, emitida aos ${data.dataDebitosPrefeitura || '18/01/2023'}, válida até ${data.validadeDebitosPrefeitura || '18/07/2023'}, em nome e CPF do(a) falecido(a);` : ''}
+
+${data.temImovelRural ? `g) Certificado de Cadastro de Imóvel Rural - CCIR, sob o nº ${data.numeroCCIR || '12345'}, código do imóvel 
+rural ${data.codigoImovelRural || '12345678-9'}, referente ao exercício ${data.exercicioCCIR || '2023'}, com as seguintes medidas: área total ${data.areaTotalRural || '25,5 hectares'}, 
+denominação do imóvel ${data.denominacaoImovelRural || 'Fazenda Boa Esperança'}, indicações para localização do imóvel: ${data.localizacaoImovelRural || 'Rodovia BR-123, km 45'}, município 
+sede do imóvel: ${data.municipioImovelRural || 'Planaltina-DF'}, classificação fundiária ${data.classificacaoFundiaria || 'Pequena Propriedade'}, nºs. de módulos fiscais ${data.modulosFiscais || '2'}, fração 
+mínima de parcelamento ${data.fracaoMinima || '2 hectares'}, área registrada ${data.areaRegistrada || '25,5 hectares'}, posse a justo título ${data.posseJustoTitulo || 'Sim'}, em relação ao 
+imóvel descrito e caracterizado no item ${data.itemImovelRural || '4.4'};
+
+h) Certidão Negativa de Débitos Relativos ao Imposto sobre a Propriedade 
+Territorial Rural, expedida pela SRFB, sob o nº ${data.numeroCNDITR || '123456'}, emitida às ${data.horaCNDITR || '11:30'} horas, dia ${data.dataCNDITR || '19/01/2023'}, válida 
+até ${data.validadeCNDITR || '19/07/2023'}, CIB: ${data.cibITR || '12345.67890.12345.12345'}, em relação ao imóvel descrito e caracterizado no item ${data.itemImovelITR || '4.4'};
+
+i) Certidão Negativa de Débitos - Ministério do Meio Ambiente - MMA - Instituto 
+Brasileiro do Meio Ambiente e dos Recursos Naturais Renováveis - IBAMA, sob 
+os nº ${data.numeroCNDIBAMA || '123456'}, expedida em ${data.dataCNDIBAMA || '20/01/2023'}, válida até ${data.validadeCNDIBAMA || '20/07/2023'}, em nome do autor da herança.` : ''}
+
+7. DO IMPOSTO DE TRANSMISSÃO "CAUSA MORTIS" E DOAÇÃO - Guia de
+transmissão causa mortis e doação de quaisquer bens e direitos - ITCMD,
+expedida pela Secretaria de Estado da Fazenda do Distrito Federal sob o nº
+${data.numeroITCMD || '123456'}, no valor de ${data.valorITCMD || 'R$ 18.400,00 (dezoito mil e quatrocentos reais)'}, paga aos ${data.dataPagamentoITCMD || '25/01/2023'}, no mesmo valor, sob a alíquota de 4% sobre o valor total tributável de ${data.valorTributavelITCMD || 'R$ 460.000,00 (quatrocentos e sessenta mil reais)'}, em relação à sucessão legítima.
+
+8. DAS DECLARAÇÕES DO(A) ADVOGADO(A) - Pelo(a) advogado(a) me foi
+dito que, na qualidade de advogado(a) das partes, assessorou e aconselhou
+seus constituintes, tendo conferido a correção da partilha e seus valores de
+acordo com a Lei. 9. DAS DECLARAÇÕES FINAIS - Os comparecentes
+requerem e autorizam ao Cartório do Registro de Imóveis competente ${data.cartorioRegistroCompetente || '2º Ofício de Registro de Imóveis do Distrito Federal'} e
+demais órgãos, a praticar(em) todos os atos que se fizerem necessários ao
+cumprimento da presente escritura; 9.1. Os comparecentes que figuram neste
+instrumento declaram estar cientes da responsabilidade civil e criminal, pelas
+declarações de bens e pela inexistência de outros herdeiros conhecidos e pela
+veracidade de todos os fatos relatados neste instrumento de Inventário e
+Partilha; 9.2. Declaram, ainda, que em relação ao(s) imóvel(s) descrito(s) e
+caracterizado(s) no item 4, encontram-se quites com suas obrigações
+condominiais; 9.3. Pelo(s) mandatário(s) foi declarado sob responsabilidade civil
+e penal, que não ocorreram quaisquer das causas de extinção do mandato,
+tratadas no artigo 682, do Código Civil brasileiro. 9.4. As partes declaram-se
+cientes sobre a possibilidade de obtenção prévia das certidões de feitos
+ajuizados expedidas pela Justiça do Distrito Federal e dos Territórios ou
+Estadual, Justiça Federal e Justiça do Trabalho, em nome do(s) autor(es) da
+herança, em atendimento ao disposto no artigo 45, § 6º do Provimento Geral da
+Corregedoria da Justiça do Distrito Federal e dos Territórios, inclusive Certidão
+Negativa de Débitos Trabalhistas - CNDT, expedida pelo TST - Tribunal Superior
+do Trabalho. Demais taxas, certidões e impostos serão apresentados por
+ocasião do registro. As partes declaram ter conhecimento de que outros
+documentos poderão ser solicitados por ocasião do registro da presente
+escritura no Cartório de Registro de Imóveis competente. Certifica que, foi feita
+a consulta prévia junto a Central Nacional de Indisponibilidade de Bens - CNIB,
+no(s) CPF do(a) autor(a) da herança, conforme código hash sob o nº ${data.hashCNIB || 'a1b2c3d4e5f6'}, com o
+resultado NEGATIVO, conforme dispõe o artigo 7º, do Provimento nº 39/2014,
+da Corregedoria Nacional de Justiça, datado de 25 de Julho de 2014. Emitida a
+DOI - Declaração sobre operação imobiliária, conforme instrução normativa da
+Receita Federal do Brasil. Ficam ressalvados eventuais erros, omissões ou
+direitos de terceiros porventura existentes. Assim o disseram, pediram-me e eu
+Escrevente lhes lavrei a presente escritura, que feita e lhes sendo lida, foi achada
+em tudo conforme, aceitam e assinam.`;
       break;
       
     case 'Doação':
