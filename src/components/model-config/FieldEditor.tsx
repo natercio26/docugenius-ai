@@ -1,6 +1,7 @@
 
 import React from 'react';
 import { Switch } from "@/components/ui/switch";
+import { useToast } from "@/hooks/use-toast";
 
 interface FieldEditorProps {
   field: { name: string; type: string; required: boolean };
@@ -9,16 +10,28 @@ interface FieldEditorProps {
 }
 
 const FieldEditor: React.FC<FieldEditorProps> = ({ field, onUpdate, onRemove }) => {
+  const { toast } = useToast();
+  
+  const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.value.trim() === '') {
+      toast({
+        title: "Campo obrigatório",
+        description: "O nome do campo não pode estar vazio.",
+        variant: "destructive"
+      });
+      return;
+    }
+    onUpdate({ ...field, name: e.target.value });
+  };
+
   return (
-    <div className="grid grid-cols-12 gap-4 items-center">
+    <div className="grid grid-cols-12 gap-4 items-center p-3 border rounded-md bg-background shadow-sm hover:shadow transition-all">
       <div className="col-span-5">
         <input
           type="text"
           value={field.name}
-          onChange={(e) => {
-            onUpdate({ ...field, name: e.target.value });
-          }}
-          className="input-field"
+          onChange={handleNameChange}
+          className="w-full px-3 py-2 border border-input rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary"
           placeholder="Nome do campo"
         />
       </div>
@@ -28,12 +41,15 @@ const FieldEditor: React.FC<FieldEditorProps> = ({ field, onUpdate, onRemove }) 
           onChange={(e) => {
             onUpdate({ ...field, type: e.target.value });
           }}
-          className="input-field"
+          className="w-full px-3 py-2 border border-input rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary"
         >
           <option value="text">Texto</option>
           <option value="date">Data</option>
           <option value="select">Seleção</option>
           <option value="checkbox">Checkbox</option>
+          <option value="number">Número</option>
+          <option value="textarea">Área de Texto</option>
+          <option value="file">Arquivo</option>
         </select>
       </div>
       <div className="col-span-3">
@@ -47,10 +63,10 @@ const FieldEditor: React.FC<FieldEditorProps> = ({ field, onUpdate, onRemove }) 
           <span className="text-sm">Obrigatório</span>
         </label>
       </div>
-      <div className="col-span-1">
+      <div className="col-span-1 flex justify-center">
         <button
           onClick={onRemove}
-          className="text-destructive hover:text-destructive/80"
+          className="text-destructive hover:text-destructive/80 transition-colors p-1.5 rounded-full hover:bg-destructive/10"
           aria-label="Remover campo"
         >
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
