@@ -34,6 +34,25 @@ const DraftViewer: React.FC<DraftViewerProps> = ({ draft, extractedData }) => {
     }
   }, [draft.type, extractedData]);
 
+  // Clean up and filter out invalid values
+  const cleanupDataValue = (value: string): string => {
+    if (!value) return '';
+    
+    // Check for system text and placeholders
+    const systemTextPatterns = [
+      /poder judiciário/i, /certidão/i, /consulta/i, /validar/i, 
+      /código/i, /tribunal/i, /recuperação/i, /judicial/i,
+      /^ião/i, /^estado civil$/i, /^nome completo$/i, /^profissão$/i,
+      /endereço\s+SH[IN]/i, /declarante/i
+    ];
+    
+    if (systemTextPatterns.some(pattern => pattern.test(value))) {
+      return '';
+    }
+    
+    return value;
+  };
+
   // Group extracted data by categories according to the specified order
   const groupExtractedData = () => {
     if (!extractedData) return {};
@@ -59,49 +78,56 @@ const DraftViewer: React.FC<DraftViewerProps> = ({ draft, extractedData }) => {
     
     // Sort data into groups
     Object.entries(extractedData).forEach(([key, value]) => {
-      if (value === "Não identificado" || value === "Não identificada" || value === "" || value === "=====" || value === "N/A") {
-        return; // Skip empty values
+      // Skip empty, placeholder, or system text values
+      const cleanValue = cleanupDataValue(value);
+      if (!cleanValue || 
+          cleanValue === "Não identificado" || 
+          cleanValue === "Não identificada" || 
+          cleanValue === "" || 
+          cleanValue === "=====" || 
+          cleanValue === "N/A") {
+        return; 
       }
       
       // Categorize fields according to the specified order
       if (key.includes('viuv') || key.includes('viúv')) {
-        groups["Viúvo(a)"][key] = value;
+        groups["Viúvo(a)"][key] = cleanValue;
       } else if (key === 'conjuge' || key === 'cônjuge' || key === 'meeiro' || key === 'meeira') {
-        groups["Herdeiros/Cônjuge/Casamento"][key] = value;
+        groups["Herdeiros/Cônjuge/Casamento"][key] = cleanValue;
       } else if (key.includes('filho') || key === 'numeroFilhos' || key === 'nomesFilhos') {
-        groups["Filhos"][key] = value;
+        groups["Filhos"][key] = cleanValue;
       } else if (key === 'advogado' || key.includes('oab') || key.includes('OAB')) {
-        groups["Advogado"][key] = value;
+        groups["Advogado"][key] = cleanValue;
       } else if (key === 'falecido' || key === 'autor da herança' || key === 'de cujus') {
-        groups["Falecido"][key] = value;
+        groups["Falecido"][key] = cleanValue;
       } else if (key.includes('rg falecido') || key.includes('cpf falecido') || 
                 key.includes('nacionalidade') || key.includes('profissao')) {
-        groups["Qualificações do Falecido"][key] = value;
+        groups["Qualificações do Falecido"][key] = cleanValue;
       } else if (key === 'dataCasamento' || key === 'regimeBens' || key.includes('certidaoCasamento')) {
-        groups["Do Casamento"][key] = value;
+        groups["Do Casamento"][key] = cleanValue;
       } else if (key === 'dataFalecimento' || key.includes('obito') || key.includes('óbito') || 
                 key.includes('falecimento') || key === 'cidadeFalecimento' || key === 'hospitalFalecimento') {
-        groups["Do Falecimento"][key] = value;
+        groups["Do Falecimento"][key] = cleanValue;
       } else if (key.includes('herdeiro') && !key.includes('valor')) {
-        groups["Dos Herdeiros"][key] = value;
+        groups["Dos Herdeiros"][key] = cleanValue;
       } else if (key === 'inventariante' || key.includes('representante')) {
-        groups["Nomeação do Inventariante"][key] = value;
+        groups["Nomeação do Inventariante"][key] = cleanValue;
       } else if (key.includes('imovel') || key.includes('Imovel') || key.includes('apartamento') || 
                 key.includes('Apartamento') || key.includes('veículo') || key.includes('veiculo') ||
                 key.includes('blocoApartamento') || key.includes('quadra')) {
-        groups["Bens"][key] = value;
+        groups["Bens"][key] = cleanValue;
       } else if (key.includes('partilha') || key.includes('quinhao') || key.includes('quinhão') ||
                 key === 'valorTotalBens' || key === 'valorTotalMeacao' || key.includes('percentual') ||
                 key === 'valorUnitarioHerdeiros') {
-        groups["Partilha"][key] = value;
+        groups["Partilha"][key] = cleanValue;
       } else if (key.includes('Certidao') || key.includes('certidao') || key.includes('receita') || 
                 key.includes('GDF') || key.includes('gdf') || key.includes('iptu') || key.includes('IPTU')) {
-        groups["Certidões"][key] = value;
+        groups["Certidões"][key] = cleanValue;
       } else if (key.includes('ITCMD') || key.includes('itcmd') || key.includes('imposto') || 
                 key.includes('tributo') || key.includes('valorITCMD')) {
-        groups["Imposto"][key] = value;
+        groups["Imposto"][key] = cleanValue;
       } else {
-        groups["Outros"][key] = value;
+        groups["Outros"][key] = cleanValue;
       }
     });
     

@@ -24,6 +24,47 @@ const FieldEditor: React.FC<FieldEditorProps> = ({ field, onUpdate, onRemove }) 
     onUpdate({ ...field, name: e.target.value });
   };
 
+  // Define field types for different document info types
+  const suggestedTypes = () => {
+    const nameLower = field.name.toLowerCase();
+    
+    if (nameLower.includes('data') || nameLower.includes('nascimento') || 
+        nameLower.includes('falecimento') || nameLower.includes('casamento')) {
+      return 'date';
+    }
+    
+    if (nameLower.includes('valor') || nameLower.includes('percentual') || nameLower.includes('número')) {
+      return 'number';
+    }
+    
+    if (nameLower.includes('descrição') || nameLower.includes('observação') || nameLower.includes('detalhes')) {
+      return 'textarea';
+    }
+    
+    if (nameLower.includes('regime') || nameLower.includes('estado civil')) {
+      return 'select';
+    }
+    
+    if (nameLower.includes('confirmação') || nameLower.includes('aceite') || nameLower.includes('concorda')) {
+      return 'checkbox';
+    }
+    
+    return field.type || 'text';
+  };
+
+  // Suggest if the field should be required based on its name
+  const suggestRequired = () => {
+    const nameLower = field.name.toLowerCase();
+    
+    // Critical fields that should always be required for inventory
+    const criticalFields = [
+      'falecido', 'conjuge', 'inventariante', 'regime', 'cpf', 
+      'data falecimento', 'herdeiro'
+    ];
+    
+    return criticalFields.some(criticalField => nameLower.includes(criticalField)) || field.required;
+  };
+
   return (
     <div className="grid grid-cols-12 gap-4 items-center p-3 border rounded-md bg-background shadow-sm hover:shadow transition-all">
       <div className="col-span-5">
@@ -55,7 +96,7 @@ const FieldEditor: React.FC<FieldEditorProps> = ({ field, onUpdate, onRemove }) 
       <div className="col-span-3">
         <label className="flex items-center space-x-2">
           <Switch 
-            checked={field.required}
+            checked={suggestRequired()}
             onCheckedChange={(checked) => {
               onUpdate({ ...field, required: checked });
             }}

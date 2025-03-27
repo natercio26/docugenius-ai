@@ -1,3 +1,4 @@
+
 import React, { useEffect } from 'react';
 import FieldEditor from './FieldEditor';
 import { useToast } from "@/hooks/use-toast";
@@ -45,41 +46,45 @@ const FieldList: React.FC<FieldListProps> = ({
       fields.forEach(field => {
         // Determine which category this field belongs to
         let category = "outros";
+        const fieldNameLower = field.name.toLowerCase();
         
-        if (field.name.toLowerCase().includes("viúv") || field.name.toLowerCase().includes("viuv")) {
+        if (fieldNameLower.includes("viúv") || fieldNameLower.includes("viuv")) {
           category = "viúvo/viúva";
-        } else if (field.name.toLowerCase().includes("cônjuge") || field.name.toLowerCase().includes("conjuge") || 
-                  field.name.toLowerCase().includes("casamento")) {
+        } else if (fieldNameLower.includes("cônjuge") || fieldNameLower.includes("conjuge") || 
+                  fieldNameLower.includes("casamento")) {
           category = "herdeiros/cônjuge/casamento";
-        } else if (field.name.toLowerCase().includes("filho") || field.name.toLowerCase().includes("criança")) {
+        } else if (fieldNameLower.includes("filho") || fieldNameLower.includes("criança")) {
           category = "filhos";
-        } else if (field.name.toLowerCase().includes("advogad") || field.name.toLowerCase().includes("oab")) {
+        } else if (fieldNameLower.includes("advogad") || fieldNameLower.includes("oab")) {
           category = "advogado";
-        } else if (field.name.toLowerCase().includes("falecido") || field.name.toLowerCase().includes("de cujus") || 
-                  field.name.toLowerCase().includes("autor da herança")) {
+        } else if (fieldNameLower.includes("falecido") || fieldNameLower.includes("de cujus") || 
+                  fieldNameLower.includes("autor da herança")) {
           category = "falecido";
-        } else if (field.name.toLowerCase().includes("qualificação") || field.name.toLowerCase().includes("rg falecido") || 
-                  field.name.toLowerCase().includes("cpf falecido")) {
+        } else if (fieldNameLower.includes("qualificação") || fieldNameLower.includes("rg falecido") || 
+                  fieldNameLower.includes("cpf falecido") || fieldNameLower.includes("profissão") ||
+                  fieldNameLower.includes("nacionalidade")) {
           category = "qualificações do falecido";
-        } else if (field.name.toLowerCase().includes("regime de bens") || field.name.toLowerCase().includes("data casamento")) {
+        } else if (fieldNameLower.includes("regime de bens") || fieldNameLower.includes("data casamento")) {
           category = "do casamento";
-        } else if (field.name.toLowerCase().includes("data falecimento") || field.name.toLowerCase().includes("certidão óbito")) {
+        } else if (fieldNameLower.includes("data falecimento") || fieldNameLower.includes("certidão óbito") ||
+                  fieldNameLower.includes("hospital") || fieldNameLower.includes("cidade falecimento")) {
           category = "do falecimento";
-        } else if (field.name.toLowerCase().includes("herdeiro") || field.name.toLowerCase().includes("sucessor")) {
+        } else if (fieldNameLower.includes("herdeiro") || fieldNameLower.includes("sucessor")) {
           category = "dos herdeiros";
-        } else if (field.name.toLowerCase().includes("inventariante") || field.name.toLowerCase().includes("nomeação")) {
+        } else if (fieldNameLower.includes("inventariante") || fieldNameLower.includes("nomeação")) {
           category = "nomeação do inventariante";
-        } else if (field.name.toLowerCase().includes("imóvel") || field.name.toLowerCase().includes("bem") || 
-                  field.name.toLowerCase().includes("apartamento") || field.name.toLowerCase().includes("veículo")) {
+        } else if (fieldNameLower.includes("imóvel") || fieldNameLower.includes("bem") || 
+                  fieldNameLower.includes("apartamento") || fieldNameLower.includes("veículo") ||
+                  fieldNameLower.includes("bloco") || fieldNameLower.includes("quadra")) {
           category = "bens";
-        } else if (field.name.toLowerCase().includes("partilha") || field.name.toLowerCase().includes("quinhão") || 
-                  field.name.toLowerCase().includes("percentual")) {
+        } else if (fieldNameLower.includes("partilha") || fieldNameLower.includes("quinhão") || 
+                  fieldNameLower.includes("percentual") || fieldNameLower.includes("valor")) {
           category = "partilha";
-        } else if (field.name.toLowerCase().includes("certidão") || field.name.toLowerCase().includes("receita") || 
-                  field.name.toLowerCase().includes("gdf") || field.name.toLowerCase().includes("iptu")) {
+        } else if (fieldNameLower.includes("certidão") || fieldNameLower.includes("receita") || 
+                  fieldNameLower.includes("gdf") || fieldNameLower.includes("iptu")) {
           category = "certidões";
-        } else if (field.name.toLowerCase().includes("imposto") || field.name.toLowerCase().includes("itcmd") || 
-                  field.name.toLowerCase().includes("tributo")) {
+        } else if (fieldNameLower.includes("imposto") || fieldNameLower.includes("itcmd") || 
+                  fieldNameLower.includes("tributo")) {
           category = "imposto";
         }
         
