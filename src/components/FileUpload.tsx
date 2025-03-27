@@ -205,12 +205,14 @@ const FileUpload: React.FC<FileUploadProps> = ({ onUploadComplete, status }) => 
   };
 
   const isDisabled = status === 'uploading' || status === 'processing';
+  
   const isInputDisabled = isDisabled;
 
   const handleConfirmClearFiles = useCallback(() => {
     setFiles([]);
     setClearDialogOpen(false);
     setValidating(false);
+    
     toast({
       title: "Arquivos Limpos",
       description: "Todos os arquivos selecionados foram removidos.",
@@ -232,9 +234,15 @@ const FileUpload: React.FC<FileUploadProps> = ({ onUploadComplete, status }) => 
         onDrop={isInputDisabled ? undefined : handleDrop}
       >
         <input
+          id="file-upload-input"
           type="file"
           className={`absolute inset-0 w-full h-full opacity-0 ${isInputDisabled ? 'cursor-not-allowed' : 'cursor-pointer'} z-10`}
-          onChange={(e) => !isInputDisabled && handleFileChange(e.target.files)}
+          onChange={(e) => {
+            if (!isInputDisabled) {
+              handleFileChange(e.target.files);
+              e.target.value = '';
+            }
+          }}
           multiple
           accept=".pdf,.docx,.jpg,.jpeg,.png"
           disabled={isInputDisabled}
