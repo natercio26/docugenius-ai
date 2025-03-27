@@ -6,6 +6,8 @@ export type DraftType =
   | 'União Estável' 
   | 'Procuração' 
   | 'Testamento' 
+  | 'Contrato de Aluguel'
+  | 'Contrato Social'
   | 'Outro';
 
 export interface Draft {

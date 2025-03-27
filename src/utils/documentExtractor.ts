@@ -130,36 +130,36 @@ export const extractDataFromFiles = async (files: File[]): Promise<Record<string
     
     // Process each uploaded file
     for (const file of files) {
-      let content = "";
+      let fileContent = "";
       
       try {
         console.log(`Processing file: ${file.name}, type: ${file.type}`);
         
         if (file.type === 'application/pdf') {
           // For PDFs, extract text content using PDF.js
-          content = await parsePdfContent(file);
-          console.log(`PDF content extracted, length: ${content.length} characters`);
+          fileContent = await parsePdfContent(file);
+          console.log(`PDF content extracted, length: ${fileContent.length} characters`);
         } else if (file.type.startsWith('image/')) {
           // For images, use OCR to extract text
-          content = await extractTextFromImage(file);
-          console.log(`Image OCR completed, extracted text length: ${content.length} characters`);
+          fileContent = await extractTextFromImage(file);
+          console.log(`Image OCR completed, extracted text length: ${fileContent.length} characters`);
         } else if (file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
           // For DOCX, we're still using filename (would need a different approach for full implementation)
-          content = file.name;
+          fileContent = file.name;
           console.log("DOCX processing not fully implemented, using filename");
         } else {
           // For text files, read the content directly
-          content = await readFileContents(file);
-          console.log(`Text file content read, length: ${content.length} characters`);
+          fileContent = await readFileContents(file);
+          console.log(`Text file content read, length: ${fileContent.length} characters`);
         }
         
-        if (!content || content.trim() === '') {
+        if (!fileContent || fileContent.trim() === '') {
           console.warn(`No content extracted from file: ${file.name}`);
           continue;
         }
         
         // Add this file's content to the collection of all text
-        allFileContents += "\n" + content;
+        allFileContents += "\n" + fileContent;
         
       } catch (error) {
         console.error(`Error processing file ${file.name}:`, error);
@@ -1247,6 +1247,28 @@ Este é um modelo de procuração.`;
 
 Este é um modelo de testamento público.`;
       break;
+    
+    case 'Contrato de Aluguel':
+      content = `CONTRATO DE LOCAÇÃO DE IMÓVEL RESIDENCIAL
+
+LOCADOR: ${data.locador || 'Nome do Locador'}, ${data.nacionalidadeLocador || 'nacionalidade'}, ${data.estadoCivilLocador || 'estado civil'}, ${data.profissaoLocador || 'profissão'}, portador da cédula de identidade RG nº ${data.rgLocador || 'número'}, inscrito no CPF sob nº ${data.cpfLocador || 'número'}, residente e domiciliado à ${data.enderecoLocador || 'endereço completo'}.
+
+LOCATÁRIO: ${data.locatario || 'Nome do Locatário'}, ${data.nacionalidadeLocatario || 'nacionalidade'}, ${data.estadoCivilLocatario || 'estado civil'}, ${data.profissaoLocatario || 'profissão'}, portador da cédula de identidade RG nº ${data.rgLocatario || 'número'}, inscrito no CPF sob nº ${data.cpfLocatario || 'número'}, residente e domiciliado à ${data.enderecoLocatario || 'endereço completo'}.
+
+As partes acima identificadas têm, entre si, justo e acertado o presente Contrato de Locação de Imóvel Residencial, que se regerá pelas cláusulas seguintes e pelas condições descritas no presente.`;
+      break;
+      
+    case 'Contrato Social':
+      content = `CONTRATO SOCIAL DE SOCIEDADE LIMITADA
+
+Pelo presente instrumento particular de contrato social:
+
+SÓCIO 1: ${data.socio1 || 'Nome do Sócio 1'}, ${data.nacionalidadeSocio1 || 'nacionalidade'}, ${data.estadoCivilSocio1 || 'estado civil'}, ${data.profissaoSocio1 || 'profissão'}, portador da cédula de identidade RG nº ${data.rgSocio1 || 'número'}, inscrito no CPF sob nº ${data.cpfSocio1 || 'número'}, residente e domiciliado à ${data.enderecoSocio1 || 'endereço completo'};
+
+SÓCIO 2: ${data.socio2 || 'Nome do Sócio 2'}, ${data.nacionalidadeSocio2 || 'nacionalidade'}, ${data.estadoCivilSocio2 || 'estado civil'}, ${data.profissaoSocio2 || 'profissão'}, portador da cédula de identidade RG nº ${data.rgSocio2 || 'número'}, inscrito no CPF sob nº ${data.cpfSocio2 || 'número'}, residente e domiciliado à ${data.enderecoSocio2 || 'endereço completo'};
+
+Resolvem constituir uma sociedade limitada, mediante as seguintes cláusulas:`;
+      break;
       
     default:
       content = `DOCUMENTO GENÉRICO
@@ -1258,4 +1280,3 @@ Data: ${formattedDate}`;
   
   return content;
 };
-
