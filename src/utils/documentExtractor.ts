@@ -1,3 +1,4 @@
+
 import { DraftType } from '@/types';
 import { identifyPartiesAndRoles } from './partyIdentifier';
 
@@ -19,7 +20,7 @@ async function extractTextFromPDF(file: File): Promise<string> {
           const pageText = textContent.items
             .map(item => {
               // Check if the item has a 'str' property before accessing it
-              return 'str' in item ? item.str : '';
+              return 'str' in item ? (item as any).str : '';
             })
             .join(' ');
           fullText += pageText + '\n';
@@ -70,7 +71,8 @@ async function extractTextFromDOCX(file: File): Promise<string> {
     const reader = new FileReader();
     reader.onload = async function (e) {
       try {
-        const mammoth = await import('mammoth/mammoth.browser');
+        // Import mammoth module properly
+        const mammoth = await import('mammoth');
         const arrayBuffer = e.target?.result as ArrayBuffer;
         const { value } = await mammoth.extractRawText({ arrayBuffer: arrayBuffer });
         resolve(value);

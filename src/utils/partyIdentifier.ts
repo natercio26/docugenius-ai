@@ -133,7 +133,7 @@ export async function identifyPartiesAndRoles(
   // Loop through each file to process content
   for (const file of files) {
     try {
-      // Read file content as text (this is a simplified example)
+      // Read file content as text
       const fileContent = await readFileAsText(file);
       
       // Get role identifiers for the current document type

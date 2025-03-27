@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Navbar from '@/components/Navbar';
@@ -101,8 +102,16 @@ const ViewDraft: React.FC = () => {
       if (storedDraft) {
         try {
           const parsedDraft = JSON.parse(storedDraft);
-          parsedDraft.createdAt = new Date(parsedDraft.createdAt);
-          parsedDraft.updatedAt = new Date(parsedDraft.updatedAt);
+          
+          // Convert ISO strings back to Date objects
+          if (typeof parsedDraft.createdAt === 'string') {
+            parsedDraft.createdAt = new Date(parsedDraft.createdAt);
+          }
+          
+          if (typeof parsedDraft.updatedAt === 'string') {
+            parsedDraft.updatedAt = new Date(parsedDraft.updatedAt);
+          }
+          
           setDraft(parsedDraft);
         } catch (error) {
           console.error('Error parsing stored draft:', error);

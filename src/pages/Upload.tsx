@@ -1,10 +1,12 @@
+
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Navbar from '@/components/Navbar';
 import FileUpload from '@/components/FileUpload';
 import { DraftType, UploadStatus } from '@/types';
 import { useToast } from '@/hooks/use-toast';
-import { extractDataFromFiles, generateDocumentContent, identifyPartiesAndRoles } from '@/utils/documentExtractor';
+import { extractDataFromFiles, generateDocumentContent } from '@/utils/documentExtractor';
+import { identifyPartiesAndRoles } from '@/utils/partyIdentifier';
 
 const Upload: React.FC = () => {
   const [status, setStatus] = useState<UploadStatus>('idle');
@@ -32,72 +34,8 @@ const Upload: React.FC = () => {
     try {
       console.log("Iniciando o processamento dos arquivos:", files.map(f => f.name).join(', '));
       
-      setTimeout(async () => {
-        setStatus('processing');
-        
-        try {
-          console.log("Iniciando extração de dados dos arquivos");
-          
-          // Extract basic data from the uploaded files
-          const extractedData = await extractDataFromFiles(files);
-          
-          if (extractedData.error) {
-            throw new Error(extractedData.error);
-          }
-          
-          console.log("Extração de dados básicos concluída:", extractedData);
-          
-          // Enhanced step: Identify parties and their roles
-          console.log("Identificando partes e seus papéis nos documentos");
-          const enhancedData = await identifyPartiesAndRoles(files, documentType, extractedData);
-          
-          console.log("Identificação de partes e papéis concluída:", enhancedData);
-          
-          if (Object.keys(enhancedData).length <= 1 && !enhancedData.nome) {
-            console.warn("Dados insuficientes extraídos dos documentos");
-            toast({
-              title: "Dados insuficientes",
-              description: "Não foi possível extrair dados suficientes dos documentos. A minuta será criada com dados mínimos.",
-              variant: "default"
-            });
-          }
-          
-          // Generate document content based on the enhanced extracted data
-          const documentContent = generateDocumentContent(documentType, enhancedData);
-          
-          console.log("Conteúdo do documento gerado com sucesso");
-          
-          sessionStorage.setItem('generatedDraft', JSON.stringify({
-            id: 'new',
-            title: `${documentType} - Gerado em ${new Date().toLocaleDateString('pt-BR')}`,
-            type: documentType,
-            content: documentContent,
-            createdAt: new Date(),
-            updatedAt: new Date(),
-            extractedData: enhancedData // Store enhanced extracted data
-          }));
-          
-          setStatus('success');
-          
-          toast({
-            title: "Minuta gerada com sucesso!",
-            description: "Sua minuta foi gerada com base nos dados extraídos e nos papéis identificados dos documentos.",
-          });
-          
-          setTimeout(() => {
-            navigate('/view/new');
-          }, 1000);
-        } catch (error) {
-          console.error('Erro ao processar arquivos:', error);
-          setStatus('error');
-          
-          toast({
-            title: "Erro ao processar documentos",
-            description: "Não foi possível extrair dados dos documentos. Por favor, tente novamente.",
-            variant: "destructive"
-          });
-        }
-      }, 1500);
+      // Use a separate processFiles function to handle the asynchronous operations
+      processFiles(files, documentType);
     } catch (error) {
       console.error('Erro no upload:', error);
       setStatus('error');
@@ -108,6 +46,91 @@ const Upload: React.FC = () => {
         variant: "destructive"
       });
     }
+  };
+
+  const processFiles = async (files: File[], docType: DraftType) => {
+    // Add a slight delay to ensure the UI has time to update
+    setTimeout(async () => {
+      setStatus('processing');
+      
+      try {
+        console.log("Iniciando extração de dados dos arquivos");
+        
+        // Extract basic data from the uploaded files
+        const extractedData = await extractDataFromFiles(files);
+        
+        if (extractedData.error) {
+          throw new Error(extractedData.error);
+        }
+        
+        console.log("Extração de dados básicos concluída:", extractedData);
+        
+        // Enhanced step: Identify parties and their roles
+        console.log("Identificando partes e seus papéis nos documentos");
+        
+        // Add error handling around the party identification
+        let enhancedData = {};
+        try {
+          enhancedData = await identifyPartiesAndRoles(files, docType, extractedData);
+          console.log("Identificação de partes e papéis concluída:", enhancedData);
+        } catch (partyError) {
+          console.error("Erro na identificação de partes:", partyError);
+          // Use the basic extracted data if party identification fails
+          enhancedData = extractedData;
+          toast({
+            title: "Aviso",
+            description: "Houve um problema ao identificar as partes nos documentos. Usando dados básicos.",
+            variant: "default"
+          });
+        }
+        
+        if (Object.keys(enhancedData).length <= 1 && !enhancedData.nome) {
+          console.warn("Dados insuficientes extraídos dos documentos");
+          toast({
+            title: "Dados insuficientes",
+            description: "Não foi possível extrair dados suficientes dos documentos. A minuta será criada com dados mínimos.",
+            variant: "default"
+          });
+        }
+        
+        // Generate document content based on the enhanced extracted data
+        const documentContent = generateDocumentContent(docType, enhancedData);
+        
+        console.log("Conteúdo do documento gerado com sucesso");
+        
+        // Store the draft in session storage
+        sessionStorage.setItem('generatedDraft', JSON.stringify({
+          id: 'new',
+          title: `${docType} - Gerado em ${new Date().toLocaleDateString('pt-BR')}`,
+          type: docType,
+          content: documentContent,
+          createdAt: new Date().toISOString(), // Store as ISO string for proper serialization
+          updatedAt: new Date().toISOString(),
+          extractedData: enhancedData
+        }));
+        
+        setStatus('success');
+        
+        toast({
+          title: "Minuta gerada com sucesso!",
+          description: "Sua minuta foi gerada com base nos dados extraídos e nos papéis identificados dos documentos.",
+        });
+        
+        // Navigate after a slight delay to ensure the toast is visible
+        setTimeout(() => {
+          navigate('/view/new');
+        }, 1000);
+      } catch (error) {
+        console.error('Erro ao processar arquivos:', error);
+        setStatus('error');
+        
+        toast({
+          title: "Erro ao processar documentos",
+          description: "Não foi possível extrair dados dos documentos. Por favor, tente novamente.",
+          variant: "destructive"
+        });
+      }
+    }, 500);
   };
 
   const handleTypeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
