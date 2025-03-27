@@ -1,4 +1,3 @@
-
 import { DraftType } from '@/types';
 
 // Simulate extraction of data from uploaded files
@@ -46,7 +45,7 @@ export const generateDocumentContent = (
     case 'Escritura de Compra e Venda':
       content = `ESCRITURA PÚBLICA DE COMPRA E VENDA
 
-SAIBAM todos quantos esta Escritura Pública de Compra e Venda virem que, aos ${new Date().getDate()} dias do mês de ${new Date().toLocaleString('pt-BR', {month: 'long'})} do ano de ${new Date().getFullYear()}, nesta cidade e comarca de São Paulo, Estado de São Paulo, perante mim, Tabelião, compareceram as partes entre si justas e contratadas, a saber:
+SAIBAM todos quantos esta Escritura Pública de Compra e Venda virem que, aos ${new Date().getDate()} dias do mês de ${new Date().toLocaleString('pt-BR', { month: 'long' })} do ano de ${new Date().getFullYear()}, nesta cidade e comarca de São Paulo, Estado de São Paulo, perante mim, Tabelião, compareceram as partes entre si justas e contratadas, a saber:
 
 OUTORGANTE VENDEDOR: ${data.vendedor || 'JOÃO DA SILVA'}, brasileiro, casado, empresário, portador da Cédula de Identidade RG nº 12.345.678-9 SSP/SP, inscrito no CPF/MF sob nº 123.456.789-00, residente e domiciliado na Rua das Flores, nº 123, Bairro Jardim, CEP 01234-567, nesta Capital;
 
@@ -66,7 +65,7 @@ E pela presente escritura e nos melhores termos de direito, o OUTORGANTE VENDEDO
     case 'Inventário':
       content = `TERMO DE INVENTÁRIO E PARTILHA
 
-Aos ${new Date().getDate()} dias do mês de ${new Date().toLocaleString('pt-BR', {month: 'long'})} de ${new Date().getFullYear()}, na cidade de São Paulo, Estado de São Paulo, procede-se ao INVENTÁRIO E PARTILHA dos bens deixados por falecimento de ${data.falecido || 'JOSÉ SANTOS'}, falecido em ${data.dataFalecimento || '10/01/2023'}, conforme certidão de óbito apresentada.
+Aos ${new Date().getDate()} dias do mês de ${new Date().toLocaleString('pt-BR', { month: 'long' })} de ${new Date().getFullYear()}, na cidade de São Paulo, Estado de São Paulo, procede-se ao INVENTÁRIO E PARTILHA dos bens deixados por falecimento de ${data.falecido || 'JOSÉ SANTOS'}, falecido em ${data.dataFalecimento || '10/01/2023'}, conforme certidão de óbito apresentada.
 
 INVENTARIANTE: ${data.inventariante || data.nome || 'MARIA OLIVEIRA'}, brasileira, ${data.estadoCivil || 'solteira'}, ${data.profissao || 'advogada'}, portadora da Cédula de Identidade RG nº ${data.rg || '98.765.432-1 SSP/SP'}, inscrita no CPF/MF sob nº ${data.cpf || '987.654.321-00'}, residente e domiciliada na ${data.endereco || 'Avenida Central, nº 456, Bairro Centro, CEP 12345-678, nesta Capital'}.
 
@@ -85,7 +84,7 @@ TOTAL DO ESPÓLIO: R$ 920.000,00 (novecentos e vinte mil reais).`;
     case 'Doação':
       content = `ESCRITURA PÚBLICA DE DOAÇÃO DE BEM IMÓVEL
 
-SAIBAM todos quantos esta Escritura Pública de Doação virem que, aos ${new Date().getDate()} dias do mês de ${new Date().toLocaleString('pt-BR', {month: 'long'})} do ano de ${new Date().getFullYear()}, nesta cidade e comarca de São Paulo, Estado de São Paulo, perante mim, Tabelião, compareceram as partes:
+SAIBAM todos quantos esta Escritura Pública de Doação virem que, aos ${new Date().getDate()} dias do mês de ${new Date().toLocaleString('pt-BR', { month: 'long' })} do ano de ${new Date().getFullYear()}, nesta cidade e comarca de São Paulo, Estado de São Paulo, perante mim, Tabelião, compareceram as partes:
 
 DOADOR: ${data.doador || data.vendedor || 'JOÃO DA SILVA'}, brasileiro, casado, empresário, portador da Cédula de Identidade RG nº 12.345.678-9 SSP/SP, inscrito no CPF/MF sob nº 123.456.789-00, residente e domiciliado na Rua das Flores, nº 123, Bairro Jardim, CEP 01234-567, nesta Capital;
 
