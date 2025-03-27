@@ -1,7 +1,9 @@
 
 import React, { useState, useEffect } from 'react';
 import { Draft } from '@/types';
-import { Info, ChevronDown, ChevronUp, FileText, AlertTriangle } from 'lucide-react';
+import { Info, ChevronDown, ChevronUp, FileText, AlertTriangle, Edit, Eye } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Tooltip } from '@/components/ui/tooltip';
 
 interface DraftViewerProps {
   draft: Draft;
@@ -11,9 +13,28 @@ interface DraftViewerProps {
 const DraftViewer: React.FC<DraftViewerProps> = ({ draft, extractedData }) => {
   const [showExtractedData, setShowExtractedData] = useState(true); // Default to showing data
   const [isDataComplete, setIsDataComplete] = useState(true);
+  const [editMode, setEditMode] = useState(false);
+  const [localData, setLocalData] = useState<Record<string, string>>({});
+  
+  useEffect(() => {
+    if (extractedData) {
+      setLocalData({...extractedData});
+    }
+  }, [extractedData]);
   
   const toggleExtractedData = () => {
     setShowExtractedData(!showExtractedData);
+  };
+
+  const toggleEditMode = () => {
+    setEditMode(!editMode);
+  };
+
+  const handleDataChange = (key: string, value: string) => {
+    setLocalData(prev => ({
+      ...prev,
+      [key]: value
+    }));
   };
 
   // Check for missing important data
@@ -55,20 +76,20 @@ const DraftViewer: React.FC<DraftViewerProps> = ({ draft, extractedData }) => {
 
   // Group extracted data by categories according to the specified order
   const groupExtractedData = () => {
-    if (!extractedData) return {};
+    if (!localData) return {};
     
     // Define groups according to the specified order
     const groups: Record<string, Record<string, string>> = {
-      "Viúvo(a)": {},
-      "Herdeiros/Cônjuge/Casamento": {},
-      "Filhos": {},
-      "Advogado": {},
       "Falecido": {},
       "Qualificações do Falecido": {},
+      "Viúvo(a)": {},
       "Do Casamento": {},
       "Do Falecimento": {},
+      "Cônjuge/Meeiro": {},
       "Dos Herdeiros": {},
+      "Filhos": {},
       "Nomeação do Inventariante": {},
+      "Advogado": {},
       "Bens": {},
       "Partilha": {},
       "Certidões": {},
@@ -77,7 +98,7 @@ const DraftViewer: React.FC<DraftViewerProps> = ({ draft, extractedData }) => {
     };
     
     // Sort data into groups
-    Object.entries(extractedData).forEach(([key, value]) => {
+    Object.entries(localData).forEach(([key, value]) => {
       // Skip empty, placeholder, or system text values
       const cleanValue = cleanupDataValue(value);
       if (!cleanValue || 
@@ -90,28 +111,29 @@ const DraftViewer: React.FC<DraftViewerProps> = ({ draft, extractedData }) => {
       }
       
       // Categorize fields according to the specified order
-      if (key.includes('viuv') || key.includes('viúv')) {
-        groups["Viúvo(a)"][key] = cleanValue;
-      } else if (key === 'conjuge' || key === 'cônjuge' || key === 'meeiro' || key === 'meeira') {
-        groups["Herdeiros/Cônjuge/Casamento"][key] = cleanValue;
-      } else if (key.includes('filho') || key === 'numeroFilhos' || key === 'nomesFilhos') {
-        groups["Filhos"][key] = cleanValue;
-      } else if (key === 'advogado' || key.includes('oab') || key.includes('OAB')) {
-        groups["Advogado"][key] = cleanValue;
-      } else if (key === 'falecido' || key === 'autor da herança' || key === 'de cujus') {
+      if (key === 'falecido' || key === 'autor da herança' || key === 'de cujus') {
         groups["Falecido"][key] = cleanValue;
       } else if (key.includes('rg falecido') || key.includes('cpf falecido') || 
                 key.includes('nacionalidade') || key.includes('profissao')) {
         groups["Qualificações do Falecido"][key] = cleanValue;
+      } else if (key.includes('viuv') || key.includes('viúv')) {
+        groups["Viúvo(a)"][key] = cleanValue;
       } else if (key === 'dataCasamento' || key === 'regimeBens' || key.includes('certidaoCasamento')) {
         groups["Do Casamento"][key] = cleanValue;
       } else if (key === 'dataFalecimento' || key.includes('obito') || key.includes('óbito') || 
                 key.includes('falecimento') || key === 'cidadeFalecimento' || key === 'hospitalFalecimento') {
         groups["Do Falecimento"][key] = cleanValue;
+      } else if (key === 'conjuge' || key === 'cônjuge' || key === 'meeiro' || key === 'meeira' ||
+                key === 'cpfConjuge' || key === 'rgConjuge') {
+        groups["Cônjuge/Meeiro"][key] = cleanValue;
       } else if (key.includes('herdeiro') && !key.includes('valor')) {
         groups["Dos Herdeiros"][key] = cleanValue;
+      } else if (key.includes('filho') || key === 'numeroFilhos' || key === 'nomesFilhos') {
+        groups["Filhos"][key] = cleanValue;
       } else if (key === 'inventariante' || key.includes('representante')) {
         groups["Nomeação do Inventariante"][key] = cleanValue;
+      } else if (key === 'advogado' || key.includes('oab') || key.includes('OAB')) {
+        groups["Advogado"][key] = cleanValue;
       } else if (key.includes('imovel') || key.includes('Imovel') || key.includes('apartamento') || 
                 key.includes('Apartamento') || key.includes('veículo') || key.includes('veiculo') ||
                 key.includes('blocoApartamento') || key.includes('quadra')) {
@@ -208,7 +230,9 @@ const DraftViewer: React.FC<DraftViewerProps> = ({ draft, extractedData }) => {
       'cartorioImovel': 'Cartório do Imóvel',
       'cartorioCasamento': 'Cartório do Casamento',
       'viuvo': 'Viúvo(a)',
-      'viuva': 'Viúva'
+      'viuva': 'Viúva',
+      'rgFalecido': 'RG do Falecido',
+      'rgConjuge': 'RG do Cônjuge'
     };
     
     return fieldLabels[key] || key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
@@ -237,20 +261,32 @@ const DraftViewer: React.FC<DraftViewerProps> = ({ draft, extractedData }) => {
         </div>
       </header>
       
-      {extractedData && Object.keys(extractedData).length > 0 && (
+      {localData && Object.keys(localData).length > 0 && (
         <div className="mb-6">
-          <button 
-            onClick={toggleExtractedData} 
-            className="flex items-center space-x-2 text-sm text-primary hover:text-primary/80 transition-colors"
-          >
-            <Info className="h-4 w-4" />
-            <span>Dados Extraídos</span>
-            {showExtractedData ? (
-              <ChevronUp className="h-4 w-4" />
-            ) : (
-              <ChevronDown className="h-4 w-4" />
-            )}
-          </button>
+          <div className="flex items-center justify-between">
+            <button 
+              onClick={toggleExtractedData} 
+              className="flex items-center space-x-2 text-sm text-primary hover:text-primary/80 transition-colors"
+            >
+              <Info className="h-4 w-4" />
+              <span>Dados Extraídos</span>
+              {showExtractedData ? (
+                <ChevronUp className="h-4 w-4" />
+              ) : (
+                <ChevronDown className="h-4 w-4" />
+              )}
+            </button>
+            
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={toggleEditMode}
+              className="flex items-center gap-1"
+            >
+              {editMode ? <Eye className="h-3.5 w-3.5" /> : <Edit className="h-3.5 w-3.5" />}
+              <span>{editMode ? "Visualizar" : "Editar Dados"}</span>
+            </Button>
+          </div>
           
           {showExtractedData && (
             <div className="mt-4 p-4 bg-muted/30 rounded-md border border-border">
@@ -277,7 +313,16 @@ const DraftViewer: React.FC<DraftViewerProps> = ({ draft, extractedData }) => {
                         {Object.entries(fields).map(([key, value]) => (
                           <div key={key} className="p-2 bg-background/70 rounded-md">
                             <span className="text-xs font-medium text-muted-foreground block">{getFieldLabel(key)}:</span>
-                            <span className="text-sm block mt-1">{value}</span>
+                            {editMode ? (
+                              <input
+                                type="text"
+                                value={localData[key] || ''}
+                                onChange={(e) => handleDataChange(key, e.target.value)}
+                                className="text-sm block mt-1 w-full px-2 py-1 border border-border rounded"
+                              />
+                            ) : (
+                              <span className="text-sm block mt-1">{value}</span>
+                            )}
                           </div>
                         ))}
                       </div>
@@ -289,9 +334,9 @@ const DraftViewer: React.FC<DraftViewerProps> = ({ draft, extractedData }) => {
               )}
               
               <p className="text-xs text-muted-foreground mt-4 p-2 bg-primary/5 rounded border border-primary/10">
-                <strong>Nota:</strong> Estes são os dados que foram extraídos automaticamente dos documentos enviados.
-                Alguns campos podem precisar de edição manual para melhor precisão. Campos não preenchidos ou com valores
-                padrão não são exibidos. A ordem segue a estrutura padrão para o documento de {draft.type}.
+                <strong>Nota:</strong> {editMode ? 
+                  "Você está editando os dados extraídos. As alterações aqui não afetam o texto do documento abaixo." :
+                  "Estes são os dados que foram extraídos automaticamente dos documentos enviados. Alguns campos podem precisar de edição manual para melhor precisão. Campos não preenchidos ou com valores padrão não são exibidos."}
               </p>
             </div>
           )}
