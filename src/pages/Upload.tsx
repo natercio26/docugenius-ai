@@ -72,7 +72,8 @@ const Upload: React.FC = () => {
             type: documentType,
             content: documentContent,
             createdAt: new Date(),
-            updatedAt: new Date()
+            updatedAt: new Date(),
+            extractedData: extractedData // Store extracted data to help debugging
           }));
           
           // Update status to success

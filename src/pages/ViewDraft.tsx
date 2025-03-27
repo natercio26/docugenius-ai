@@ -4,7 +4,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import Navbar from '@/components/Navbar';
 import DraftViewer from '@/components/DraftViewer';
 import { Draft } from '@/types';
-import { Download, Edit, Check } from 'lucide-react';
+import { Download, Edit, Check, Info } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 // Sample draft content for demonstration (fallback if no generated content)
@@ -90,11 +90,17 @@ const defaultNewDraft: Draft = {
   updatedAt: new Date()
 };
 
+// Extended Draft type that includes extracted data
+interface ExtendedDraft extends Draft {
+  extractedData?: Record<string, string>;
+}
+
 const ViewDraft: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [draft, setDraft] = useState<Draft | null>(null);
+  const [draft, setDraft] = useState<ExtendedDraft | null>(null);
+  const [showExtractedData, setShowExtractedData] = useState(false);
   
   useEffect(() => {
     // Try to load generated draft from sessionStorage
@@ -139,6 +145,10 @@ const ViewDraft: React.FC = () => {
     navigate('/');
   };
 
+  const toggleExtractedData = () => {
+    setShowExtractedData(!showExtractedData);
+  };
+
   if (!draft) {
     return (
       <div className="min-h-screen bg-background">
@@ -170,6 +180,14 @@ const ViewDraft: React.FC = () => {
           <h1 className="heading-1">Minuta Gerada</h1>
           <div className="flex space-x-3">
             <button 
+              onClick={toggleExtractedData}
+              className="button-outline flex items-center space-x-2"
+              title="Mostrar dados extraídos"
+            >
+              <Info className="h-4 w-4" />
+              <span>Dados Extraídos</span>
+            </button>
+            <button 
               onClick={() => navigate(`/edit/${draft.id}`)}
               className="button-outline flex items-center space-x-2"
             >
@@ -192,6 +210,23 @@ const ViewDraft: React.FC = () => {
             </button>
           </div>
         </div>
+        
+        {showExtractedData && draft.extractedData && (
+          <div className="max-w-4xl mx-auto mb-6 glass p-4 rounded-lg animate-fade-in">
+            <h2 className="text-lg font-medium mb-3">Dados Extraídos dos Documentos</h2>
+            <div className="grid grid-cols-2 gap-4">
+              {Object.entries(draft.extractedData).map(([key, value]) => (
+                <div key={key} className="bg-background/50 p-3 rounded-md">
+                  <p className="text-sm font-medium text-primary">{key}:</p>
+                  <p className="text-sm">{value}</p>
+                </div>
+              ))}
+            </div>
+            <p className="text-xs text-muted-foreground mt-4">
+              Estes são os dados que foram extraídos automaticamente dos documentos enviados.
+            </p>
+          </div>
+        )}
         
         <div className="animate-scale-in" style={{ animationDelay: '100ms' }}>
           <DraftViewer draft={draft} />
