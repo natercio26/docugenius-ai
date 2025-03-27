@@ -61,19 +61,40 @@ const fieldsByType: Record<DraftType, { name: string, type: string, required: bo
 
 const ModelConfig: React.FC = () => {
   const [selectedType, setSelectedType] = useState<DraftType>('Escritura de Compra e Venda');
-  const [fields, setFields] = useState(fieldsByType[selectedType]);
+  const [configFields, setConfigFields] = useState<Record<DraftType, { name: string, type: string, required: boolean }[]>>(fieldsByType);
   const { toast } = useToast();
+
+  // Get the current fields for the selected type
+  const currentFields = configFields[selectedType];
 
   const handleTypeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const type = e.target.value as DraftType;
     setSelectedType(type);
-    setFields(fieldsByType[type]);
+  };
+
+  const updateField = (index: number, field: { name: string, type: string, required: boolean }) => {
+    const newConfigFields = { ...configFields };
+    newConfigFields[selectedType][index] = field;
+    setConfigFields(newConfigFields);
+  };
+
+  const addField = () => {
+    const newConfigFields = { ...configFields };
+    newConfigFields[selectedType] = [...newConfigFields[selectedType], { name: 'Novo Campo', type: 'text', required: false }];
+    setConfigFields(newConfigFields);
+  };
+
+  const removeField = (index: number) => {
+    const newConfigFields = { ...configFields };
+    newConfigFields[selectedType] = newConfigFields[selectedType].filter((_, i) => i !== index);
+    setConfigFields(newConfigFields);
   };
 
   const handleSave = () => {
+    // Here you would typically save the configuration to a database
     toast({
       title: "Configurações salvas",
-      description: "As configurações do modelo foram salvas com sucesso."
+      description: `As configurações do modelo ${selectedType} foram salvas com sucesso.`
     });
   };
 
@@ -107,18 +128,16 @@ const ModelConfig: React.FC = () => {
           </div>
           
           <div className="mb-6">
-            <h3 className="text-lg font-medium mb-4">Campos Personalizáveis</h3>
+            <h3 className="text-lg font-medium mb-4">Campos Personalizáveis para {selectedType}</h3>
             <div className="space-y-4">
-              {fields.map((field, index) => (
+              {currentFields.map((field, index) => (
                 <div key={index} className="grid grid-cols-12 gap-4 items-center">
                   <div className="col-span-5">
                     <input
                       type="text"
                       value={field.name}
                       onChange={(e) => {
-                        const newFields = [...fields];
-                        newFields[index].name = e.target.value;
-                        setFields(newFields);
+                        updateField(index, { ...field, name: e.target.value });
                       }}
                       className="input-field"
                       placeholder="Nome do campo"
@@ -128,9 +147,7 @@ const ModelConfig: React.FC = () => {
                     <select
                       value={field.type}
                       onChange={(e) => {
-                        const newFields = [...fields];
-                        newFields[index].type = e.target.value;
-                        setFields(newFields);
+                        updateField(index, { ...field, type: e.target.value });
                       }}
                       className="input-field"
                     >
@@ -146,9 +163,7 @@ const ModelConfig: React.FC = () => {
                         type="checkbox"
                         checked={field.required}
                         onChange={(e) => {
-                          const newFields = [...fields];
-                          newFields[index].required = e.target.checked;
-                          setFields(newFields);
+                          updateField(index, { ...field, required: e.target.checked });
                         }}
                         className="rounded border-input h-4 w-4 text-accent focus:ring-accent"
                       />
@@ -157,10 +172,7 @@ const ModelConfig: React.FC = () => {
                   </div>
                   <div className="col-span-1">
                     <button
-                      onClick={() => {
-                        const newFields = fields.filter((_, i) => i !== index);
-                        setFields(newFields);
-                      }}
+                      onClick={() => removeField(index)}
                       className="text-destructive hover:text-destructive/80"
                       aria-label="Remover campo"
                     >
@@ -180,9 +192,7 @@ const ModelConfig: React.FC = () => {
           
           <div className="flex items-center justify-between mt-8">
             <button
-              onClick={() => {
-                setFields([...fields, { name: 'Novo Campo', type: 'text', required: false }]);
-              }}
+              onClick={addField}
               className="button-outline"
             >
               Adicionar Campo
