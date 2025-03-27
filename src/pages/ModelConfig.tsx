@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import Navbar from '@/components/Navbar';
 import { useToast } from '@/hooks/use-toast';
@@ -63,6 +62,7 @@ const defaultFieldsByType: Record<DraftType, { name: string, type: string, requi
 };
 
 const STORAGE_KEY = 'modelConfigFields';
+const TYPE_STORAGE_KEY = 'selectedDocumentType';
 
 const ModelConfig: React.FC = () => {
   const [selectedType, setSelectedType] = useState<DraftType>('Escritura de Compra e Venda');
@@ -70,8 +70,9 @@ const ModelConfig: React.FC = () => {
   const [draftTypes, setDraftTypes] = useState<DraftType[]>(defaultDraftTypes);
   const { toast } = useToast();
   
-  // Load saved configurations from localStorage when component mounts
+  // Load saved configurations and selected type from localStorage when component mounts
   useEffect(() => {
+    // Load saved field configurations
     const savedConfig = localStorage.getItem(STORAGE_KEY);
     if (savedConfig) {
       try {
@@ -83,6 +84,21 @@ const ModelConfig: React.FC = () => {
         setConfigFields(defaultFieldsByType);
       }
     }
+    
+    // Load saved document type
+    const savedType = localStorage.getItem(TYPE_STORAGE_KEY);
+    if (savedType) {
+      try {
+        const parsedType = JSON.parse(savedType);
+        // Verify that the saved type is a valid DraftType
+        if (defaultDraftTypes.includes(parsedType as DraftType)) {
+          setSelectedType(parsedType as DraftType);
+        }
+      } catch (error) {
+        console.error("Error parsing saved document type:", error);
+        // Keep default type if there's an error
+      }
+    }
   }, []);
 
   // Get the current fields for the selected type
@@ -91,6 +107,8 @@ const ModelConfig: React.FC = () => {
   const handleTypeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const type = e.target.value as DraftType;
     setSelectedType(type);
+    // Save the selected type immediately to localStorage
+    localStorage.setItem(TYPE_STORAGE_KEY, JSON.stringify(type));
   };
 
   const updateField = (index: number, field: { name: string, type: string, required: boolean }) => {
@@ -112,8 +130,11 @@ const ModelConfig: React.FC = () => {
   };
 
   const handleSave = () => {
-    // Save to localStorage
+    // Save field configurations to localStorage
     localStorage.setItem(STORAGE_KEY, JSON.stringify(configFields));
+    
+    // Save the selected type to localStorage
+    localStorage.setItem(TYPE_STORAGE_KEY, JSON.stringify(selectedType));
     
     // Show success toast
     toast({
