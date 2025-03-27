@@ -1,7 +1,6 @@
-
 import React, { useState, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import { Upload, File, X, AlertTriangle } from 'lucide-react';
+import { Upload, File, X, AlertTriangle, Search } from 'lucide-react';
 import { UploadStatus, AcceptedFileTypes } from '@/types';
 import StatusIndicator from './StatusIndicator';
 
@@ -16,7 +15,6 @@ const FileUpload: React.FC<FileUploadProps> = ({ onUploadComplete, status }) => 
   const [validating, setValidating] = useState(false);
   const { toast } = useToast();
 
-  // Aumentado o limite de tamanho para 50MB (50 * 1024 * 1024 bytes)
   const FILE_SIZE_LIMIT = 50 * 1024 * 1024;
 
   const acceptedTypes: AcceptedFileTypes[] = [
@@ -27,17 +25,14 @@ const FileUpload: React.FC<FileUploadProps> = ({ onUploadComplete, status }) => 
   ];
 
   const isAcceptedFileType = (file: File): boolean => {
-    // If no file type is detected, check extension
     if (!file.type) {
       const extension = file.name.split('.').pop()?.toLowerCase();
       return extension === 'pdf' || extension === 'docx' || 
              extension === 'jpg' || extension === 'jpeg' || extension === 'png';
     }
     
-    // Check mimetype
     const isAcceptedMimetype = acceptedTypes.includes(file.type as AcceptedFileTypes);
     
-    // If mimetype isn't matched, check extension as a fallback
     if (!isAcceptedMimetype) {
       const filename = file.name.toLowerCase();
       return filename.endsWith('.pdf') || 
@@ -53,7 +48,6 @@ const FileUpload: React.FC<FileUploadProps> = ({ onUploadComplete, status }) => 
   const handleFileChange = useCallback((selectedFiles: FileList | null) => {
     if (!selectedFiles || selectedFiles.length === 0) return;
     
-    // Prevent handling too many files at once - limit to 5 files maximum
     if (selectedFiles.length > 5) {
       toast({
         title: "Muitos arquivos",
@@ -65,20 +59,16 @@ const FileUpload: React.FC<FileUploadProps> = ({ onUploadComplete, status }) => 
     
     setValidating(true);
     
-    // Convert FileList to array first - better for chunked processing
     const fileArray = Array.from(selectedFiles);
     
-    // Break files into smaller batches of maximum 2 files each
     const batchSize = 2;
     const batches = [];
     for (let i = 0; i < fileArray.length; i += batchSize) {
       batches.push(fileArray.slice(i, i + batchSize));
     }
     
-    // Process batches sequentially with decent pauses between them
     const processBatch = (batchIndex: number, accumulator: File[]) => {
       if (batchIndex >= batches.length) {
-        // All batches processed
         if (accumulator.length > 0) {
           setFiles(prev => [...prev, ...accumulator]);
         }
@@ -88,10 +78,8 @@ const FileUpload: React.FC<FileUploadProps> = ({ onUploadComplete, status }) => 
       
       const currentBatch = batches[batchIndex];
       
-      // Process each file in the current batch
       const processFiles = (fileIndex: number, batchAccumulator: File[]) => {
         if (fileIndex >= currentBatch.length) {
-          // Current batch processed, move to next batch after a pause
           setTimeout(() => {
             processBatch(batchIndex + 1, [...accumulator, ...batchAccumulator]);
           }, 300);
@@ -100,19 +88,16 @@ const FileUpload: React.FC<FileUploadProps> = ({ onUploadComplete, status }) => 
         
         const file = currentBatch[fileIndex];
         
-        // Check file size
         if (file.size > FILE_SIZE_LIMIT) {
           toast({
             title: "Arquivo muito grande",
             description: `O arquivo ${file.name} excede o limite de 50MB.`,
             variant: "destructive"
           });
-          // Continue with the next file
           setTimeout(() => processFiles(fileIndex + 1, batchAccumulator), 50);
           return;
         }
         
-        // Check file type - but do it asynchronously
         setTimeout(() => {
           const isAccepted = isAcceptedFileType(file);
           if (!isAccepted) {
@@ -121,24 +106,19 @@ const FileUpload: React.FC<FileUploadProps> = ({ onUploadComplete, status }) => 
               description: `O arquivo ${file.name} não é suportado. Por favor, use PDF, DOCX, JPG ou PNG.`,
               variant: "destructive"
             });
-            // Continue with the next file
             processFiles(fileIndex + 1, batchAccumulator);
             return;
           }
           
-          // Valid file, add to accumulator
           batchAccumulator.push(file);
           
-          // Move to next file with a small delay
           setTimeout(() => processFiles(fileIndex + 1, batchAccumulator), 50);
         }, 10);
       };
       
-      // Start processing the current batch
       processFiles(0, []);
     };
     
-    // Begin processing batches
     requestAnimationFrame(() => {
       try {
         processBatch(0, []);
@@ -192,7 +172,6 @@ const FileUpload: React.FC<FileUploadProps> = ({ onUploadComplete, status }) => 
       description: "Seus documentos estão sendo processados para identificar partes, herdeiros e outras informações importantes.",
     });
     
-    // Pequeno atraso para permitir atualização da UI antes de iniciar o processamento pesado
     requestAnimationFrame(() => {
       onUploadComplete(files);
     });
@@ -293,6 +272,7 @@ const FileUpload: React.FC<FileUploadProps> = ({ onUploadComplete, status }) => 
         >
           {status === 'idle' && !validating && (
             <>
+              <Search className="h-4 w-4 mr-2" />
               <span>Gerar Minuta com IA</span>
             </>
           )}

@@ -9,8 +9,8 @@ interface DraftViewerProps {
 }
 
 const DraftViewer: React.FC<DraftViewerProps> = ({ draft, extractedData }) => {
-  const [showExtractedData, setShowExtractedData] = useState(false);
-
+  const [showExtractedData, setShowExtractedData] = useState(true); // Default to showing data
+  
   const toggleExtractedData = () => {
     setShowExtractedData(!showExtractedData);
   };
@@ -25,28 +25,37 @@ const DraftViewer: React.FC<DraftViewerProps> = ({ draft, extractedData }) => {
       "Herdeiros": {},
       "Imóvel": {},
       "Documentos": {},
+      "Veículo": {},
+      "Contas Bancárias": {},
       "Outros": {}
     };
     
     // Sort data into groups
     Object.entries(extractedData).forEach(([key, value]) => {
-      if (value === "Não identificado" || value === "Não identificada" || value === "") {
+      if (value === "Não identificado" || value === "Não identificada" || value === "" || value === "=====" || value === "N/A") {
         return; // Skip empty values
       }
       
       if (key === 'falecido' || key === 'dataFalecimento' || key === 'cidadeFalecimento' || 
           key === 'hospitalFalecimento' || key === 'matriculaObito' || key === 'cartorioObito') {
         groups["Falecido"][key] = value;
-      } else if (key.includes('herdeiro') || key === 'numeroFilhos') {
+      } else if (key.includes('herdeiro') || key === 'numeroFilhos' || key === 'nomesFilhos') {
         groups["Herdeiros"][key] = value;
       } else if (key.includes('imovel') || key.includes('Imovel') || key.includes('apartamento') || 
-                key.includes('Apartamento') || key.includes('GDF') || key.includes('matricula')) {
+                key.includes('Apartamento') || key.includes('GDF') || key.includes('matricula') ||
+                key.includes('quadra')) {
         groups["Imóvel"][key] = value;
       } else if (key.includes('Certidao') || key.includes('certidao') || key.includes('ITCMD') || 
                 key.includes('hash') || key.includes('registro')) {
         groups["Documentos"][key] = value;
+      } else if (key.includes('veiculo') || key.includes('Veiculo')) {
+        groups["Veículo"][key] = value;
+      } else if (key.includes('conta') || key.includes('Conta') || key.includes('banco') || 
+                key.includes('Banco') || key.includes('saldo') || key.includes('Saldo')) {
+        groups["Contas Bancárias"][key] = value;
       } else if (key === 'inventariante' || key === 'conjuge' || key === 'advogado' || 
-                key === 'regimeBens' || key === 'dataCasamento') {
+                key === 'regimeBens' || key === 'dataCasamento' || key === 'valorTotalBens' ||
+                key === 'valorTotalMeacao' || key === 'percentualHerdeiros' || key === 'valorUnitarioHerdeiros') {
         groups["Informações Principais"][key] = value;
       } else {
         groups["Outros"][key] = value;
@@ -88,6 +97,7 @@ const DraftViewer: React.FC<DraftViewerProps> = ({ draft, extractedData }) => {
       'valorTotalBens': 'Valor Total dos Bens',
       'valorTotalMeacao': 'Valor Total da Meação',
       'numeroFilhos': 'Número de Filhos',
+      'nomesFilhos': 'Nomes dos Filhos',
       'valorUnitarioHerdeiros': 'Valor por Herdeiro',
       'percentualHerdeiros': 'Percentual por Herdeiro',
       'numeroITCMD': 'Número ITCMD',
@@ -104,7 +114,19 @@ const DraftViewer: React.FC<DraftViewerProps> = ({ draft, extractedData }) => {
       'profissao': 'Profissão',
       'nacionalidade': 'Nacionalidade',
       'endereco': 'Endereço',
-      'hashCNIB': 'Hash CNIB'
+      'hashCNIB': 'Hash CNIB',
+      'veiculoMarca': 'Marca do Veículo',
+      'veiculoModelo': 'Modelo do Veículo',
+      'veiculoAno': 'Ano do Veículo',
+      'veiculoPlaca': 'Placa do Veículo',
+      'veiculoCor': 'Cor do Veículo',
+      'veiculoChassi': 'Chassi do Veículo',
+      'veiculoRenavam': 'Renavam do Veículo',
+      'veiculoValor': 'Valor do Veículo',
+      'bancoConta': 'Banco',
+      'agenciaConta': 'Agência',
+      'numeroConta': 'Número da Conta',
+      'saldoConta': 'Saldo em Conta'
     };
     
     return fieldLabels[key] || key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());

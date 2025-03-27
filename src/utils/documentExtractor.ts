@@ -305,13 +305,33 @@ Cartório do ${extractedData['cartorioCasamento'] || '===='};</p>
 
 <p>1.3. Do relacionamento do(a) autor(a) da herança com o(a) ora viúvo(a)-
 meeiro(a) nasceram ${extractedData['numeroFilhos'] || '===='} filhos, todos maiores e capazes, a saber:
-${extractedData['nomesFilhos'] || '=========='}, declarando os presentes que desconhece(m) a existência de
+${extractedData['nomesFilhos'] || extractedData['herdeiro1'] || '=========='}, declarando os presentes que desconhece(m) a existência de
 outros herdeiros, a não ser o(s) mencionado(s) no presente ato.</p>
 
 <p><strong>DAS DECLARAÇÕES DAS PARTES</strong> - As partes declaram sob as penas da lei,
 que:</p>
 <p>a) o(a) autor(a) da herança não deixou testamento conhecido, por qualquer
 natureza;</p>
+
+${extractedData['testamento'] ? `
+<p>a) o(a) falecido(a) deixou testamento que foi aberto nos autos do processo nº${extractedData['processoTestamento'] || '----'}
+----------------------------------------- e teve autorização expressa para realização
+do inventário por meio de Escritura Pública emanada pelo (a) Juiz (a) ${extractedData['juizTestamento'] || '----'}
+-----------------------------, em${extractedData['dataTestamento'] || '--------------------------------------'}, tudo conforme o
+estabelecido no artigo 12-B da resolução 35 do Conselho Nacional de Justiça.</p>
+` : ''}
+
+<p>b) desconhecem quaisquer débitos em nome do(a) autor(a) da herança, por
+ocasião da abertura da sucessão; c) desconhecem quaisquer obrigações
+assumidas pelo(a) autor(a) da herança; d) desconhecem a existência de outros
+herdeiros, a não ser os que estão presentes nesta escritura; e) a presente
+escritura não prejudica os direitos adquiridos e interesses de terceiros; f) não
+existem feitos ajuizados fundados em ações reais, pessoais ou reipersecutórias
+que afetem os bens e direitos partilhados; g) o(a) falecido(a) não era
+empregador(a) ou, de qualquer forma, responsável por recolhimento de
+contribuições à Previdência Social; h) os bens ora partilhados encontram-se
+livres e desembaraçados de quaisquer ônus, dívidas, tributos de quaisquer
+naturezas; i) não tramita inventário e partilha na via judicial.</p>
 
 <p><strong>3. DA NOMEAÇÃO DE INVENTARIANTE</strong> - Os Outorgantes e reciprocamente
 Outorgados, de comum acordo, nomeiam como inventariante do espólio, ${extractedData['inventariante'] || '==='}, já anteriormente qualificado(a), conferindo-lhe todos os poderes que se fizerem
@@ -324,23 +344,34 @@ cumprimento de suas eventuais obrigações;</p>
 <p><strong>4. DOS BENS E SEUS VALORES</strong> - O(A) autor(a) da herança deixou, por
 ocasião da abertura da sucessão, o(s) seguinte(s) bem(s):</p>
 <p>4.1. Apartamento nº ${extractedData['numeroApartamento'] || '======'}, do Bloco "${extractedData['blocoApartamento'] || '====='}", da ${extractedData['quadraApartamento'] || '======'}, desta Capital,
-========com direito a vaga na garagem, melhor descrito e caracterizado na
+${extractedData['descricaoAdicionalImovel'] || '========com direito a vaga na garagem'}, melhor descrito e caracterizado na
 matrícula nº ${extractedData['matriculaImovel'] || '========='}, do ${extractedData['cartorioImovel'] || '====='} º Ofício do Registro de Imóveis do
 Distrito Federal. Inscrição do imóvel junto ao GDF sob o nº ${extractedData['inscricaoGDF'] || '========='}</p>
+
+${extractedData['veiculoMarca'] ? `
+<p>4.2. VEÍCULO marca ${extractedData['veiculoMarca'] || '==='}, cor ${extractedData['veiculoCor'] || '==='}, categoria PARTICULAR, combustível
+${extractedData['veiculoCombustivel'] || 'ÁLCOOL/GASOLINA'}, placa ${extractedData['veiculoPlaca'] || '===='}, chassi nº ${extractedData['veiculoChassi'] || '==='}, ano ${extractedData['veiculoAno'] || '==='}, modelo ${extractedData['veiculoModelo'] || '==='}, renavam nº ${extractedData['veiculoRenavam'] || '===='}, e ao referido bem o(a)(s) herdeiro(a)(s) atribui(em)
+meramente para fins em partilha o valor de ${extractedData['veiculoValor'] || '==========='}.</p>
+` : ''}
+
+${extractedData['saldoConta'] ? `
+<p>4.3. Saldo em Conta corrente/poupança nº ${extractedData['numeroConta'] || '==='}, Agência nº ${extractedData['agenciaConta'] || '==='}, junto ao
+Banco ${extractedData['bancoConta'] || '===='}, no valor de ${extractedData['saldoConta'] || '====='} e acréscimos ou deduções se houver;</p>
+` : ''}
 
 <p><strong>5. DA PARTILHA</strong> - O(s) bem(s) constante(s) do item "4." da presente, soma(m)
 ou valor de ${extractedData['valorTotalBens'] || '===='} e será(ão) partilhado(s) da seguinte forma:</p>
 <p>5.1. Caberá ao(a) viúvo(a)-meeiro(a), ${extractedData['conjuge'] || '====='}, em razão de sua meação, 50%
 (cinquenta por cento) de todos os bens descritos e caracterizados no item "4."
 da presente, correspondendo ao valor de ${extractedData['valorTotalMeacao'] || '===='};</p>
-<p>5.2. Caberá a cada um do(s) herdeiro(s), ${extractedData['herdeiro1'] || '===='}, em razão da sucessão legítima,
+<p>5.2. Caberá a cada um do(s) herdeiro(s), ${extractedData['nomesFilhos'] || extractedData['herdeiro1'] || '===='}, em razão da sucessão legítima,
 ${extractedData['percentualHerdeiros'] || '===='}, de todos o(s) bem(s) descrito(s) e caracterizados no item "4." da presente,
 correspondendo ao valor unitário de ${extractedData['valorUnitarioHerdeiros'] || '==='}.</p>
 
 <p><strong>7. DO IMPOSTO DE TRANSMISSÃO "CAUSA MORTIS" E DOAÇÃO</strong> - Guia de
 transmissão causa mortis e doação de quaisquer bens e direitos - ITCMD,
 expedida pela Secretaria de Estado da Fazenda do Distrito Federal sob o nº
-${extractedData['numeroITCMD'] || '==='}, no valor de ${extractedData['valorITCMD'] || '===='}</p>
+${extractedData['numeroITCMD'] || '==='}, no valor de ${extractedData['valorITCMD'] || '====='}</p>
 
 <p>Certifica que, foi feita a consulta prévia junto a Central Nacional de Indisponibilidade de Bens - CNIB, no(s) CPF do(a) autor(a) da herança, conforme código hash sob o nº ${extractedData['hashCNIB'] || '===='}, com o resultado NEGATIVO.</p>
 
