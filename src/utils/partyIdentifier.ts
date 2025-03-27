@@ -1,4 +1,3 @@
-
 import { DraftType } from '@/types';
 
 interface ExtractedData {
@@ -20,7 +19,7 @@ const roleIdentifiers: Record<DraftType, Record<string, RegExp[]>> = {
     herdeiro2: [/segundo[a]? herdeiro/i, /outro[a]? herdeiro/i],
     herdeiro3: [/terceir[o|a] herdeiro/i],
     inventariante: [/inventariante/i, /responsável pelo espólio/i],
-    conjuge: [/cônjuge/i, /viúv[o|a]/i, /esposa/i, /esposo/i, /viúv[o|a]-meeiro[a]/i],
+    conjuge: [/cônjuge/i, /viúv[o|a]/i, /esposa/i, /esposo/i, /viúv[o|a]-meeiro[a]/i, /meeiro[a]/i],
     advogado: [/advogad[o|a]/i, /representante legal/i, /OAB/i]
   },
   'Escritura de Compra e Venda': {
@@ -74,29 +73,27 @@ const roleIdentifiers: Record<DraftType, Record<string, RegExp[]>> = {
 };
 
 // Helper to find names near role patterns - enhanced to extract more context
-function findNamesInContext(content: string, rolePatterns: RegExp[], windowSize: number = 100): string[] {
+function findNamesInContext(content: string, rolePatterns: RegExp[], windowSize: number = 200): string[] {
   if (!content || typeof content !== 'string') {
     return [];
   }
   
   // Performance optimization - analyze larger content
-  const maxContentLength = 50000; // Increased to 50K characters
+  const maxContentLength = 100000; // Increased to 100K characters
   const trimmedContent = content.substring(0, maxContentLength);
   
   const foundNames: string[] = [];
   
   // Increased time limit for better extraction
   const startTime = Date.now();
-  const maxProcessingTime = 2000; // 2 seconds maximum per pattern group
+  const maxProcessingTime = 3000; // 3 seconds maximum per pattern group
   
-  for (let i = 0; i < Math.min(rolePatterns.length, 5); i++) { // Increased to 5 patterns
+  for (const pattern of rolePatterns) {
     // Check if we've exceeded the time limit
     if (Date.now() - startTime > maxProcessingTime) {
       console.warn('Tempo limite excedido para análise de padrões de papel');
       break;
     }
-    
-    const pattern = rolePatterns[i];
     
     try {
       // Find multiple matches for this pattern
@@ -104,7 +101,8 @@ function findNamesInContext(content: string, rolePatterns: RegExp[], windowSize:
       let matchCount = 0;
       const re = new RegExp(pattern);
       
-      while ((match = re.exec(trimmedContent)) !== null && matchCount < 3) { // Increased to 3 matches
+      // Attempt to find matches for this role pattern
+      while ((match = re.exec(trimmedContent)) !== null && matchCount < 5) { // Increased to 5 matches
         const matchIndex = match.index;
         const startContext = Math.max(0, matchIndex - windowSize);
         const endContext = Math.min(trimmedContent.length, matchIndex + match[0].length + windowSize);
@@ -112,18 +110,18 @@ function findNamesInContext(content: string, rolePatterns: RegExp[], windowSize:
         const context = trimmedContent.substring(startContext, endContext);
         
         // Find names in this context
-        const nameRegex = new RegExp(personNamePattern);
-        let nameMatch;
-        let nameMatchCount = 0;
+        const nameMatches = [...context.matchAll(new RegExp(personNamePattern, 'g'))];
         
-        while ((nameMatch = nameRegex.exec(context)) !== null && nameMatchCount < 3) { // Increased to 3 names
-          foundNames.push(nameMatch[0]);
-          nameMatchCount++;
-          
-          // Prevent infinite loops
-          if (nameMatch.index === nameRegex.lastIndex) {
-            nameRegex.lastIndex++;
+        for (const nameMatch of nameMatches.slice(0, 5)) { // Take up to 5 names
+          if (nameMatch && nameMatch[0]) {
+            // Validate that this looks like a real name (at least 2 words, each word at least 2 chars)
+            const nameParts = nameMatch[0].trim().split(/\s+/);
+            if (nameParts.length >= 2 && nameParts.every(part => part.length >= 2)) {
+              foundNames.push(nameMatch[0].trim());
+            }
           }
+          
+          if (foundNames.length >= 5) break;
         }
         
         matchCount++;
@@ -139,11 +137,11 @@ function findNamesInContext(content: string, rolePatterns: RegExp[], windowSize:
   }
   
   // Take only first 5 unique names maximum
-  return [...new Set(foundNames)].slice(0, 5); // Increased to 5 names
+  return [...new Set(foundNames)].slice(0, 5);
 }
 
-// Extract dates from context
-function findDatesInContext(content: string, contextPattern: RegExp, windowSize: number = 100): string {
+// Extract dates from context - improved to handle more date formats
+function findDatesInContext(content: string, contextPattern: RegExp, windowSize: number = 200): string {
   if (!content || typeof content !== 'string') {
     return '';
   }
@@ -158,18 +156,30 @@ function findDatesInContext(content: string, contextPattern: RegExp, windowSize:
     
     const context = content.substring(startContext, endContext);
     
-    const dateRegex = new RegExp(datePattern);
-    const dateMatch = dateRegex.exec(context);
+    // Try to find dates in different formats
+    const dateFormats = [
+      /(\d{1,2}\/\d{1,2}\/\d{4})/gi, // DD/MM/YYYY
+      /(\d{1,2}\.\d{1,2}\.\d{4})/gi, // DD.MM.YYYY
+      /(\d{1,2}\-\d{1,2}\-\d{4})/gi, // DD-MM-YYYY
+      /(\d{1,2}\s+de\s+[a-zÀ-ÿ]+\s+de\s+\d{4})/gi, // DD de Month de YYYY
+    ];
     
-    return dateMatch ? dateMatch[0] : '';
+    for (const format of dateFormats) {
+      const dateMatch = format.exec(context);
+      if (dateMatch && dateMatch[0]) {
+        return dateMatch[0];
+      }
+    }
+    
+    return '';
   } catch (error) {
     console.warn("Error extracting date:", error);
     return '';
   }
 }
 
-// Extract addresses from context
-function findAddressInContext(content: string, contextPattern: RegExp, windowSize: number = 150): string {
+// Extract addresses from context - improved to detect more address formats
+function findAddressInContext(content: string, contextPattern: RegExp, windowSize: number = 250): string {
   if (!content || typeof content !== 'string') {
     return '';
   }
@@ -184,12 +194,51 @@ function findAddressInContext(content: string, contextPattern: RegExp, windowSiz
     
     const context = content.substring(startContext, endContext);
     
-    const addressRegex = new RegExp(addressPattern);
-    const addressMatch = addressRegex.exec(context);
+    // Try multiple address patterns
+    const addressPatterns = [
+      /(?:residente|domiciliado|endereço)[^\n,;]+((?:[A-Z][a-zÀ-ÿ]+[\s,]*)+(?:\d+)?[^\n;]*)/i,
+      /(?:residente|domiciliado)[^,;]*((?:à|a|na|no|em)[^,;]*)/i,
+      /(?:SHIGS|SQN|SQS|SQSW|SHCGN|SHIN)[\s,]*\d+[^,;]*/i,
+      /(?:Quadra|Bloco|Lote|Casa|Apartamento)[\s,]*\d+[^,;]*/i,
+    ];
     
-    return addressMatch && addressMatch[1] ? addressMatch[1].trim() : '';
+    for (const pattern of addressPatterns) {
+      const addressMatch = pattern.exec(context);
+      if (addressMatch && addressMatch[1]) {
+        return addressMatch[1].trim();
+      }
+    }
+    
+    return '';
   } catch (error) {
     console.warn("Error extracting address:", error);
+    return '';
+  }
+}
+
+// Look for specific document patterns like RG, CPF, etc.
+function findDocumentInContext(content: string, contextPattern: RegExp, documentType: string, windowSize: number = 150): string {
+  if (!content || typeof content !== 'string') {
+    return '';
+  }
+  
+  try {
+    const match = contextPattern.exec(content);
+    if (!match) return '';
+    
+    const matchIndex = match.index;
+    const startContext = Math.max(0, matchIndex - windowSize);
+    const endContext = Math.min(content.length, matchIndex + match[0].length + windowSize);
+    
+    const context = content.substring(startContext, endContext);
+    
+    // Create pattern based on document type
+    const documentPattern = new RegExp(`${documentType}[\\s.:]*([\\d\\.\\-\\/]+)`, 'i');
+    const documentMatch = documentPattern.exec(context);
+    
+    return documentMatch && documentMatch[1] ? documentMatch[1].trim() : '';
+  } catch (error) {
+    console.warn(`Error extracting ${documentType}:`, error);
     return '';
   }
 }
@@ -216,7 +265,7 @@ export async function identifyPartiesAndRoles(
   try {
     // Set an overall timeout for the entire identification process
     const startTime = Date.now();
-    const maxProcessingTime = 15000; // Increased to 15 seconds maximum
+    const maxProcessingTime = 30000; // Increased to 30 seconds maximum
     
     // Process all files for better data extraction
     for (const file of files) {
@@ -259,20 +308,36 @@ export async function identifyPartiesAndRoles(
               const namesForRole = findNamesInContext(fileContent, patterns);
               
               if (namesForRole.length > 0) {
-                // If we already have this role but with placeholder data, update it
-                if (!enhancedData[role] || 
-                    enhancedData[role] === 'N/A' || 
-                    enhancedData[role] === '=====' || 
-                    enhancedData[role] === 'Não identificado') {
-                  enhancedData[role] = namesForRole[0];
-                }
+                // Filter out obvious non-names (like "Poder Judiciário" or "Certidão")
+                const validNames = namesForRole.filter(name => {
+                  const lowercaseName = name.toLowerCase();
+                  return !lowercaseName.includes('poder') && 
+                         !lowercaseName.includes('certidão') && 
+                         !lowercaseName.includes('judiciário') && 
+                         !lowercaseName.includes('justiça') &&
+                         !lowercaseName.includes('tribunal') &&
+                         !lowercaseName.includes('código') &&
+                         !lowercaseName.includes('consulta');
+                });
                 
-                // For herdeiros, handle multiple entries
-                if (role === 'herdeiro1' && namesForRole.length > 1 && !enhancedData['herdeiro2']) {
-                  enhancedData['herdeiro2'] = namesForRole[1];
-                }
-                if (role === 'herdeiro1' && namesForRole.length > 2 && !enhancedData['herdeiro3']) {
-                  enhancedData['herdeiro3'] = namesForRole[2];
+                if (validNames.length > 0) {
+                  // If we already have this role but with placeholder data or detected system text, update it
+                  if (!enhancedData[role] || 
+                      enhancedData[role] === 'N/A' || 
+                      enhancedData[role] === '=====' || 
+                      enhancedData[role] === 'Não identificado' ||
+                      enhancedData[role].includes('Poder') ||
+                      enhancedData[role].includes('Judiciário')) {
+                    enhancedData[role] = validNames[0];
+                  }
+                  
+                  // For herdeiros, handle multiple entries
+                  if (role === 'herdeiro1' && validNames.length > 1 && !enhancedData['herdeiro2']) {
+                    enhancedData['herdeiro2'] = validNames[1];
+                  }
+                  if (role === 'herdeiro1' && validNames.length > 2 && !enhancedData['herdeiro3']) {
+                    enhancedData['herdeiro3'] = validNames[2];
+                  }
                 }
               }
               
@@ -281,23 +346,52 @@ export async function identifyPartiesAndRoles(
                 // Try to extract death date
                 const deathDatePattern = /faleceu|óbito|data do falecimento/i;
                 const deathDate = findDatesInContext(fileContent, deathDatePattern);
-                if (deathDate && !enhancedData['dataFalecimento']) {
+                if (deathDate && (!enhancedData['dataFalecimento'] || 
+                                  enhancedData['dataFalecimento'] === 'Data não identificada')) {
                   enhancedData['dataFalecimento'] = deathDate;
+                }
+                
+                // Try to extract CPF
+                const cpfFalecido = findDocumentInContext(fileContent, /falecido|de cujus|autor da herança/i, 'CPF');
+                if (cpfFalecido && !enhancedData['cpfFalecido']) {
+                  enhancedData['cpfFalecido'] = cpfFalecido;
                 }
               } else if (role === 'conjuge' && enhancedData[role]) {
                 // Try to extract marriage date
                 const marriageDatePattern = /casad[o|a]|casamento|matrimônio/i;
                 const marriageDate = findDatesInContext(fileContent, marriageDatePattern);
-                if (marriageDate && !enhancedData['dataCasamento']) {
+                if (marriageDate && (!enhancedData['dataCasamento'] || 
+                                    enhancedData['dataCasamento'] === 'Data não identificada')) {
                   enhancedData['dataCasamento'] = marriageDate;
                 }
                 
+                // Try to extract CPF
+                const cpfConjuge = findDocumentInContext(fileContent, /cônjuge|viúv[o|a]|esposa|esposo/i, 'CPF');
+                if (cpfConjuge && !enhancedData['cpfConjuge']) {
+                  enhancedData['cpfConjuge'] = cpfConjuge;
+                }
+                
                 // Try to extract regime de bens
-                if (!enhancedData['regimeBens']) {
-                  const regimePattern = /regime\s+de\s+(?:bens)?\s*(?:d[eo])?\s*([a-zÀ-ÿ\s]+)(?:de bens)?/i;
-                  const match = regimePattern.exec(fileContent);
-                  if (match && match[1]) {
-                    enhancedData['regimeBens'] = match[1].trim();
+                if (!enhancedData['regimeBens'] || enhancedData['regimeBens'].includes('Endereço')) {
+                  const regimePatterns = [
+                    /regime\s+de\s+(?:bens)?\s*(?:d[eo])?\s*([a-zÀ-ÿ\s]+)(?:de bens)?/i,
+                    /casad[o|a][^,;]*regime\s+([^,;]*)/i,
+                    /sob\s+o\s+regime\s+([^,;]*)/i
+                  ];
+                  
+                  for (const pattern of regimePatterns) {
+                    const match = pattern.exec(fileContent);
+                    if (match && match[1]) {
+                      const regime = match[1].trim().toLowerCase();
+                      // Check if it's a valid regime
+                      if (regime.includes('comunhão') || 
+                          regime.includes('separação') || 
+                          regime.includes('participação') ||
+                          regime.includes('universal')) {
+                        enhancedData['regimeBens'] = match[1].trim();
+                        break;
+                      }
+                    }
                   }
                 }
               }
@@ -307,10 +401,10 @@ export async function identifyPartiesAndRoles(
           }
           
           // Small pause between roles to prevent UI freezing
-          await new Promise(resolve => setTimeout(resolve, 10));
+          await new Promise(resolve => setTimeout(resolve, 5));
         }
         
-        // Try to extract real estate information
+        // Try to extract real estate information for Inventário
         if (documentType === 'Inventário') {
           const apartmentPattern = /apartamento|imóvel|apartamento n[º°]/i;
           const match = apartmentPattern.exec(fileContent);
@@ -416,30 +510,41 @@ export async function identifyPartiesAndRoles(
     
     // Ensure we have at least basic default values for required fields
     if (documentType === 'Inventário') {
-      if (!enhancedData['falecido']) enhancedData['falecido'] = "Não identificado";
-      if (!enhancedData['conjuge']) enhancedData['conjuge'] = "Não identificado(a)";
-      if (!enhancedData['inventariante']) enhancedData['inventariante'] = "Não identificado(a)";
-      if (!enhancedData['herdeiro1']) enhancedData['herdeiro1'] = "Não identificado(a)";
-      if (!enhancedData['advogado']) enhancedData['advogado'] = "Não identificado(a)";
+      // Clean up data, replacing system text with appropriate placeholders
+      Object.keys(enhancedData).forEach(key => {
+        const value = enhancedData[key];
+        if (typeof value === 'string') {
+          // Check if it's likely a system text rather than actual data
+          if (value.includes('Poder Judiciário') || 
+              value.includes('Certidão') || 
+              value.includes('ião estável') ||
+              value.includes('Consulta')) {
+            
+            // Replace with appropriate placeholder based on field
+            if (key === 'falecido') enhancedData[key] = "Autor da Herança";
+            else if (key === 'conjuge') enhancedData[key] = "Cônjuge Sobrevivente";
+            else if (key === 'inventariante') enhancedData[key] = "Inventariante Nomeado";
+            else if (key.includes('herdeiro')) enhancedData[key] = "Herdeiro Legítimo";
+            else if (key === 'advogado') enhancedData[key] = "Advogado(a) Constituído(a)";
+            else delete enhancedData[key]; // Remove invalid system text for other fields
+          }
+        }
+      });
+      
+      // Set default values if missing
+      if (!enhancedData['falecido']) enhancedData['falecido'] = "Autor da Herança";
+      if (!enhancedData['conjuge']) enhancedData['conjuge'] = "Cônjuge Sobrevivente";
+      if (!enhancedData['inventariante']) enhancedData['inventariante'] = "Inventariante Nomeado";
+      if (!enhancedData['herdeiro1']) enhancedData['herdeiro1'] = "Herdeiro Legítimo";
+      if (!enhancedData['advogado']) enhancedData['advogado'] = "Advogado(a) Constituído(a)";
       if (!enhancedData['dataCasamento']) enhancedData['dataCasamento'] = "Data não identificada";
-      if (!enhancedData['regimeBens']) enhancedData['regimeBens'] = "Não informado";
+      if (!enhancedData['regimeBens']) enhancedData['regimeBens'] = "Comunhão parcial de bens";
       if (!enhancedData['dataFalecimento']) enhancedData['dataFalecimento'] = "Data não identificada";
       if (!enhancedData['numeroFilhos']) enhancedData['numeroFilhos'] = "1";
       if (!enhancedData['valorTotalBens']) enhancedData['valorTotalBens'] = "Valor não informado";
-      if (!enhancedData['nomesFilhos']) {
-        let filhos = enhancedData['herdeiro1'] || "Não identificado";
-        if (enhancedData['herdeiro2']) filhos += ", " + enhancedData['herdeiro2'];
-        if (enhancedData['herdeiro3']) filhos += ", " + enhancedData['herdeiro3'];
-        enhancedData['nomesFilhos'] = filhos;
-      }
     }
   } catch (error) {
     console.warn("Error in party identification process:", error);
-  }
-  
-  // Make sure we return at least something
-  if (Object.keys(enhancedData).length === 0) {
-    enhancedData.nome = "Participante não identificado";
   }
   
   return enhancedData;

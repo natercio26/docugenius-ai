@@ -1,7 +1,7 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Draft } from '@/types';
-import { Info, ChevronDown, ChevronUp, FileText } from 'lucide-react';
+import { Info, ChevronDown, ChevronUp, FileText, AlertTriangle } from 'lucide-react';
 
 interface DraftViewerProps {
   draft: Draft;
@@ -10,23 +10,50 @@ interface DraftViewerProps {
 
 const DraftViewer: React.FC<DraftViewerProps> = ({ draft, extractedData }) => {
   const [showExtractedData, setShowExtractedData] = useState(true); // Default to showing data
+  const [isDataComplete, setIsDataComplete] = useState(true);
   
   const toggleExtractedData = () => {
     setShowExtractedData(!showExtractedData);
   };
 
-  // Group extracted data by categories for better organization
+  // Check for missing important data
+  useEffect(() => {
+    if (draft.type === 'Inventário' && extractedData) {
+      const requiredFields = [
+        'falecido', 'conjuge', 'dataFalecimento', 'herdeiro1', 
+        'inventariante', 'regimeBens'
+      ];
+      
+      const hasMissingFields = requiredFields.some(field => 
+        !extractedData[field] || 
+        extractedData[field] === 'Não identificado' || 
+        extractedData[field] === 'N/A'
+      );
+      
+      setIsDataComplete(!hasMissingFields);
+    }
+  }, [draft.type, extractedData]);
+
+  // Group extracted data by categories according to the specified order
   const groupExtractedData = () => {
     if (!extractedData) return {};
     
+    // Define groups according to the specified order
     const groups: Record<string, Record<string, string>> = {
-      "Informações Principais": {},
+      "Viúvo(a)": {},
+      "Herdeiros/Cônjuge/Casamento": {},
+      "Filhos": {},
+      "Advogado": {},
       "Falecido": {},
-      "Herdeiros": {},
-      "Imóvel": {},
-      "Documentos": {},
-      "Veículo": {},
-      "Contas Bancárias": {},
+      "Qualificações do Falecido": {},
+      "Do Casamento": {},
+      "Do Falecimento": {},
+      "Dos Herdeiros": {},
+      "Nomeação do Inventariante": {},
+      "Bens": {},
+      "Partilha": {},
+      "Certidões": {},
+      "Imposto": {},
       "Outros": {}
     };
     
@@ -36,27 +63,43 @@ const DraftViewer: React.FC<DraftViewerProps> = ({ draft, extractedData }) => {
         return; // Skip empty values
       }
       
-      if (key === 'falecido' || key === 'dataFalecimento' || key === 'cidadeFalecimento' || 
-          key === 'hospitalFalecimento' || key === 'matriculaObito' || key === 'cartorioObito') {
+      // Categorize fields according to the specified order
+      if (key.includes('viuv') || key.includes('viúv')) {
+        groups["Viúvo(a)"][key] = value;
+      } else if (key === 'conjuge' || key === 'cônjuge' || key === 'meeiro' || key === 'meeira') {
+        groups["Herdeiros/Cônjuge/Casamento"][key] = value;
+      } else if (key.includes('filho') || key === 'numeroFilhos' || key === 'nomesFilhos') {
+        groups["Filhos"][key] = value;
+      } else if (key === 'advogado' || key.includes('oab') || key.includes('OAB')) {
+        groups["Advogado"][key] = value;
+      } else if (key === 'falecido' || key === 'autor da herança' || key === 'de cujus') {
         groups["Falecido"][key] = value;
-      } else if (key.includes('herdeiro') || key === 'numeroFilhos' || key === 'nomesFilhos') {
-        groups["Herdeiros"][key] = value;
+      } else if (key.includes('rg falecido') || key.includes('cpf falecido') || 
+                key.includes('nacionalidade') || key.includes('profissao')) {
+        groups["Qualificações do Falecido"][key] = value;
+      } else if (key === 'dataCasamento' || key === 'regimeBens' || key.includes('certidaoCasamento')) {
+        groups["Do Casamento"][key] = value;
+      } else if (key === 'dataFalecimento' || key.includes('obito') || key.includes('óbito') || 
+                key.includes('falecimento') || key === 'cidadeFalecimento' || key === 'hospitalFalecimento') {
+        groups["Do Falecimento"][key] = value;
+      } else if (key.includes('herdeiro') && !key.includes('valor')) {
+        groups["Dos Herdeiros"][key] = value;
+      } else if (key === 'inventariante' || key.includes('representante')) {
+        groups["Nomeação do Inventariante"][key] = value;
       } else if (key.includes('imovel') || key.includes('Imovel') || key.includes('apartamento') || 
-                key.includes('Apartamento') || key.includes('GDF') || key.includes('matricula') ||
-                key.includes('quadra')) {
-        groups["Imóvel"][key] = value;
-      } else if (key.includes('Certidao') || key.includes('certidao') || key.includes('ITCMD') || 
-                key.includes('hash') || key.includes('registro')) {
-        groups["Documentos"][key] = value;
-      } else if (key.includes('veiculo') || key.includes('Veiculo')) {
-        groups["Veículo"][key] = value;
-      } else if (key.includes('conta') || key.includes('Conta') || key.includes('banco') || 
-                key.includes('Banco') || key.includes('saldo') || key.includes('Saldo')) {
-        groups["Contas Bancárias"][key] = value;
-      } else if (key === 'inventariante' || key === 'conjuge' || key === 'advogado' || 
-                key === 'regimeBens' || key === 'dataCasamento' || key === 'valorTotalBens' ||
-                key === 'valorTotalMeacao' || key === 'percentualHerdeiros' || key === 'valorUnitarioHerdeiros') {
-        groups["Informações Principais"][key] = value;
+                key.includes('Apartamento') || key.includes('veículo') || key.includes('veiculo') ||
+                key.includes('blocoApartamento') || key.includes('quadra')) {
+        groups["Bens"][key] = value;
+      } else if (key.includes('partilha') || key.includes('quinhao') || key.includes('quinhão') ||
+                key === 'valorTotalBens' || key === 'valorTotalMeacao' || key.includes('percentual') ||
+                key === 'valorUnitarioHerdeiros') {
+        groups["Partilha"][key] = value;
+      } else if (key.includes('Certidao') || key.includes('certidao') || key.includes('receita') || 
+                key.includes('GDF') || key.includes('gdf') || key.includes('iptu') || key.includes('IPTU')) {
+        groups["Certidões"][key] = value;
+      } else if (key.includes('ITCMD') || key.includes('itcmd') || key.includes('imposto') || 
+                key.includes('tributo') || key.includes('valorITCMD')) {
+        groups["Imposto"][key] = value;
       } else {
         groups["Outros"][key] = value;
       }
@@ -110,10 +153,13 @@ const DraftViewer: React.FC<DraftViewerProps> = ({ draft, extractedData }) => {
       'nome': 'Nome',
       'rg': 'RG',
       'cpf': 'CPF',
+      'cpfConjuge': 'CPF do Cônjuge',
+      'cpfFalecido': 'CPF do Falecido',
       'estadoCivil': 'Estado Civil',
       'profissao': 'Profissão',
       'nacionalidade': 'Nacionalidade',
       'endereco': 'Endereço',
+      'enderecoConjuge': 'Endereço do Cônjuge',
       'hashCNIB': 'Hash CNIB',
       'veiculoMarca': 'Marca do Veículo',
       'veiculoModelo': 'Modelo do Veículo',
@@ -126,7 +172,17 @@ const DraftViewer: React.FC<DraftViewerProps> = ({ draft, extractedData }) => {
       'bancoConta': 'Banco',
       'agenciaConta': 'Agência',
       'numeroConta': 'Número da Conta',
-      'saldoConta': 'Saldo em Conta'
+      'saldoConta': 'Saldo em Conta',
+      'certidaoReceita': 'Certidão da Receita Federal',
+      'certidaoGDF': 'Certidão do GDF',
+      'certidaoIPTU': 'Certidão IPTU do Imóvel',
+      'dataCertidaoCasamento': 'Data da Certidão de Casamento',
+      'dataExpedicaoCertidaoObito': 'Data de Expedição da Certidão de Óbito',
+      'descricaoAdicionalImovel': 'Descrição Adicional do Imóvel',
+      'cartorioImovel': 'Cartório do Imóvel',
+      'cartorioCasamento': 'Cartório do Casamento',
+      'viuvo': 'Viúvo(a)',
+      'viuva': 'Viúva'
     };
     
     return fieldLabels[key] || key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
@@ -150,7 +206,7 @@ const DraftViewer: React.FC<DraftViewerProps> = ({ draft, extractedData }) => {
               day: '2-digit',
               month: '2-digit',
               year: 'numeric'
-            }).format(draft.createdAt)}
+            }).format(new Date(draft.createdAt))}
           </time>
         </div>
       </header>
@@ -172,9 +228,18 @@ const DraftViewer: React.FC<DraftViewerProps> = ({ draft, extractedData }) => {
           
           {showExtractedData && (
             <div className="mt-4 p-4 bg-muted/30 rounded-md border border-border">
-              <div className="flex items-center space-x-2 text-sm font-medium mb-3">
-                <FileText className="h-4 w-4 text-primary" />
-                <h3>Dados Extraídos dos Documentos:</h3>
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center space-x-2 text-sm font-medium">
+                  <FileText className="h-4 w-4 text-primary" />
+                  <h3>Dados Extraídos dos Documentos:</h3>
+                </div>
+                
+                {!isDataComplete && (
+                  <div className="flex items-center space-x-2 text-xs text-amber-500">
+                    <AlertTriangle className="h-3.5 w-3.5" />
+                    <span>Dados incompletos</span>
+                  </div>
+                )}
               </div>
               
               {Object.keys(groupedData).length > 0 ? (
@@ -200,7 +265,7 @@ const DraftViewer: React.FC<DraftViewerProps> = ({ draft, extractedData }) => {
               <p className="text-xs text-muted-foreground mt-4 p-2 bg-primary/5 rounded border border-primary/10">
                 <strong>Nota:</strong> Estes são os dados que foram extraídos automaticamente dos documentos enviados.
                 Alguns campos podem precisar de edição manual para melhor precisão. Campos não preenchidos ou com valores
-                padrão não são exibidos.
+                padrão não são exibidos. A ordem segue a estrutura padrão para o documento de {draft.type}.
               </p>
             </div>
           )}
