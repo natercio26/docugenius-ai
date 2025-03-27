@@ -1,24 +1,21 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Navbar from '@/components/Navbar';
 import FileUpload from '@/components/FileUpload';
 import { DraftType, UploadStatus } from '@/types';
 import { useToast } from '@/hooks/use-toast';
-import { extractDataFromFiles, generateDocumentContent } from '@/utils/documentExtractor';
+import { extractDataFromFiles, generateDocumentContent, identifyPartiesAndRoles } from '@/utils/documentExtractor';
 
 const Upload: React.FC = () => {
   const [status, setStatus] = useState<UploadStatus>('idle');
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [documentType, setDocumentType] = useState<DraftType>(() => {
-    // Get the saved document type from localStorage or use default
     const savedType = localStorage.getItem('selectedDocumentType');
     return savedType as DraftType || 'Escritura de Compra e Venda';
   });
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  // Process the uploaded files and generate the document
   const handleUploadComplete = async (files: File[]) => {
     if (!files || files.length === 0) {
       toast({
@@ -33,26 +30,31 @@ const Upload: React.FC = () => {
     setStatus('uploading');
     
     try {
-      console.log("Starting processing for files:", files.map(f => f.name).join(', '));
+      console.log("Iniciando o processamento dos arquivos:", files.map(f => f.name).join(', '));
       
-      // Upload simulation (1.5 seconds for visual feedback)
       setTimeout(async () => {
         setStatus('processing');
         
         try {
-          console.log("Starting data extraction from files");
+          console.log("Iniciando extração de dados dos arquivos");
           
-          // Extract data from the uploaded files
+          // Extract basic data from the uploaded files
           const extractedData = await extractDataFromFiles(files);
           
           if (extractedData.error) {
             throw new Error(extractedData.error);
           }
           
-          console.log("Data extraction complete:", extractedData);
+          console.log("Extração de dados básicos concluída:", extractedData);
           
-          if (Object.keys(extractedData).length <= 1 && !extractedData.nome) {
-            console.warn("Insufficient data extracted from documents");
+          // Enhanced step: Identify parties and their roles
+          console.log("Identificando partes e seus papéis nos documentos");
+          const enhancedData = await identifyPartiesAndRoles(files, documentType, extractedData);
+          
+          console.log("Identificação de partes e papéis concluída:", enhancedData);
+          
+          if (Object.keys(enhancedData).length <= 1 && !enhancedData.nome) {
+            console.warn("Dados insuficientes extraídos dos documentos");
             toast({
               title: "Dados insuficientes",
               description: "Não foi possível extrair dados suficientes dos documentos. A minuta será criada com dados mínimos.",
@@ -60,12 +62,11 @@ const Upload: React.FC = () => {
             });
           }
           
-          // Generate document content based on the extracted data
-          const documentContent = generateDocumentContent(documentType, extractedData);
+          // Generate document content based on the enhanced extracted data
+          const documentContent = generateDocumentContent(documentType, enhancedData);
           
-          console.log("Document content generated successfully");
+          console.log("Conteúdo do documento gerado com sucesso");
           
-          // Store generated content in sessionStorage
           sessionStorage.setItem('generatedDraft', JSON.stringify({
             id: 'new',
             title: `${documentType} - Gerado em ${new Date().toLocaleDateString('pt-BR')}`,
@@ -73,23 +74,21 @@ const Upload: React.FC = () => {
             content: documentContent,
             createdAt: new Date(),
             updatedAt: new Date(),
-            extractedData: extractedData // Store extracted data to help debugging
+            extractedData: enhancedData // Store enhanced extracted data
           }));
           
-          // Update status to success
           setStatus('success');
           
           toast({
             title: "Minuta gerada com sucesso!",
-            description: "Sua minuta foi gerada com base nos dados extraídos dos documentos.",
+            description: "Sua minuta foi gerada com base nos dados extraídos e nos papéis identificados dos documentos.",
           });
           
-          // Navigate to the view page after successful generation
           setTimeout(() => {
             navigate('/view/new');
           }, 1000);
         } catch (error) {
-          console.error('Error processing files:', error);
+          console.error('Erro ao processar arquivos:', error);
           setStatus('error');
           
           toast({
@@ -100,7 +99,7 @@ const Upload: React.FC = () => {
         }
       }, 1500);
     } catch (error) {
-      console.error('Error handling upload:', error);
+      console.error('Erro no upload:', error);
       setStatus('error');
       
       toast({
@@ -114,7 +113,6 @@ const Upload: React.FC = () => {
   const handleTypeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const newType = e.target.value as DraftType;
     setDocumentType(newType);
-    // Save the selected document type to localStorage
     localStorage.setItem('selectedDocumentType', newType);
   };
 

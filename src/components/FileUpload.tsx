@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { Upload, File, X } from 'lucide-react';
@@ -71,10 +70,9 @@ const FileUpload: React.FC<FileUploadProps> = ({ onUploadComplete, status }) => 
       return;
     }
     
-    // Inform user about processing
     toast({
-      title: "Processando documentos",
-      description: "Seus documentos estão sendo analisados para extrair os dados. Aguarde um momento.",
+      title: "Analisando documentos",
+      description: "Seus documentos estão sendo processados para identificar partes, herdeiros e outras informações importantes.",
     });
     
     onUploadComplete(files);
@@ -176,4 +174,3 @@ const FileUpload: React.FC<FileUploadProps> = ({ onUploadComplete, status }) => 
 };
 
 export default FileUpload;
-
