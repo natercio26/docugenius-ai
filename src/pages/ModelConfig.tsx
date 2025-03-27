@@ -190,6 +190,7 @@ const ModelConfig: React.FC = () => {
           <ActionButtons 
             onAddField={addField}
             onSave={handleSave}
+            fieldsCount={currentFields.length}  // Added fieldsCount prop
           />
         </div>
       </main>
