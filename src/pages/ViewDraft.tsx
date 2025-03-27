@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Navbar from '@/components/Navbar';
 import DraftViewer from '@/components/DraftViewer';
@@ -7,7 +7,7 @@ import { Draft } from '@/types';
 import { Download, Edit, Check } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
-// Sample draft content for demonstration
+// Sample draft content for demonstration (fallback if no generated content)
 const sampleContent = `ESCRITURA PÚBLICA DE COMPRA E VENDA
 
 SAIBAM todos quantos esta Escritura Pública de Compra e Venda virem que, aos 15 (quinze) dias do mês de setembro do ano de 2023 (dois mil e vinte e três), nesta cidade e comarca de São Paulo, Estado de São Paulo, perante mim, Tabelião, compareceram as partes entre si justas e contratadas, a saber:
@@ -80,13 +80,46 @@ const mockDrafts: Draft[] = [
   }
 ];
 
+// Default draft for fallback
+const defaultNewDraft: Draft = {
+  id: 'new',
+  title: 'Escritura de Compra e Venda - Apartamento',
+  type: 'Escritura de Compra e Venda',
+  content: sampleContent,
+  createdAt: new Date(),
+  updatedAt: new Date()
+};
+
 const ViewDraft: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const [draft, setDraft] = useState<Draft | null>(null);
   
-  // Find the requested draft
-  const draft = id === 'new' ? newDraft : mockDrafts.find(d => d.id === id);
+  useEffect(() => {
+    // Try to load generated draft from sessionStorage
+    if (id === 'new') {
+      const storedDraft = sessionStorage.getItem('generatedDraft');
+      if (storedDraft) {
+        try {
+          const parsedDraft = JSON.parse(storedDraft);
+          // Convert string dates back to Date objects
+          parsedDraft.createdAt = new Date(parsedDraft.createdAt);
+          parsedDraft.updatedAt = new Date(parsedDraft.updatedAt);
+          setDraft(parsedDraft);
+        } catch (error) {
+          console.error('Error parsing stored draft:', error);
+          setDraft(defaultNewDraft);
+        }
+      } else {
+        setDraft(defaultNewDraft);
+      }
+    } else {
+      // Find from mock drafts
+      const foundDraft = mockDrafts.find(d => d.id === id);
+      setDraft(foundDraft || null);
+    }
+  }, [id]);
   
   const handleDownload = () => {
     toast({
@@ -101,6 +134,8 @@ const ViewDraft: React.FC = () => {
       title: "Minuta aprovada",
       description: "A minuta foi aprovada e armazenada com sucesso."
     });
+    // Clear the sessionStorage after approval
+    sessionStorage.removeItem('generatedDraft');
     navigate('/');
   };
 

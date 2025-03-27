@@ -3,16 +3,20 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Navbar from '@/components/Navbar';
 import FileUpload from '@/components/FileUpload';
-import { UploadStatus } from '@/types';
+import { DraftType, UploadStatus } from '@/types';
 import { useToast } from '@/hooks/use-toast';
+import { extractDataFromFiles, generateDocumentContent } from '@/utils/documentExtractor';
 
 const Upload: React.FC = () => {
   const [status, setStatus] = useState<UploadStatus>('idle');
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [documentType, setDocumentType] = useState<DraftType>('Escritura de Compra e Venda');
   const navigate = useNavigate();
   const { toast } = useToast();
 
   // Simulate the upload and processing flow
   const handleUploadComplete = (files: File[]) => {
+    setSelectedFiles(files);
     setStatus('uploading');
     
     // Simulate upload time
@@ -28,12 +32,30 @@ const Upload: React.FC = () => {
           description: "Sua minuta foi gerada e está pronta para visualização.",
         });
         
+        // Extract data from files and generate document
+        const extractedData = extractDataFromFiles(files);
+        const documentContent = generateDocumentContent(documentType, extractedData);
+        
+        // Store generated content in sessionStorage
+        sessionStorage.setItem('generatedDraft', JSON.stringify({
+          id: 'new',
+          title: `${documentType} - Gerado em ${new Date().toLocaleDateString('pt-BR')}`,
+          type: documentType,
+          content: documentContent,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        }));
+        
         // Navigate to the view page after successful generation
         setTimeout(() => {
           navigate('/view/new');
         }, 1000);
       }, 3000);
     }, 2000);
+  };
+
+  const handleTypeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setDocumentType(e.target.value as DraftType);
   };
 
   return (
@@ -46,6 +68,33 @@ const Upload: React.FC = () => {
           <p className="text-muted-foreground">
             Faça upload dos arquivos necessários para gerar sua minuta automaticamente com IA.
           </p>
+        </div>
+        
+        <div className="max-w-3xl mx-auto mb-8 animate-scale-in" style={{ animationDelay: '50ms' }}>
+          <div className="glass rounded-lg p-6">
+            <label htmlFor="documentType" className="block text-sm font-medium mb-2">
+              Tipo de Documento a Gerar
+            </label>
+            <select
+              id="documentType"
+              value={documentType}
+              onChange={handleTypeChange}
+              className="input-field mb-4"
+              disabled={status === 'uploading' || status === 'processing'}
+            >
+              <option value="Escritura de Compra e Venda">Escritura de Compra e Venda</option>
+              <option value="Inventário">Inventário</option>
+              <option value="Doação">Doação</option>
+              <option value="União Estável">União Estável</option>
+              <option value="Procuração">Procuração</option>
+              <option value="Testamento">Testamento</option>
+              <option value="Outro">Outro</option>
+            </select>
+            
+            <p className="text-sm text-muted-foreground mb-4">
+              Selecione o tipo de documento que deseja gerar com base nos arquivos anexados.
+            </p>
+          </div>
         </div>
         
         <div className="animate-scale-in" style={{ animationDelay: '100ms' }}>
