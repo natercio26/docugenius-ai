@@ -16,6 +16,7 @@ const FileUpload: React.FC<FileUploadProps> = ({ onUploadComplete, status }) => 
   const { toast } = useToast();
 
   const FILE_SIZE_LIMIT = 50 * 1024 * 1024;
+  const MAX_FILE_LIMIT = 100;
 
   const acceptedTypes: AcceptedFileTypes[] = [
     'application/pdf',
@@ -48,10 +49,10 @@ const FileUpload: React.FC<FileUploadProps> = ({ onUploadComplete, status }) => 
   const handleFileChange = useCallback((selectedFiles: FileList | null) => {
     if (!selectedFiles || selectedFiles.length === 0) return;
     
-    if (selectedFiles.length > 10) {
+    if (selectedFiles.length > MAX_FILE_LIMIT) {
       toast({
-        title: "Muitos arquivos",
-        description: "Por favor, selecione no máximo 10 arquivos por vez.",
+        title: "Limite de arquivos excedido",
+        description: `Por favor, selecione no máximo ${MAX_FILE_LIMIT} arquivos por vez.`,
         variant: "destructive"
       });
       return;
@@ -132,7 +133,7 @@ const FileUpload: React.FC<FileUploadProps> = ({ onUploadComplete, status }) => 
         setValidating(false);
       }
     });
-  }, [toast, FILE_SIZE_LIMIT, isAcceptedFileType]);
+  }, [toast, FILE_SIZE_LIMIT, isAcceptedFileType, MAX_FILE_LIMIT]);
 
   const handleDrag = useCallback((e: React.DragEvent) => {
     e.preventDefault();
