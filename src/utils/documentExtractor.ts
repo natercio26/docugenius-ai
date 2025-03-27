@@ -254,7 +254,7 @@ function extractBasicDataPoints(text: string, extractedData: { [key: string]: an
   }
 }
 
-// Existing code for document content generation
+// Updated document content generation with proper HTML formatting for all document types
 export function generateDocumentContent(documentType: DraftType, extractedData: { [key: string]: any }): string {
   switch (documentType) {
     case 'Escritura de Compra e Venda':
@@ -268,10 +268,14 @@ export function generateDocumentContent(documentType: DraftType, extractedData: 
     case 'Inventário':
       return `
         <h1>Inventário</h1>
-        <p>Nome do Autor da Herança: ${extractedData['nomeDoAutorDaHeranca'] || 'N/A'}</p>
-        <p>Data do Falecimento: ${extractedData['dataDoFalecimento'] || 'N/A'}</p>
+        <p>Nome do Autor da Herança: ${extractedData['falecido'] || extractedData['nomeDoAutorDaHeranca'] || 'N/A'}</p>
+        <p>Data do Falecimento: ${extractedData['dataFalecimento'] || extractedData['dataDoFalecimento'] || 'N/A'}</p>
+        <p>Inventariante: ${extractedData['inventariante'] || 'N/A'}</p>
         <p>Existência de Testamento: ${extractedData['existenciaDeTestamento'] ? 'Sim' : 'Não'}</p>
-        <p>Regime de Bens: ${extractedData['regimeDeBens'] || 'N/A'}</p>
+        <p>Regime de Bens: ${extractedData['regimeBens'] || extractedData['regimeDeBens'] || 'N/A'}</p>
+        ${extractedData['herdeiro1'] ? `<p>Herdeiro 1: ${extractedData['herdeiro1']}</p>` : ''}
+        ${extractedData['herdeiro2'] ? `<p>Herdeiro 2: ${extractedData['herdeiro2']}</p>` : ''}
+        ${extractedData['herdeiro3'] ? `<p>Herdeiro 3: ${extractedData['herdeiro3']}</p>` : ''}
       `;
     case 'Doação':
       return `
@@ -284,10 +288,10 @@ export function generateDocumentContent(documentType: DraftType, extractedData: 
     case 'União Estável':
       return `
         <h1>União Estável</h1>
-        <p>Nome do Primeiro Companheiro: ${extractedData['nomeDoPrimeiroCompanheiro'] || 'N/A'}</p>
-        <p>Nome do Segundo Companheiro: ${extractedData['nomeDoSegundoCompanheiro'] || 'N/A'}</p>
+        <p>Nome do Primeiro Companheiro: ${extractedData['companheiro1'] || extractedData['nomeDoPrimeiroCompanheiro'] || 'N/A'}</p>
+        <p>Nome do Segundo Companheiro: ${extractedData['companheiro2'] || extractedData['nomeDoSegundoCompanheiro'] || 'N/A'}</p>
         <p>Data de Início da União: ${extractedData['dataDeInicioDaUniao'] || 'N/A'}</p>
-        <p>Regime de Bens: ${extractedData['regimeDeBens'] || 'N/A'}</p>
+        <p>Regime de Bens: ${extractedData['regimeBens'] || extractedData['regimeDeBens'] || 'N/A'}</p>
       `;
     case 'Procuração':
       return `
@@ -301,7 +305,7 @@ export function generateDocumentContent(documentType: DraftType, extractedData: 
       return `
         <h1>Testamento</h1>
         <p>Testador: ${extractedData['testador'] || 'N/A'}</p>
-        <p>Herdeiros: ${extractedData['herdeiros'] || 'N/A'}</p>
+        <p>Herdeiros: ${extractedData['herdeiros'] || extractedData['herdeiro1'] || 'N/A'}</p>
         <p>Legados: ${extractedData['legados'] || 'N/A'}</p>
         <p>Testemunhas: ${extractedData['testemunhas'] || 'N/A'}</p>
       `;
@@ -328,10 +332,10 @@ export function generateDocumentContent(documentType: DraftType, extractedData: 
       return `
         <h1>Outro Documento</h1>
         <p>Título do Documento: ${extractedData['tituloDoDocumento'] || 'N/A'}</p>
-        <p>Partes Envolvidas: ${extractedData['partesEnvolvidas'] || 'N/A'}</p>
+        <p>Partes Envolvidas: ${extractedData['partesEnvolvidas'] || extractedData['nome'] || 'N/A'}</p>
         <p>Objeto: ${extractedData['objeto'] || 'N/A'}</p>
       `;
     default:
-      return `<p>Tipo de documento não suportado.</p>`;
+      return `<h1>${documentType}</h1><p>Tipo de documento não suportado.</p>`;
   }
 }

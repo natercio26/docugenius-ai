@@ -49,6 +49,36 @@ E, assim, lida em voz alta e clara esta escritura às partes e achada conforme, 
 
 Eu, Tabelião, lavrei a presente escritura, conferi, dou fé e assino.`;
 
+const inventarioSampleContent = `AUTO DE ABERTURA DE INVENTÁRIO
+
+Aos 20 (vinte) dias do mês de março do ano de 2023 (dois mil e vinte e três), nesta cidade e comarca de São Paulo, Estado de São Paulo, perante o MM. Juiz de Direito da 2ª Vara de Família e Sucessões, Dr. Paulo Ferreira Lima, compareceu ROBERTO SANTOS, brasileiro, viúvo, engenheiro, portador da Cédula de Identidade RG nº 23.456.789-0 SSP/SP, inscrito no CPF/MF sob nº 234.567.890-12, residente e domiciliado na Rua das Palmeiras, nº 456, Bairro Jardim América, CEP 01456-789, nesta Capital, para requerer a abertura de inventário dos bens deixados por MARIA HELENA SANTOS, falecida em 15/01/2023, conforme certidão de óbito anexa.
+
+O requerente declara, sob as penas da lei, que a falecida não deixou testamento, sendo seus herdeiros:
+
+1. ROBERTO SANTOS, já qualificado, cônjuge sobrevivente, casado sob o regime de comunhão parcial de bens;
+2. CARLOS EDUARDO SANTOS, brasileiro, solteiro, estudante, portador da Cédula de Identidade RG nº 34.567.890-1 SSP/SP, inscrito no CPF/MF sob nº 345.678.901-23, residente e domiciliado no mesmo endereço do inventariante, filho da falecida;
+3. ANA PAULA SANTOS, brasileira, solteira, médica, portadora da Cédula de Identidade RG nº 45.678.901-2 SSP/SP, inscrita no CPF/MF sob nº 456.789.012-34, residente e domiciliada na Avenida Paulista, nº 789, Apto. 1001, Bairro Bela Vista, CEP 01310-300, nesta Capital, filha da falecida.
+
+O requerente indica como bens do espólio:
+
+1. Um apartamento situado na Rua das Palmeiras, nº 456, Apto. 701, Edifício Orquídeas, Bairro Jardim América, CEP 01456-789, nesta Capital, com área privativa de 150,00m² (cento e cinquenta metros quadrados), registrado sob a matrícula nº 54.321 no 4º Oficial de Registro de Imóveis desta Capital, avaliado em R$ 1.200.000,00 (um milhão e duzentos mil reais);
+2. Um veículo marca Toyota, modelo Corolla, ano 2020, placa ABC-1234, RENAVAM 12345678901, avaliado em R$ 90.000,00 (noventa mil reais);
+3. Saldos em contas bancárias no valor aproximado de R$ 150.000,00 (cento e cinquenta mil reais);
+4. Aplicações financeiras no valor aproximado de R$ 300.000,00 (trezentos mil reais).
+
+Face ao exposto, requer a V. Exa. a abertura do inventário, nomeando-o como inventariante, comprometendo-se a apresentar as primeiras declarações no prazo legal.
+
+Nestes termos, pede deferimento.
+
+São Paulo, 20 de março de 2023.
+
+Roberto Santos
+Inventariante
+
+Dr. Fernando Mello Barros
+OAB/SP 123.456
+Advogado`;
+
 const newDraft: Draft = {
   id: 'new',
   title: 'Escritura de Compra e Venda - Apartamento',
@@ -71,19 +101,85 @@ const mockDrafts: Draft[] = [
     id: '2',
     title: 'Inventário - Espólio de João da Silva',
     type: 'Inventário',
-    content: 'Conteúdo do inventário...',
+    content: inventarioSampleContent,
     createdAt: new Date('2023-09-10T14:45:00'),
     updatedAt: new Date('2023-09-12T09:20:00')
   }
 ];
 
-const defaultNewDraft: Draft = {
-  id: 'new',
-  title: 'Escritura de Compra e Venda - Apartamento',
-  type: 'Escritura de Compra e Venda',
-  content: sampleContent,
-  createdAt: new Date(),
-  updatedAt: new Date()
+const defaultNewDrafts: Record<DraftType, Draft> = {
+  'Escritura de Compra e Venda': {
+    id: 'new',
+    title: 'Escritura de Compra e Venda - Apartamento',
+    type: 'Escritura de Compra e Venda',
+    content: sampleContent,
+    createdAt: new Date(),
+    updatedAt: new Date()
+  },
+  'Inventário': {
+    id: 'new',
+    title: 'Inventário - Processo de Sucessão',
+    type: 'Inventário',
+    content: inventarioSampleContent,
+    createdAt: new Date(),
+    updatedAt: new Date()
+  },
+  'Doação': {
+    id: 'new',
+    title: 'Escritura de Doação',
+    type: 'Doação',
+    content: "Conteúdo da escritura de doação...",
+    createdAt: new Date(),
+    updatedAt: new Date()
+  },
+  'União Estável': {
+    id: 'new',
+    title: 'Contrato de União Estável',
+    type: 'União Estável',
+    content: "Conteúdo do contrato de união estável...",
+    createdAt: new Date(),
+    updatedAt: new Date()
+  },
+  'Procuração': {
+    id: 'new',
+    title: 'Procuração Pública',
+    type: 'Procuração',
+    content: "Conteúdo da procuração pública...",
+    createdAt: new Date(),
+    updatedAt: new Date()
+  },
+  'Testamento': {
+    id: 'new',
+    title: 'Testamento Público',
+    type: 'Testamento',
+    content: "Conteúdo do testamento público...",
+    createdAt: new Date(),
+    updatedAt: new Date()
+  },
+  'Contrato de Aluguel': {
+    id: 'new',
+    title: 'Contrato de Locação Residencial',
+    type: 'Contrato de Aluguel',
+    content: "Conteúdo do contrato de locação...",
+    createdAt: new Date(),
+    updatedAt: new Date()
+  },
+  'Contrato Social': {
+    id: 'new',
+    title: 'Contrato Social - Sociedade Limitada',
+    type: 'Contrato Social',
+    content: "Conteúdo do contrato social...",
+    createdAt: new Date(),
+    updatedAt: new Date()
+  },
+  'Outro': {
+    id: 'new',
+    title: 'Documento Jurídico',
+    type: 'Outro',
+    content: "Conteúdo do documento jurídico...",
+    createdAt: new Date(),
+    updatedAt: new Date()
+  }
 };
 
 interface ExtendedDraft extends Draft {
@@ -115,10 +211,13 @@ const ViewDraft: React.FC = () => {
           setDraft(parsedDraft);
         } catch (error) {
           console.error('Error parsing stored draft:', error);
-          setDraft(defaultNewDraft);
+          // If we can determine the document type from the error, use the appropriate default
+          const draftType = parsedDraft?.type || 'Escritura de Compra e Venda';
+          setDraft(defaultNewDrafts[draftType as DraftType] || defaultNewDrafts['Escritura de Compra e Venda']);
         }
       } else {
-        setDraft(defaultNewDraft);
+        // Default to Compra e Venda if no draft is stored
+        setDraft(defaultNewDrafts['Escritura de Compra e Venda']);
       }
     } else {
       const foundDraft = mockDrafts.find(d => d.id === id);

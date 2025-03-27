@@ -112,6 +112,9 @@ const DraftViewer: React.FC<DraftViewerProps> = ({ draft, extractedData }) => {
 
   const groupedData = groupExtractedData();
 
+  // Check if content contains HTML markup
+  const containsHtml = draft.content.includes('<h1>') || draft.content.includes('<p>');
+
   return (
     <div className="glass rounded-lg shadow-md p-8 max-w-4xl mx-auto">
       <header className="mb-6 pb-4 border-b">
@@ -183,11 +186,15 @@ const DraftViewer: React.FC<DraftViewerProps> = ({ draft, extractedData }) => {
       )}
       
       <div className="legal-text prose prose-legal">
-        {draft.content.split('\n').map((paragraph, index) => (
-          <p key={index} className="mb-4 text-justify">
-            {paragraph}
-          </p>
-        ))}
+        {containsHtml ? (
+          <div dangerouslySetInnerHTML={{ __html: draft.content }} />
+        ) : (
+          draft.content.split('\n').map((paragraph, index) => (
+            <p key={index} className="mb-4 text-justify">
+              {paragraph}
+            </p>
+          ))
+        )}
       </div>
     </div>
   );
