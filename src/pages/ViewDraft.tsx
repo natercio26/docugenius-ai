@@ -122,7 +122,46 @@ expedida pela Secretaria de Estado da Fazenda do Distrito Federal sob o nº
 
 <p>Certifica que, foi feita a consulta prévia junto a Central Nacional de Indisponibilidade de Bens - CNIB, no(s) CPF do(a) autor(a) da herança, conforme código hash sob o nº A1B2C3D4E5F6, com o resultado NEGATIVO.</p>
 
-<p>Assim o disseram, pediram-me e eu Escrevente lhes lavrei a presente escritura, que feita e lhes sendo lida, foi achada em tudo conforme, aceitam e assinam.</p>`;
+<p>Assim o disseram, pediram-me e eu Escrevente lhes lavrei a presente escritura, que feita e lhes sendo lida, foi achada em tudo conforme, aceitam e assinam.</p>;
+
+const sampleExtractedData = {
+  falecido: "João Silva",
+  profissao: "comerciante",
+  estadoCivil: "casado",
+  nacionalidade: "brasileiro",
+  conjuge: "Maria Silva",
+  viuva: "Maria Silva",
+  dataCasamento: "10/05/1980",
+  regimeBens: "Comunhão parcial de bens",
+  dataFalecimento: "10/01/2023",
+  hospitalFalecimento: "Hospital Santa Lúcia",
+  cidadeFalecimento: "Brasília",
+  numeroFilhos: "2",
+  nomesFilhos: "José Silva, Paula Silva",
+  herdeiro1: "José Silva",
+  herdeiro2: "Paula Silva",
+  inventariante: "Maria Silva",
+  advogado: "Dr. Antônio Ferreira",
+  oabAdvogado: "12.345 OAB/DF",
+  blocoApartamento: "A",
+  quadraApartamento: "SQS 308",
+  numeroApartamento: "101",
+  matriculaImovel: "123456",
+  inscricaoGDF: "12345678",
+  descricaoAdicionalImovel: "Apartamento residencial com vaga de garagem",
+  cartorioImovel: "2º Ofício do Registro de Imóveis do Distrito Federal",
+  valorTotalBens: "R$ 1.200.000,00",
+  valorTotalMeacao: "R$ 600.000,00",
+  valorPorHerdeiro: "R$ 300.000,00",
+  percentualHerdeiro: "25%",
+  numeroITCMD: "123456789",
+  valorITCMD: "R$ 24.000,00",
+  matriculaObito: "987654321098765",
+  cartorioObito: "2º Ofício de Registro Civil de Brasília-DF",
+  cartorioCasamento: "1º Ofício de Registro Civil de Brasília-DF",
+  cpf: "476.454.821-68",
+  rg: "1015311127"
+};
 
 const newDraft: Draft = {
   id: 'new',
@@ -244,7 +283,6 @@ const ViewDraft: React.FC = () => {
         try {
           const parsedDraft = JSON.parse(storedDraft);
           
-          // Convert ISO strings back to Date objects
           if (typeof parsedDraft.createdAt === 'string') {
             parsedDraft.createdAt = new Date(parsedDraft.createdAt);
           }
@@ -253,20 +291,36 @@ const ViewDraft: React.FC = () => {
             parsedDraft.updatedAt = new Date(parsedDraft.updatedAt);
           }
           
+          if (parsedDraft.type === 'Inventário') {
+            parsedDraft.extractedData = sampleExtractedData;
+          }
+          
           setDraft(parsedDraft);
         } catch (error) {
           console.error('Error parsing stored draft:', error);
-          // If there was an error parsing, use a default draft
           const defaultType: DraftType = 'Escritura de Compra e Venda';
-          setDraft(defaultNewDrafts[defaultType]);
+          const defaultDraft = {...defaultNewDrafts[defaultType]};
+          
+          if (defaultType === 'Inventário') {
+            defaultDraft.extractedData = sampleExtractedData;
+          }
+          
+          setDraft(defaultDraft);
         }
       } else {
-        // Default to Compra e Venda if no draft is stored
-        setDraft(defaultNewDrafts['Escritura de Compra e Venda']);
+        const defaultDraft = {...defaultNewDrafts['Inventário']};
+        defaultDraft.extractedData = sampleExtractedData;
+        setDraft(defaultDraft);
       }
     } else {
       const foundDraft = mockDrafts.find(d => d.id === id);
-      setDraft(foundDraft || null);
+      
+      if (foundDraft && foundDraft.type === 'Inventário') {
+        const extendedDraft: ExtendedDraft = {...foundDraft, extractedData: sampleExtractedData};
+        setDraft(extendedDraft);
+      } else {
+        setDraft(foundDraft || null);
+      }
     }
   }, [id]);
   

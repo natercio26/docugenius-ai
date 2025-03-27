@@ -1,9 +1,10 @@
 
 import React, { useState, useEffect } from 'react';
 import { Draft } from '@/types';
-import { Info, ChevronDown, ChevronUp, FileText, AlertTriangle, Edit, Eye } from 'lucide-react';
+import { Info, ChevronDown, ChevronUp, FileText, AlertTriangle, Edit, Eye, Trash2, Save } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tooltip } from '@/components/ui/tooltip';
+import { useToast } from '@/hooks/use-toast';
 
 interface DraftViewerProps {
   draft: Draft;
@@ -11,14 +12,24 @@ interface DraftViewerProps {
 }
 
 const DraftViewer: React.FC<DraftViewerProps> = ({ draft, extractedData }) => {
-  const [showExtractedData, setShowExtractedData] = useState(true); // Default to showing data
+  const [showExtractedData, setShowExtractedData] = useState(true);
   const [isDataComplete, setIsDataComplete] = useState(true);
   const [editMode, setEditMode] = useState(false);
   const [localData, setLocalData] = useState<Record<string, string>>({});
+  const { toast } = useToast();
   
   useEffect(() => {
     if (extractedData) {
-      setLocalData({...extractedData});
+      // Apply initial data cleaning when data is received
+      const cleanedData = Object.entries(extractedData).reduce((acc, [key, value]) => {
+        const cleanValue = cleanupDataValue(value);
+        if (cleanValue && !isInvalidData(cleanValue)) {
+          acc[key] = cleanValue;
+        }
+        return acc;
+      }, {} as Record<string, string>);
+      
+      setLocalData(cleanedData);
     }
   }, [extractedData]);
   
@@ -28,6 +39,21 @@ const DraftViewer: React.FC<DraftViewerProps> = ({ draft, extractedData }) => {
 
   const toggleEditMode = () => {
     setEditMode(!editMode);
+    
+    if (!editMode) {
+      toast({
+        title: "Modo de edição ativado",
+        description: "Agora você pode editar os dados extraídos manualmente."
+      });
+    }
+  };
+  
+  const saveChanges = () => {
+    setEditMode(false);
+    toast({
+      title: "Alterações salvas",
+      description: "As modificações nos dados foram salvas com sucesso."
+    });
   };
 
   const handleDataChange = (key: string, value: string) => {
@@ -35,6 +61,35 @@ const DraftViewer: React.FC<DraftViewerProps> = ({ draft, extractedData }) => {
       ...prev,
       [key]: value
     }));
+  };
+  
+  const removeField = (key: string) => {
+    setLocalData(prev => {
+      const newData = {...prev};
+      delete newData[key];
+      return newData;
+    });
+    
+    toast({
+      title: "Campo removido",
+      description: `O campo "${getFieldLabel(key)}" foi removido dos dados extraídos.`
+    });
+  };
+  
+  const addNewField = () => {
+    const newFieldKey = prompt("Digite o nome do campo (ex: nomeHerdeiro, dataObito):");
+    if (newFieldKey) {
+      const newFieldValue = prompt("Digite o valor para este campo:") || "";
+      setLocalData(prev => ({
+        ...prev,
+        [newFieldKey]: newFieldValue
+      }));
+      
+      toast({
+        title: "Campo adicionado",
+        description: `O campo "${newFieldKey}" foi adicionado aos dados extraídos.`
+      });
+    }
   };
 
   // Check for missing important data
@@ -46,37 +101,91 @@ const DraftViewer: React.FC<DraftViewerProps> = ({ draft, extractedData }) => {
       ];
       
       const hasMissingFields = requiredFields.some(field => 
-        !extractedData[field] || 
-        extractedData[field] === 'Não identificado' || 
-        extractedData[field] === 'N/A'
+        !localData[field] || 
+        localData[field] === 'Não identificado' || 
+        localData[field] === 'N/A'
       );
       
       setIsDataComplete(!hasMissingFields);
     }
-  }, [draft.type, extractedData]);
+  }, [draft.type, localData]);
+
+  // Check if a data value is likely invalid system/placeholder text
+  const isInvalidData = (value: string): boolean => {
+    if (!value) return true;
+    
+    const invalidPatterns = [
+      /^de\s+(março|janeiro|fevereiro|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro)(\s+do|\s+de)?$/i,
+      /^\d{1,2}\s+(?:de|do)\s+(?:janeiro|fevereiro|março|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro)$/i,
+      /^(?:janeiro|fevereiro|março|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro)$/i,
+      /^(e|com|de|do|dos|da|das|o|os|a|as)$/i,
+      /^([a-z]{1,3})$/i,
+      /^odos\s+os/i,
+      /^va\s/i,
+      /^ão\s/i,
+      /^[.,;:"'`´]\s*/i,
+      /assinatura/i,
+      /emissor/i,
+      /^aos\s+/i,
+      /^dia\s+/i,
+      /^n[aã]o\s+/i,
+      /^fica\s+/i,
+      /poder judiciário/i,
+      /tribunal/i,
+      /^consulta/i,
+      /^validar/i,
+      /^código/i,
+      /^recuperação/i,
+      /^judicial/i,
+      /^ião/i,
+      /^estado civil$/i,
+      /^nome completo$/i,
+      /^profissão$/i,
+      /^idade$/i,
+      /^que /i,
+      /^como /i,
+      /^para /i,
+    ];
+    
+    return invalidPatterns.some(pattern => pattern.test(value));
+  };
 
   // Clean up and filter out invalid values
   const cleanupDataValue = (value: string): string => {
     if (!value) return '';
+    
+    // Remove common OCR errors and clean up the value
+    let cleanedValue = value
+      .replace(/\s+/g, ' ')
+      .replace(/^\s+|\s+$/g, '')
+      .replace(/[^\w\s.,;:?!@#$%&*()[\]{}/<>+=\-\\|'"°ºª¹²³áàâãéèêíìîóòôõúùûçÁÀÂÃÉÈÊÍÌÎÓÒÔÕÚÙÛÇ]/g, '')
+      .replace(/^[.,;:?!@#$%&*()[\]{}/<>+=\-\\|'"°ºª]+/, '')
+      .replace(/[.,;:?!@#$%&*()[\]{}/<>+=\-\\|'"°ºª]+$/, '');
+    
+    // Remove very short values unless they are dates or numbers
+    if (cleanedValue.length < 3 && !/\d/.test(cleanedValue)) {
+      return '';
+    }
     
     // Check for system text and placeholders
     const systemTextPatterns = [
       /poder judiciário/i, /certidão/i, /consulta/i, /validar/i, 
       /código/i, /tribunal/i, /recuperação/i, /judicial/i,
       /^ião/i, /^estado civil$/i, /^nome completo$/i, /^profissão$/i,
-      /endereço\s+SH[IN]/i, /declarante/i
+      /endereço\s+SH[IN]/i, /declarante/i, /^(S|N)$/i, /assinatura/i,
+      /^aos\s+/i, /^\s*dias?\s*$/i, /^mês\s+de\s+/i, /^ano\s+/i
     ];
     
-    if (systemTextPatterns.some(pattern => pattern.test(value))) {
+    if (systemTextPatterns.some(pattern => pattern.test(cleanedValue))) {
       return '';
     }
     
-    return value;
+    return cleanedValue;
   };
 
   // Group extracted data by categories according to the specified order
   const groupExtractedData = () => {
-    if (!localData) return {};
+    if (!localData || Object.keys(localData).length === 0) return {};
     
     // Define groups according to the specified order
     const groups: Record<string, Record<string, string>> = {
@@ -100,56 +209,62 @@ const DraftViewer: React.FC<DraftViewerProps> = ({ draft, extractedData }) => {
     // Sort data into groups
     Object.entries(localData).forEach(([key, value]) => {
       // Skip empty, placeholder, or system text values
-      const cleanValue = cleanupDataValue(value);
-      if (!cleanValue || 
-          cleanValue === "Não identificado" || 
-          cleanValue === "Não identificada" || 
-          cleanValue === "" || 
-          cleanValue === "=====" || 
-          cleanValue === "N/A") {
+      if (!value || 
+          value === "Não identificado" || 
+          value === "Não identificada" || 
+          value === "" || 
+          value === "=====" || 
+          value === "N/A" ||
+          isInvalidData(value)) {
         return; 
       }
       
       // Categorize fields according to the specified order
       if (key === 'falecido' || key === 'autor da herança' || key === 'de cujus') {
-        groups["Falecido"][key] = cleanValue;
+        groups["Falecido"][key] = value;
       } else if (key.includes('rg falecido') || key.includes('cpf falecido') || 
-                key.includes('nacionalidade') || key.includes('profissao')) {
-        groups["Qualificações do Falecido"][key] = cleanValue;
-      } else if (key.includes('viuv') || key.includes('viúv')) {
-        groups["Viúvo(a)"][key] = cleanValue;
-      } else if (key === 'dataCasamento' || key === 'regimeBens' || key.includes('certidaoCasamento')) {
-        groups["Do Casamento"][key] = cleanValue;
+                key.includes('nacionalidade') || key.includes('profissao') || 
+                key === 'rg' || key === 'cpf' || key === 'estadoCivil') {
+        groups["Qualificações do Falecido"][key] = value;
+      } else if (key.includes('viuv') || key.includes('viúv') || key === 'viuvo' || key === 'viuva') {
+        groups["Viúvo(a)"][key] = value;
+      } else if (key === 'dataCasamento' || key === 'regimeBens' || key.includes('certidaoCasamento') || 
+                key === 'cartorioCasamento') {
+        groups["Do Casamento"][key] = value;
       } else if (key === 'dataFalecimento' || key.includes('obito') || key.includes('óbito') || 
-                key.includes('falecimento') || key === 'cidadeFalecimento' || key === 'hospitalFalecimento') {
-        groups["Do Falecimento"][key] = cleanValue;
+                key.includes('falecimento') || key === 'cidadeFalecimento' || key === 'hospitalFalecimento' ||
+                key === 'cartorioObito' || key === 'matriculaObito') {
+        groups["Do Falecimento"][key] = value;
       } else if (key === 'conjuge' || key === 'cônjuge' || key === 'meeiro' || key === 'meeira' ||
-                key === 'cpfConjuge' || key === 'rgConjuge') {
-        groups["Cônjuge/Meeiro"][key] = cleanValue;
+                key === 'cpfConjuge' || key === 'rgConjuge' || key.includes('enderecoConjuge')) {
+        groups["Cônjuge/Meeiro"][key] = value;
       } else if (key.includes('herdeiro') && !key.includes('valor')) {
-        groups["Dos Herdeiros"][key] = cleanValue;
+        groups["Dos Herdeiros"][key] = value;
       } else if (key.includes('filho') || key === 'numeroFilhos' || key === 'nomesFilhos') {
-        groups["Filhos"][key] = cleanValue;
+        groups["Filhos"][key] = value;
       } else if (key === 'inventariante' || key.includes('representante')) {
-        groups["Nomeação do Inventariante"][key] = cleanValue;
+        groups["Nomeação do Inventariante"][key] = value;
       } else if (key === 'advogado' || key.includes('oab') || key.includes('OAB')) {
-        groups["Advogado"][key] = cleanValue;
+        groups["Advogado"][key] = value;
       } else if (key.includes('imovel') || key.includes('Imovel') || key.includes('apartamento') || 
                 key.includes('Apartamento') || key.includes('veículo') || key.includes('veiculo') ||
-                key.includes('blocoApartamento') || key.includes('quadra')) {
-        groups["Bens"][key] = cleanValue;
+                key.includes('blocoApartamento') || key.includes('quadra') || key.includes('bloco') ||
+                key.includes('matriculaImovel') || key.includes('cartorioImovel') ||
+                key.includes('descricaoAdicional')) {
+        groups["Bens"][key] = value;
       } else if (key.includes('partilha') || key.includes('quinhao') || key.includes('quinhão') ||
                 key === 'valorTotalBens' || key === 'valorTotalMeacao' || key.includes('percentual') ||
-                key === 'valorUnitarioHerdeiros') {
-        groups["Partilha"][key] = cleanValue;
+                key === 'valorUnitarioHerdeiros' || key.includes('valorPorHerdeiro') ||
+                key.includes('percentualHerdeiro')) {
+        groups["Partilha"][key] = value;
       } else if (key.includes('Certidao') || key.includes('certidao') || key.includes('receita') || 
                 key.includes('GDF') || key.includes('gdf') || key.includes('iptu') || key.includes('IPTU')) {
-        groups["Certidões"][key] = cleanValue;
+        groups["Certidões"][key] = value;
       } else if (key.includes('ITCMD') || key.includes('itcmd') || key.includes('imposto') || 
                 key.includes('tributo') || key.includes('valorITCMD')) {
-        groups["Imposto"][key] = cleanValue;
+        groups["Imposto"][key] = value;
       } else {
-        groups["Outros"][key] = cleanValue;
+        groups["Outros"][key] = value;
       }
     });
     
@@ -190,7 +305,9 @@ const DraftViewer: React.FC<DraftViewerProps> = ({ draft, extractedData }) => {
       'numeroFilhos': 'Número de Filhos',
       'nomesFilhos': 'Nomes dos Filhos',
       'valorUnitarioHerdeiros': 'Valor por Herdeiro',
+      'valorPorHerdeiro': 'Valor por Herdeiro',
       'percentualHerdeiros': 'Percentual por Herdeiro',
+      'percentualHerdeiro': 'Percentual por Herdeiro',
       'numeroITCMD': 'Número ITCMD',
       'valorITCMD': 'Valor ITCMD',
       'hospitalFalecimento': 'Hospital do Falecimento',
@@ -232,7 +349,10 @@ const DraftViewer: React.FC<DraftViewerProps> = ({ draft, extractedData }) => {
       'viuvo': 'Viúvo(a)',
       'viuva': 'Viúva',
       'rgFalecido': 'RG do Falecido',
-      'rgConjuge': 'RG do Cônjuge'
+      'rgConjuge': 'RG do Cônjuge',
+      'bloco': 'Bloco',
+      'quadra': 'Quadra',
+      'data': 'Data',
     };
     
     return fieldLabels[key] || key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
@@ -277,15 +397,28 @@ const DraftViewer: React.FC<DraftViewerProps> = ({ draft, extractedData }) => {
               )}
             </button>
             
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={toggleEditMode}
-              className="flex items-center gap-1"
-            >
-              {editMode ? <Eye className="h-3.5 w-3.5" /> : <Edit className="h-3.5 w-3.5" />}
-              <span>{editMode ? "Visualizar" : "Editar Dados"}</span>
-            </Button>
+            <div className="flex space-x-2">
+              {editMode && (
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={addNewField}
+                  className="flex items-center gap-1"
+                >
+                  <span>Adicionar Campo</span>
+                </Button>
+              )}
+              
+              <Button 
+                variant={editMode ? "default" : "outline"}
+                size="sm" 
+                onClick={editMode ? saveChanges : toggleEditMode}
+                className="flex items-center gap-1"
+              >
+                {editMode ? <Save className="h-3.5 w-3.5" /> : <Edit className="h-3.5 w-3.5" />}
+                <span>{editMode ? "Salvar" : "Editar Dados"}</span>
+              </Button>
+            </div>
           </div>
           
           {showExtractedData && (
@@ -312,7 +445,18 @@ const DraftViewer: React.FC<DraftViewerProps> = ({ draft, extractedData }) => {
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                         {Object.entries(fields).map(([key, value]) => (
                           <div key={key} className="p-2 bg-background/70 rounded-md">
-                            <span className="text-xs font-medium text-muted-foreground block">{getFieldLabel(key)}:</span>
+                            <div className="flex justify-between items-center">
+                              <span className="text-xs font-medium text-muted-foreground">{getFieldLabel(key)}:</span>
+                              {editMode && (
+                                <button
+                                  onClick={() => removeField(key)}
+                                  className="text-destructive/70 hover:text-destructive"
+                                  title="Remover campo"
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </button>
+                              )}
+                            </div>
                             {editMode ? (
                               <input
                                 type="text"
@@ -330,13 +474,13 @@ const DraftViewer: React.FC<DraftViewerProps> = ({ draft, extractedData }) => {
                   ))}
                 </div>
               ) : (
-                <p className="text-sm text-muted-foreground">Não foi possível extrair dados relevantes dos documentos anexados.</p>
+                <p className="text-sm text-muted-foreground">Não foi possível extrair dados relevantes dos documentos anexados ou todos os dados extraídos foram filtrados por serem inválidos.</p>
               )}
               
               <p className="text-xs text-muted-foreground mt-4 p-2 bg-primary/5 rounded border border-primary/10">
                 <strong>Nota:</strong> {editMode ? 
-                  "Você está editando os dados extraídos. As alterações aqui não afetam o texto do documento abaixo." :
-                  "Estes são os dados que foram extraídos automaticamente dos documentos enviados. Alguns campos podem precisar de edição manual para melhor precisão. Campos não preenchidos ou com valores padrão não são exibidos."}
+                  "Você está editando os dados extraídos. Utilize esta funcionalidade para corrigir informações incorretas ou adicionar dados faltantes." :
+                  "Estes são os dados que foram extraídos automaticamente dos documentos enviados. A extração automática pode não ser perfeita e alguns dados podem precisar de correção manual."}
               </p>
             </div>
           )}
