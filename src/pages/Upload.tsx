@@ -56,7 +56,7 @@ const Upload: React.FC = () => {
             toast({
               title: "Dados insuficientes",
               description: "Não foi possível extrair dados suficientes dos documentos. A minuta será criada com dados mínimos.",
-              variant: "warning"
+              variant: "default"
             });
           }
           
