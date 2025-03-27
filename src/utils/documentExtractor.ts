@@ -125,6 +125,9 @@ export const extractDataFromFiles = async (files: File[]): Promise<Record<string
       return { error: "Nenhum arquivo fornecido para extração de dados." };
     }
     
+    // Collect all text content from all files
+    let allFileContents: string = '';
+    
     // Process each uploaded file
     for (const file of files) {
       let content = "";
@@ -155,29 +158,39 @@ export const extractDataFromFiles = async (files: File[]): Promise<Record<string
           continue;
         }
         
-        // Extract information based on content
-        console.log("Attempting to extract data from content");
-        extractDataFromFileContent(file.name, content, extractedData);
+        // Add this file's content to the collection of all text
+        allFileContents += "\n" + content;
         
       } catch (error) {
         console.error(`Error processing file ${file.name}:`, error);
       }
     }
     
+    // Now that we have all content, let's look for a petition document
+    const isPetition = 
+      allFileContents.toLowerCase().includes('petição') || 
+      allFileContents.toLowerCase().includes('inicial') ||
+      allFileContents.toLowerCase().includes('inventário') ||
+      allFileContents.toLowerCase().includes('partilha');
+    
+    if (isPetition) {
+      console.log("Petition document detected. Extracting detailed information...");
+      extractDataFromPetition(allFileContents, extractedData);
+    } else {
+      console.log("No specific petition document detected. Extracting data from general content...");
+    }
+    
+    // Now extract data from all combined content
+    extractDataFromFileContent("All Files", allFileContents, extractedData);
+    
     console.log("Final extracted data:", extractedData);
     
     // Add default values for missing but required fields for inventory documents
     if (extractedData.falecido || extractedData.inventariante || extractedData.herdeiro1 || 
-        content.toLowerCase().includes('inventário') || content.toLowerCase().includes('espólio')) {
+        allFileContents.toLowerCase().includes('inventário') || allFileContents.toLowerCase().includes('espólio')) {
       
-      // Add missing standard fields with placeholders if they don't exist
-      if (!extractedData.falecido) extractedData.falecido = "Não identificado";
-      if (!extractedData.inventariante) extractedData.inventariante = "Não identificado";
-      if (!extractedData.dataFalecimento) extractedData.dataFalecimento = "Não identificada";
-      if (!extractedData.herdeiro1) extractedData.herdeiro1 = "Não identificado";
-      if (!extractedData.dataCasamento) extractedData.dataCasamento = "Não identificada";
-      if (!extractedData.regimeBens) extractedData.regimeBens = "comunhão parcial de bens";
-      if (!extractedData.advogado) extractedData.advogado = "Não identificado";
+      // Fill missing required fields with placeholders
+      populateMissingInventoryFields(extractedData);
     }
     
     // If we didn't extract any meaningful data, add a warning
@@ -190,6 +203,437 @@ export const extractDataFromFiles = async (files: File[]): Promise<Record<string
   } catch (error) {
     console.error('Error extracting data from files:', error);
     return { error: "Falha ao processar documentos: " + error.message };
+  }
+};
+
+// Helper function to extract data specifically from petitions
+const extractDataFromPetition = (content: string, extractedData: Record<string, string>): void => {
+  console.log("Extracting data from petition document");
+  
+  // Look for the deceased name with improved patterns
+  const deceasedPatterns = [
+    /(?:falecido|de cujus|espólio de|autor da herança)[:,;\s]+([A-Za-zÀ-ÖØ-öø-ÿ\s.,]+?)(?=[,\.]|\n|$)/i,
+    /inventário\s+(?:de|do falecido|da falecida)\s+([A-Za-zÀ-ÖØ-öø-ÿ\s.,]+?)(?=[,\.]|\n|$)/i
+  ];
+  
+  for (const pattern of deceasedPatterns) {
+    const match = content.match(pattern);
+    if (match && match[1] && match[1].trim().length > 3) {
+      extractedData.falecido = match[1].trim();
+      console.log(`Extracted deceased person from petition: ${extractedData.falecido}`);
+      break;
+    }
+  }
+  
+  // Look for the inventory administrator
+  const inventoriantePatterns = [
+    /(?:inventariante)[:,;\s]+([A-Za-zÀ-ÖØ-öø-ÿ\s.,]+?)(?=[,\.]|\n|$)/i,
+    /nomeado(?:a)?\s+(?:como)?\s+inventariante\s+([A-Za-zÀ-ÖØ-öø-ÿ\s.,]+?)(?=[,\.]|\n|$)/i,
+    /qualidade\s+de\s+inventariante\s+([A-Za-zÀ-ÖØ-öø-ÿ\s.,]+?)(?=[,\.]|\n|$)/i
+  ];
+  
+  for (const pattern of inventoriantePatterns) {
+    const match = content.match(pattern);
+    if (match && match[1] && match[1].trim().length > 3) {
+      extractedData.inventariante = match[1].trim();
+      console.log(`Extracted inventory administrator from petition: ${extractedData.inventariante}`);
+      break;
+    }
+  }
+  
+  // Look for the spouse
+  const conjugePatterns = [
+    /(?:cônjuge|viúvo[(\w)]*|viúva[(\w)]*)[:,;\s]+([A-Za-zÀ-ÖØ-öø-ÿ\s.,]+?)(?=[,\.]|\n|$)/i,
+    /casado(?:a)?\s+com\s+([A-Za-zÀ-ÖØ-öø-ÿ\s.,]+?)(?=[,\.]|\n|$)/i
+  ];
+  
+  for (const pattern of conjugePatterns) {
+    const match = content.match(pattern);
+    if (match && match[1] && match[1].trim().length > 3) {
+      extractedData.conjuge = match[1].trim();
+      console.log(`Extracted spouse from petition: ${extractedData.conjuge}`);
+      break;
+    }
+  }
+  
+  // Look for heirs
+  const herdeirosPatterns = [
+    /(?:herdeiros?|filhos?)[:,;\s]+([A-Za-zÀ-ÖØ-öø-ÿ\s.,]+?)(?=[,\.]|\n|$)/i,
+    /qualidade\s+de\s+herdeiros?\s+([A-Za-zÀ-ÖØ-öø-ÿ\s.,]+?)(?=[,\.]|\n|$)/i
+  ];
+  
+  for (const pattern of herdeirosPatterns) {
+    const match = content.match(pattern);
+    if (match && match[1]) {
+      // We might have multiple heirs separated by commas, "e", or other separators
+      const herdeiroText = match[1].trim();
+      const herdeiros = herdeiroText.split(/(?:,|\se\s|\n)/);
+      
+      if (herdeiros.length > 0) {
+        for (let i = 0; i < Math.min(herdeiros.length, 5); i++) {
+          const herdeiro = herdeiros[i].trim();
+          if (herdeiro.length > 3) {
+            extractedData[`herdeiro${i+1}`] = herdeiro;
+            console.log(`Extracted heir ${i+1} from petition: ${herdeiro}`);
+          }
+        }
+        // Also store the number of heirs
+        extractedData.numeroFilhos = String(herdeiros.length);
+        break;
+      }
+    }
+  }
+  
+  // Look for the marriage regime
+  const regimeBensPatterns = [
+    /regime\s+(?:de\s+)?(?:bens)?[:,;\s]+([A-Za-zÀ-ÖØ-öø-ÿ\s.,]+?)(?=[,\.]|\n|$)/i,
+    /(?:casados?|união)\s+(?:sob|no)\s+(?:o)?\s+regime\s+(?:de\s+)?([A-Za-zÀ-ÖØ-öø-ÿ\s.,]+?)(?=[,\.]|\n|$)/i
+  ];
+  
+  for (const pattern of regimeBensPatterns) {
+    const match = content.match(pattern);
+    if (match && match[1] && match[1].trim().length > 3) {
+      extractedData.regimeBens = match[1].trim();
+      console.log(`Extracted marriage regime from petition: ${extractedData.regimeBens}`);
+      break;
+    }
+  }
+  
+  // Look for property info
+  const imovelPatterns = [
+    /imóvel\s+(?:localizado|situado)\s+(?:na|no|em)\s+([^,.]+(,|\.)[^,.]+)/i,
+    /apartamento\s+(?:nº|número)?\s*([\d]+)[,\s]+(?:do)?\s+(?:bloco|bl\.)\s+["']*([A-Z]*)["']*/i,
+    /(?:S[QC][NS]|CRS|CLS)\s*([\d]+)/i
+  ];
+  
+  for (const pattern of imovelPatterns) {
+    const match = content.match(pattern);
+    if (match) {
+      if (match[0].includes('apartamento') || match[0].includes('Apartamento')) {
+        if (match[1]) {
+          extractedData.numeroApartamento = match[1].trim();
+          console.log(`Extracted apartment number from petition: ${extractedData.numeroApartamento}`);
+        }
+        if (match[2]) {
+          extractedData.blocoApartamento = match[2].trim();
+          console.log(`Extracted apartment block from petition: ${extractedData.blocoApartamento}`);
+        }
+      } else if (match[0].match(/S[QC][NS]|CRS|CLS/i)) {
+        extractedData.quadraApartamento = match[0].trim();
+        console.log(`Extracted address from petition: ${extractedData.quadraApartamento}`);
+      } else {
+        extractedData.enderecoImovel = match[1].trim();
+        console.log(`Extracted property address from petition: ${extractedData.enderecoImovel}`);
+      }
+    }
+  }
+  
+  // Look for property registration
+  const matriculaPatterns = [
+    /matrícula\s+(?:nº|número)?\s*([\d\.]+)/i,
+    /matrícula\s+(?:imobiliária)?\s+(?:nº|número)?\s*([\d\.]+)/i
+  ];
+  
+  for (const pattern of matriculaPatterns) {
+    const match = content.match(pattern);
+    if (match && match[1]) {
+      extractedData.matriculaImovel = match[1].trim();
+      console.log(`Extracted property registration from petition: ${extractedData.matriculaImovel}`);
+      break;
+    }
+  }
+  
+  // Look for GDF registration
+  const gdfPatterns = [
+    /inscrição\s+(?:do imóvel)?\s+(?:junto ao)?\s+GDF\s+(?:sob o)?\s+(?:nº|número)?\s*([\d\.]+)/i,
+    /GDF\s+(?:sob o)?\s+(?:nº|número)?\s*([\d\.]+)/i
+  ];
+  
+  for (const pattern of gdfPatterns) {
+    const match = content.match(pattern);
+    if (match && match[1]) {
+      extractedData.inscricaoGDF = match[1].trim();
+      console.log(`Extracted GDF registration from petition: ${extractedData.inscricaoGDF}`);
+      break;
+    }
+  }
+  
+  // Look for lawyer info
+  const advogadoPatterns = [
+    /advogado[(\w)]*\s+([A-Za-zÀ-ÖØ-öø-ÿ\s.,]+),\s+(?:OAB|inscrito|inscrita)/i,
+    /Dr[(\w)]*\.\s+([A-Za-zÀ-ÖØ-öø-ÿ\s.,]+),\s+(?:OAB|inscrito|inscrita)/i
+  ];
+  
+  for (const pattern of advogadoPatterns) {
+    const match = content.match(pattern);
+    if (match && match[1]) {
+      extractedData.advogado = match[1].trim();
+      console.log(`Extracted lawyer from petition: ${extractedData.advogado}`);
+      break;
+    }
+  }
+  
+  // Look for OAB number
+  const oabPatterns = [
+    /OAB\/([A-Z]{2})\s+(?:nº|número)?\s*([\d]+)/i,
+    /inscrit[ao]\s+(?:na)?\s+OAB\/([A-Z]{2})\s+(?:sob)?\s+(?:nº|número)?\s*([\d]+)/i
+  ];
+  
+  for (const pattern of oabPatterns) {
+    const match = content.match(pattern);
+    if (match) {
+      if (match[2]) {
+        extractedData.oabAdvogado = match[1] + '/' + match[2].trim();
+        console.log(`Extracted OAB number from petition: ${extractedData.oabAdvogado}`);
+        break;
+      } else if (match[1]) {
+        extractedData.oabAdvogado = match[1].trim();
+        console.log(`Extracted OAB number from petition: ${extractedData.oabAdvogado}`);
+        break;
+      }
+    }
+  }
+  
+  // Look for death date
+  const deathDatePatterns = [
+    /faleceu\s+(?:em|aos|no dia)?\s+([0-9]{1,2}\/[0-9]{1,2}\/[0-9]{2,4}|[0-9]{1,2}\s+de\s+[a-zç]+\s+de\s+[0-9]{2,4})/i,
+    /data\s+(?:do)?\s+(?:falecimento|óbito)\s+(?:em|:)?\s+([0-9]{1,2}\/[0-9]{1,2}\/[0-9]{2,4}|[0-9]{1,2}\s+de\s+[a-zç]+\s+de\s+[0-9]{2,4})/i
+  ];
+  
+  for (const pattern of deathDatePatterns) {
+    const match = content.match(pattern);
+    if (match && match[1]) {
+      extractedData.dataFalecimento = match[1].trim();
+      console.log(`Extracted death date from petition: ${extractedData.dataFalecimento}`);
+      break;
+    }
+  }
+  
+  // Look for marriage date
+  const marriageDatePatterns = [
+    /casados?\s+(?:desde|em)\s+([0-9]{1,2}\/[0-9]{1,2}\/[0-9]{2,4}|[0-9]{1,2}\s+de\s+[a-zç]+\s+de\s+[0-9]{2,4})/i,
+    /data\s+do\s+casamento\s+(?:em|:)?\s+([0-9]{1,2}\/[0-9]{1,2}\/[0-9]{2,4}|[0-9]{1,2}\s+de\s+[a-zç]+\s+de\s+[0-9]{2,4})/i
+  ];
+  
+  for (const pattern of marriageDatePatterns) {
+    const match = content.match(pattern);
+    if (match && match[1]) {
+      extractedData.dataCasamento = match[1].trim();
+      console.log(`Extracted marriage date from petition: ${extractedData.dataCasamento}`);
+      break;
+    }
+  }
+  
+  // Look for property value
+  const valorImovelPatterns = [
+    /valor\s+(?:do|de)\s+(?:imóvel|bem)\s+(?:de|em)?\s+(R\$\s*[\d\.,]+)/i,
+    /avaliado\s+(?:em|por)\s+(R\$\s*[\d\.,]+)/i
+  ];
+  
+  for (const pattern of valorImovelPatterns) {
+    const match = content.match(pattern);
+    if (match && match[1]) {
+      extractedData.valorPartilhaImovel = match[1].trim();
+      console.log(`Extracted property value from petition: ${extractedData.valorPartilhaImovel}`);
+      break;
+    }
+  }
+  
+  // Look for ITCMD info
+  const itcmdPatterns = [
+    /ITCMD\s+(?:sob\s+o\s+nº|número)?\s*([\d\.]+)/i,
+    /imposto\s+de\s+transmissão\s+causa\s+mortis\s+(?:e doação)?\s+(?:sob\s+o\s+nº|número)?\s*([\d\.]+)/i
+  ];
+  
+  for (const pattern of itcmdPatterns) {
+    const match = content.match(pattern);
+    if (match && match[1]) {
+      extractedData.numeroITCMD = match[1].trim();
+      console.log(`Extracted ITCMD number from petition: ${extractedData.numeroITCMD}`);
+      break;
+    }
+  }
+  
+  // Look for ITCMD value
+  const itcmdValuePatterns = [
+    /ITCMD\s+(?:no valor de|de)\s+(R\$\s*[\d\.,]+)/i,
+    /imposto\s+de\s+transmissão\s+causa\s+mortis\s+(?:e doação)?\s+(?:no valor de|de)\s+(R\$\s*[\d\.,]+)/i
+  ];
+  
+  for (const pattern of itcmdValuePatterns) {
+    const match = content.match(pattern);
+    if (match && match[1]) {
+      extractedData.valorITCMD = match[1].trim();
+      console.log(`Extracted ITCMD value from petition: ${extractedData.valorITCMD}`);
+      break;
+    }
+  }
+  
+  // Look for hospital name
+  const hospitalPatterns = [
+    /faleceu\s+(?:no|em)\s+(?:Hospital|Instituto)\s+([A-Za-zÀ-ÖØ-öø-ÿ\s.,]+?)(?=[,\.]|\n|$)/i,
+    /(?:Hospital|Instituto)\s+([A-Za-zÀ-ÖØ-öø-ÿ\s.,]+?)(?=[,\.]|\n|$)/i
+  ];
+  
+  for (const pattern of hospitalPatterns) {
+    const match = content.match(pattern);
+    if (match && match[1] && match[1].trim().length > 3) {
+      extractedData.hospitalFalecimento = match[1].trim();
+      console.log(`Extracted hospital from petition: ${extractedData.hospitalFalecimento}`);
+      break;
+    }
+  }
+  
+  // Look for city of death
+  const cidadeFalecimentoPatterns = [
+    /faleceu\s+(?:no|em)\s+(?:Hospital|Instituto)?[^,]*,\s+(?:em|na cidade de)\s+([A-Za-zÀ-ÖØ-öø-ÿ\s.,]+?)(?=[,\.]|\n|$)/i,
+    /cidade\s+de\s+([A-Za-zÀ-ÖØ-öø-ÿ\s.,]+?)(?=[,\.]|\n|$)/i
+  ];
+  
+  for (const pattern of cidadeFalecimentoPatterns) {
+    const match = content.match(pattern);
+    if (match && match[1] && match[1].trim().length > 2) {
+      extractedData.cidadeFalecimento = match[1].trim();
+      console.log(`Extracted city of death from petition: ${extractedData.cidadeFalecimento}`);
+      break;
+    }
+  }
+  
+  // Look for death certificate info
+  const certidaoObitoPatterns = [
+    /certidão\s+de\s+óbito\s+(?:expedida|registrada)\s+(?:em|aos)\s+([0-9]{1,2}\/[0-9]{1,2}\/[0-9]{2,4}|[0-9]{1,2}\s+de\s+[a-zç]+\s+de\s+[0-9]{2,4})/i,
+    /certidão\s+de\s+óbito\s+(?:sob)?\s+(?:matrícula|nº|número)\s+([\d\.]+)/i
+  ];
+  
+  for (const pattern of certidaoObitoPatterns) {
+    const match = content.match(pattern);
+    if (match && match[1]) {
+      if (match[0].includes('matrícula') || match[0].includes('nº') || match[0].includes('número')) {
+        extractedData.matriculaObito = match[1].trim();
+        console.log(`Extracted death certificate number from petition: ${extractedData.matriculaObito}`);
+      } else {
+        extractedData.dataCertidaoObito = match[1].trim();
+        console.log(`Extracted death certificate date from petition: ${extractedData.dataCertidaoObito}`);
+      }
+    }
+  }
+  
+  // Look for marriage certificate info
+  const certidaoCasamentoPatterns = [
+    /certidão\s+de\s+casamento\s+(?:expedida|registrada)\s+(?:em|aos)\s+([0-9]{1,2}\/[0-9]{1,2}\/[0-9]{2,4}|[0-9]{1,2}\s+de\s+[a-zç]+\s+de\s+[0-9]{2,4})/i,
+    /certidão\s+de\s+casamento\s+(?:sob)?\s+(?:matrícula|nº|número)\s+([\d\.]+)/i
+  ];
+  
+  for (const pattern of certidaoCasamentoPatterns) {
+    const match = content.match(pattern);
+    if (match && match[1]) {
+      if (match[0].includes('matrícula') || match[0].includes('nº') || match[0].includes('número')) {
+        extractedData.matriculaCasamento = match[1].trim();
+        console.log(`Extracted marriage certificate number from petition: ${extractedData.matriculaCasamento}`);
+      } else {
+        extractedData.dataCertidaoCasamento = match[1].trim();
+        console.log(`Extracted marriage certificate date from petition: ${extractedData.dataCertidaoCasamento}`);
+      }
+    }
+  }
+  
+  // Look for the record office (cartório)
+  const cartorioPatterns = [
+    /(?:registrado|registrada|lavrado|lavrada)\s+(?:no|pelo)\s+(?:Cartório|Ofício)\s+([A-Za-zÀ-ÖØ-öø-ÿ\s.,0-9º°]+?)(?=[,\.]|\n|$)/i,
+    /(?:Cartório|Ofício)\s+(?:do|de)\s+([A-Za-zÀ-ÖØ-öø-ÿ\s.,0-9º°]+?)(?=[,\.]|\n|$)/i
+  ];
+  
+  for (const pattern of cartorioPatterns) {
+    const match = content.match(pattern);
+    if (match && match[1] && match[1].trim().length > 2) {
+      if (match[0].toLowerCase().includes('casamento')) {
+        extractedData.cartorioCasamento = match[1].trim();
+        console.log(`Extracted marriage record office from petition: ${extractedData.cartorioCasamento}`);
+      } else if (match[0].toLowerCase().includes('óbito')) {
+        extractedData.cartorioObito = match[1].trim();
+        console.log(`Extracted death record office from petition: ${extractedData.cartorioObito}`);
+      } else {
+        extractedData.cartorioCompetente = match[1].trim();
+        console.log(`Extracted competent record office from petition: ${extractedData.cartorioCompetente}`);
+      }
+    }
+  }
+};
+
+// Helper function to populate missing but required fields for inventory documents
+const populateMissingInventoryFields = (extractedData: Record<string, string>): void => {
+  const requiredFields: Record<string, string> = {
+    falecido: "Não identificado",
+    inventariante: "Não identificado",
+    dataFalecimento: "Não identificada",
+    herdeiro1: "Não identificado",
+    dataCasamento: "Não identificada",
+    regimeBens: "comunhão parcial de bens",
+    advogado: "Não identificado",
+    conjuge: "Não identificado",
+    numeroFilhos: "Não identificado",
+    hospitalFalecimento: "Não identificado",
+    cidadeFalecimento: "Brasília",
+    matriculaObito: "Não identificado",
+    dataCertidaoObito: "Não identificada",
+    cartorioObito: "Não identificado",
+    matriculaCasamento: "Não identificado",
+    dataCertidaoCasamento: "Não identificada",
+    cartorioCasamento: "Não identificado",
+    cartorioCompetente: "Não identificado",
+    numeroApartamento: "",
+    blocoApartamento: "",
+    quadraApartamento: "",
+    matriculaImovel: "",
+    inscricaoGDF: "",
+    valorPartilhaImovel: "",
+    valorTotalBens: "Não apurado",
+    valorTotalMeacao: "Não apurado",
+    valorUnitarioHerdeiros: "Não apurado",
+    numeroITCMD: "Não identificado",
+    valorITCMD: "Não identificado",
+    percentualHerdeiros: "Não identificado"
+  };
+  
+  for (const [key, defaultValue] of Object.entries(requiredFields)) {
+    if (!extractedData[key]) {
+      extractedData[key] = defaultValue;
+    }
+  }
+  
+  // If we have the deceased and the spouse but not the inventory administrator, use the spouse
+  if (extractedData.falecido !== "Não identificado" && 
+      extractedData.conjuge !== "Não identificado" && 
+      extractedData.inventariante === "Não identificado") {
+    extractedData.inventariante = extractedData.conjuge;
+    console.log(`Using spouse as inventory administrator: ${extractedData.inventariante}`);
+  }
+  
+  // If we have identification info but no heirs, try to extract from the broader content
+  if (extractedData.falecido !== "Não identificado" && extractedData.herdeiro1 === "Não identificado") {
+    // We might still need to find heirs
+    console.log("No heirs identified yet. Will try to extract from context clues.");
+  }
+  
+  // Calculate property values if we have some data
+  if (extractedData.valorPartilhaImovel && extractedData.valorPartilhaImovel !== "") {
+    try {
+      // Set total assets value if we have property value
+      extractedData.valorTotalBens = extractedData.valorPartilhaImovel;
+      
+      // Try to calculate spouse's share
+      extractedData.valorTotalMeacao = extractedData.valorPartilhaImovel;
+      console.log(`Set total assets value: ${extractedData.valorTotalBens}`);
+      
+      // Try to calculate heirs' share
+      const numHeirs = parseInt(extractedData.numeroFilhos);
+      if (!isNaN(numHeirs) && numHeirs > 0) {
+        extractedData.percentualHerdeiros = `${(50 / numHeirs).toFixed(2)}%`;
+        console.log(`Calculated heirs percentage: ${extractedData.percentualHerdeiros}`);
+      }
+    } catch (error) {
+      console.error("Error calculating property values:", error);
+    }
   }
 };
 
@@ -295,6 +739,21 @@ const extractDataFromFileContent = (
         extractedData.herdeiro2 = heirList[1].trim();
         console.log(`Extracted heir 2: ${extractedData.herdeiro2}`);
       }
+      if (heirList.length > 2) {
+        extractedData.herdeiro3 = heirList[2].trim();
+        console.log(`Extracted heir 3: ${extractedData.herdeiro3}`);
+      }
+      if (heirList.length > 3) {
+        extractedData.herdeiro4 = heirList[3].trim();
+        console.log(`Extracted heir 4: ${extractedData.herdeiro4}`);
+      }
+      if (heirList.length > 4) {
+        extractedData.herdeiro5 = heirList[4].trim();
+        console.log(`Extracted heir 5: ${extractedData.herdeiro5}`);
+      }
+      
+      // Store number of heirs
+      extractedData.numeroFilhos = String(heirList.length);
     }
     
     // Try to extract property details - apartment number
@@ -573,12 +1032,6 @@ IMÓVEL: ${data.descricaoImovel || `Apartamento nº 101, localizado no 10º anda
 TÍTULO AQUISITIVO: O referido imóvel foi adquirido pelo OUTORGANTE VENDEDOR através de Escritura Pública de Compra e Venda lavrada no 10º Tabelionato de Notas desta Capital.`;
       break;
     
-    case 'Contrato de Aluguel':
-      content = `CONTRATO DE LOCAÇÃO DE IMÓVEL RESIDENCIAL
-
-Pelo presente instrumento particular, de um lado, ${data.locador || 'JOÃO DA SILVA'}, ${data.nacionalidadeLocador || 'brasileiro'}, ${data.estadoCivilLocador || 'casado'}, ${data.profissaoLocador || 'empresário'}, portador da Cédula de Identidade RG nº ${data.rgLocador || '12.345.678-9 SSP/SP'}, inscrito no CPF/MF sob nº ${data.cpfLocador || '123.456.789-00'}, residente e domiciliado na ${data.enderecoLocador || 'Rua das Flores, nº 123, Bairro Jardim, CEP 01234-567, nesta Capital'}, doravante denominado simplesmente LOCADOR, e de outro lado, ${data.nome || 'MARIA OLIVEIRA'}, ${data.nacionalidade || 'brasileira'}, ${data.estadoCivil || 'solteira'}, ${data.profissao || 'advogada'}, portadora da Cédula de Identidade RG nº ${data.rg || '98.765.432-1 SSP/SP'}, inscrita no CPF/MF sob nº ${data.cpf || '987.654.321-00'}, residente e domiciliada na ${data.endereco || 'Avenida Central, nº 456, Bairro Centro, CEP 12345-678, nesta Capital'}, doravante denominada simplesmente LOCATÁRIA, têm entre si, justo e contratado o seguinte:`;
-      break;
-      
     case 'Inventário':
       content = `ESCRITURA PÚBLICA DE INVENTÁRIO E PARTILHA, na forma abaixo:
 = S A I B A M = quantos esta virem que, ${formattedDate}, nesta cidade de Brasília, Distrito
@@ -591,6 +1044,8 @@ e, na qualidade de herdeiros-filhos:
 ${data.herdeiro1 || 'Nome do herdeiro 1 não identificado'}, ${data.nacionalidadeHerdeiro1 || 'brasileiro(a)'}, ${data.estadoCivilHerdeiro1 || 'estado civil não informado'}, ${data.profissaoHerdeiro1 || 'profissão não identificada'}, portador(a) da Cédula de Identidade RG nº ${data.rgHerdeiro1 || 'não informado'}, inscrito(a) no CPF/MF sob nº ${data.cpfHerdeiro1 || 'não informado'}, residente e domiciliado(a) em ${data.enderecoHerdeiro1 || 'endereço não informado'};
 ${data.herdeiro2 ? `${data.herdeiro2}, ${data.nacionalidadeHerdeiro2 || 'brasileiro(a)'}, ${data.estadoCivilHerdeiro2 || 'estado civil não informado'}, ${data.profissaoHerdeiro2 || 'profissão não identificada'}, portador(a) da Cédula de Identidade RG nº ${data.rgHerdeiro2 || 'não informado'}, inscrito(a) no CPF/MF sob nº ${data.cpfHerdeiro2 || 'não informado'}, residente e domiciliado(a) em ${data.enderecoHerdeiro2 || 'endereço não informado'};` : ''}
 ${data.herdeiro3 ? `${data.herdeiro3}, ${data.nacionalidadeHerdeiro3 || 'brasileiro(a)'}, ${data.estadoCivilHerdeiro3 || 'estado civil não informado'}, ${data.profissaoHerdeiro3 || 'profissão não identificada'}, portador(a) da Cédula de Identidade RG nº ${data.rgHerdeiro3 || 'não informado'}, inscrito(a) no CPF/MF sob nº ${data.cpfHerdeiro3 || 'não informado'}, residente e domiciliado(a) em ${data.enderecoHerdeiro3 || 'endereço não informado'};` : ''}
+${data.herdeiro4 ? `${data.herdeiro4}, ${data.nacionalidadeHerdeiro4 || 'brasileiro(a)'}, ${data.estadoCivilHerdeiro4 || 'estado civil não informado'}, ${data.profissaoHerdeiro4 || 'profissão não identificada'}, portador(a) da Cédula de Identidade RG nº ${data.rgHerdeiro4 || 'não informado'}, inscrito(a) no CPF/MF sob nº ${data.cpfHerdeiro4 || 'não informado'}, residente e domiciliado(a) em ${data.enderecoHerdeiro4 || 'endereço não informado'};` : ''}
+${data.herdeiro5 ? `${data.herdeiro5}, ${data.nacionalidadeHerdeiro5 || 'brasileiro(a)'}, ${data.estadoCivilHerdeiro5 || 'estado civil não informado'}, ${data.profissaoHerdeiro5 || 'profissão não identificada'}, portador(a) da Cédula de Identidade RG nº ${data.rgHerdeiro5 || 'não informado'}, inscrito(a) no CPF/MF sob nº ${data.cpfHerdeiro5 || 'não informado'}, residente e domiciliado(a) em ${data.enderecoHerdeiro5 || 'endereço não informado'};` : ''}
 
 e, na qualidade de advogado:
 ${data.advogado || 'Nome do advogado não identificado'}, ${data.nacionalidadeAdvogado || 'brasileiro(a)'}, ${data.estadoCivilAdvogado || 'estado civil não informado'}, advogado(a) inscrito(a) na OAB sob nº ${data.oabAdvogado || 'não informado'}, portador(a) da Cédula de Identidade RG nº ${data.rgAdvogado || 'não informado'}, inscrito(a) no CPF/MF sob nº ${data.cpfAdvogado || 'não informado'};
@@ -769,8 +1224,28 @@ Escrevente lhes lavrei a presente escritura, que feita e lhes sendo lida, foi ac
 em tudo conforme, aceitam e assinam.`;
       break;
       
-    case 'Contrato Social':
-      content = `CONTRATO DE CONSTITUIÇÃO DE SOCIEDADE LIMITADA`;
+    case 'Doação':
+      content = `ESCRITURA PÚBLICA DE DOAÇÃO
+
+Este é um modelo de documento de doação.`;
+      break;
+      
+    case 'União Estável':
+      content = `ESCRITURA PÚBLICA DE UNIÃO ESTÁVEL
+
+Este é um modelo de documento de união estável.`;
+      break;
+      
+    case 'Procuração':
+      content = `PROCURAÇÃO
+
+Este é um modelo de procuração.`;
+      break;
+      
+    case 'Testamento':
+      content = `TESTAMENTO PÚBLICO
+
+Este é um modelo de testamento público.`;
       break;
       
     default:
@@ -783,3 +1258,4 @@ Data: ${formattedDate}`;
   
   return content;
 };
+

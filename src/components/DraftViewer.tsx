@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { Draft } from '@/types';
-import { Info, ChevronDown, ChevronUp } from 'lucide-react';
+import { Info, ChevronDown, ChevronUp, FileText } from 'lucide-react';
 
 interface DraftViewerProps {
   draft: Draft;
@@ -14,6 +14,103 @@ const DraftViewer: React.FC<DraftViewerProps> = ({ draft, extractedData }) => {
   const toggleExtractedData = () => {
     setShowExtractedData(!showExtractedData);
   };
+
+  // Group extracted data by categories for better organization
+  const groupExtractedData = () => {
+    if (!extractedData) return {};
+    
+    const groups: Record<string, Record<string, string>> = {
+      "Informações Principais": {},
+      "Falecido": {},
+      "Herdeiros": {},
+      "Imóvel": {},
+      "Documentos": {},
+      "Outros": {}
+    };
+    
+    // Sort data into groups
+    Object.entries(extractedData).forEach(([key, value]) => {
+      if (value === "Não identificado" || value === "Não identificada" || value === "") {
+        return; // Skip empty values
+      }
+      
+      if (key === 'falecido' || key === 'dataFalecimento' || key === 'cidadeFalecimento' || 
+          key === 'hospitalFalecimento' || key === 'matriculaObito' || key === 'cartorioObito') {
+        groups["Falecido"][key] = value;
+      } else if (key.includes('herdeiro') || key === 'numeroFilhos') {
+        groups["Herdeiros"][key] = value;
+      } else if (key.includes('imovel') || key.includes('Imovel') || key.includes('apartamento') || 
+                key.includes('Apartamento') || key.includes('GDF') || key.includes('matricula')) {
+        groups["Imóvel"][key] = value;
+      } else if (key.includes('Certidao') || key.includes('certidao') || key.includes('ITCMD') || 
+                key.includes('hash') || key.includes('registro')) {
+        groups["Documentos"][key] = value;
+      } else if (key === 'inventariante' || key === 'conjuge' || key === 'advogado' || 
+                key === 'regimeBens' || key === 'dataCasamento') {
+        groups["Informações Principais"][key] = value;
+      } else {
+        groups["Outros"][key] = value;
+      }
+    });
+    
+    // Remove empty categories
+    Object.keys(groups).forEach(key => {
+      if (Object.keys(groups[key]).length === 0) {
+        delete groups[key];
+      }
+    });
+    
+    return groups;
+  };
+
+  // Get human-readable field names
+  const getFieldLabel = (key: string): string => {
+    const fieldLabels: Record<string, string> = {
+      'falecido': 'Falecido(a)',
+      'inventariante': 'Inventariante',
+      'dataFalecimento': 'Data do Falecimento',
+      'herdeiro1': 'Herdeiro 1',
+      'herdeiro2': 'Herdeiro 2',
+      'herdeiro3': 'Herdeiro 3',
+      'herdeiro4': 'Herdeiro 4',
+      'herdeiro5': 'Herdeiro 5',
+      'conjuge': 'Cônjuge',
+      'dataCasamento': 'Data do Casamento',
+      'regimeBens': 'Regime de Bens',
+      'advogado': 'Advogado(a)',
+      'oabAdvogado': 'OAB',
+      'numeroApartamento': 'Número do Apartamento',
+      'blocoApartamento': 'Bloco',
+      'quadraApartamento': 'Quadra/Endereço',
+      'matriculaImovel': 'Matrícula do Imóvel',
+      'inscricaoGDF': 'Inscrição GDF',
+      'valorPartilhaImovel': 'Valor do Imóvel',
+      'valorTotalBens': 'Valor Total dos Bens',
+      'valorTotalMeacao': 'Valor Total da Meação',
+      'numeroFilhos': 'Número de Filhos',
+      'valorUnitarioHerdeiros': 'Valor por Herdeiro',
+      'percentualHerdeiros': 'Percentual por Herdeiro',
+      'numeroITCMD': 'Número ITCMD',
+      'valorITCMD': 'Valor ITCMD',
+      'hospitalFalecimento': 'Hospital do Falecimento',
+      'cidadeFalecimento': 'Cidade do Falecimento',
+      'matriculaObito': 'Matrícula do Óbito',
+      'cartorioObito': 'Cartório do Óbito',
+      'cartorioCompetente': 'Cartório Competente',
+      'nome': 'Nome',
+      'rg': 'RG',
+      'cpf': 'CPF',
+      'estadoCivil': 'Estado Civil',
+      'profissao': 'Profissão',
+      'nacionalidade': 'Nacionalidade',
+      'endereco': 'Endereço',
+      'hashCNIB': 'Hash CNIB'
+    };
+    
+    return fieldLabels[key] || key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
+  };
+
+  const groupedData = groupExtractedData();
 
   return (
     <div className="glass rounded-lg shadow-md p-8 max-w-4xl mx-auto">
@@ -50,18 +147,35 @@ const DraftViewer: React.FC<DraftViewerProps> = ({ draft, extractedData }) => {
           
           {showExtractedData && (
             <div className="mt-4 p-4 bg-muted/30 rounded-md border border-border">
-              <h3 className="text-sm font-medium mb-3">Dados Extraídos do Documento:</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {Object.entries(extractedData).map(([key, value]) => (
-                  <div key={key} className="p-2 bg-background/70 rounded-md">
-                    <span className="text-xs font-medium text-primary block">{key}:</span>
-                    <span className="text-sm block mt-1">{value}</span>
-                  </div>
-                ))}
+              <div className="flex items-center space-x-2 text-sm font-medium mb-3">
+                <FileText className="h-4 w-4 text-primary" />
+                <h3>Dados Extraídos dos Documentos:</h3>
               </div>
-              <p className="text-xs text-muted-foreground mt-3">
-                Nota: Estes são os dados que foram extraídos automaticamente dos documentos enviados.
-                Alguns campos podem precisar de edição manual para melhor precisão.
+              
+              {Object.keys(groupedData).length > 0 ? (
+                <div className="space-y-4">
+                  {Object.entries(groupedData).map(([group, fields]) => (
+                    <div key={group} className="border-t pt-3 first:border-t-0 first:pt-0">
+                      <h4 className="font-medium text-sm mb-2 text-primary">{group}</h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        {Object.entries(fields).map(([key, value]) => (
+                          <div key={key} className="p-2 bg-background/70 rounded-md">
+                            <span className="text-xs font-medium text-muted-foreground block">{getFieldLabel(key)}:</span>
+                            <span className="text-sm block mt-1">{value}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">Não foi possível extrair dados relevantes dos documentos anexados.</p>
+              )}
+              
+              <p className="text-xs text-muted-foreground mt-4 p-2 bg-primary/5 rounded border border-primary/10">
+                <strong>Nota:</strong> Estes são os dados que foram extraídos automaticamente dos documentos enviados.
+                Alguns campos podem precisar de edição manual para melhor precisão. Campos não preenchidos ou com valores
+                padrão não são exibidos.
               </p>
             </div>
           )}
