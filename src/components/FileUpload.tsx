@@ -16,6 +16,9 @@ const FileUpload: React.FC<FileUploadProps> = ({ onUploadComplete, status }) => 
   const [validating, setValidating] = useState(false);
   const { toast } = useToast();
 
+  // Aumentado o limite de tamanho para 50MB (50 * 1024 * 1024 bytes)
+  const FILE_SIZE_LIMIT = 50 * 1024 * 1024;
+
   const acceptedTypes: AcceptedFileTypes[] = [
     'application/pdf',
     'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
@@ -56,11 +59,11 @@ const FileUpload: React.FC<FileUploadProps> = ({ onUploadComplete, status }) => 
     setTimeout(() => {
       try {
         const newFiles: File[] = Array.from(selectedFiles).filter(file => {
-          // Check file size (limit to 10MB)
-          if (file.size > 10 * 1024 * 1024) {
+          // Check file size (limit to 50MB)
+          if (file.size > FILE_SIZE_LIMIT) {
             toast({
               title: "Arquivo muito grande",
-              description: `O arquivo ${file.name} excede o limite de 10MB.`,
+              description: `O arquivo ${file.name} excede o limite de 50MB.`,
               variant: "destructive"
             });
             return false;
