@@ -1,8 +1,9 @@
 import React, { useState, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import { Upload, File, X, AlertTriangle, Search } from 'lucide-react';
+import { Upload, File, X, Trash2, AlertTriangle, Search } from 'lucide-react';
 import { UploadStatus, AcceptedFileTypes } from '@/types';
 import StatusIndicator from './StatusIndicator';
+import { Button } from '@/components/ui/button';
 
 interface FileUploadProps {
   onUploadComplete: (files: File[]) => void;
@@ -193,6 +194,15 @@ const FileUpload: React.FC<FileUploadProps> = ({ onUploadComplete, status }) => 
 
   const isDisabled = status === 'uploading' || status === 'processing' || validating;
 
+  const clearFiles = useCallback(() => {
+    setFiles([]);
+    toast({
+      title: "Arquivos Limpos",
+      description: "Todos os arquivos selecionados foram removidos.",
+      variant: "default"
+    });
+  }, [toast]);
+
   return (
     <div className="w-full max-w-3xl mx-auto">
       <div
@@ -235,31 +245,44 @@ const FileUpload: React.FC<FileUploadProps> = ({ onUploadComplete, status }) => 
       </div>
 
       {files.length > 0 && (
-        <div className="mt-6">
+        <div className="mt-6 flex items-center justify-between">
           <h4 className="font-medium mb-2">Arquivos selecionados:</h4>
-          <div className="space-y-2">
-            {files.map((file, index) => (
-              <div 
-                key={`${file.name}-${index}`} 
-                className="flex items-center justify-between bg-secondary rounded-md p-3"
-              >
-                <div className="flex items-center">
-                  <div className="bg-accent/10 text-accent font-medium text-xs rounded-md px-2 py-1 mr-3">
-                    {getFileIcon(file.type)}
-                  </div>
-                  <span className="text-sm truncate max-w-[300px]">{file.name}</span>
+          <Button 
+            variant="destructive" 
+            size="sm" 
+            onClick={clearFiles}
+            disabled={isDisabled}
+            className={`flex items-center gap-2 ${isDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+          >
+            <Trash2 className="h-4 w-4" />
+            Limpar Arquivos
+          </Button>
+        </div>
+      )}
+
+      {files.length > 0 && (
+        <div className="space-y-2">
+          {files.map((file, index) => (
+            <div 
+              key={`${file.name}-${index}`} 
+              className="flex items-center justify-between bg-secondary rounded-md p-3"
+            >
+              <div className="flex items-center">
+                <div className="bg-accent/10 text-accent font-medium text-xs rounded-md px-2 py-1 mr-3">
+                  {getFileIcon(file.type)}
                 </div>
-                <button 
-                  onClick={() => !isDisabled && removeFile(index)}
-                  className={`text-muted-foreground hover:text-destructive ${isDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
-                  disabled={isDisabled}
-                  aria-label="Remover arquivo"
-                >
-                  <X className="h-4 w-4" />
-                </button>
+                <span className="text-sm truncate max-w-[300px]">{file.name}</span>
               </div>
-            ))}
-          </div>
+              <button 
+                onClick={() => !isDisabled && removeFile(index)}
+                className={`text-muted-foreground hover:text-destructive ${isDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+                disabled={isDisabled}
+                aria-label="Remover arquivo"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+          ))}
         </div>
       )}
       
