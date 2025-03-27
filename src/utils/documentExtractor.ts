@@ -1,4 +1,3 @@
-
 import { DraftType } from '@/types';
 import * as PDFJS from 'pdfjs-dist';
 import Tesseract from 'tesseract.js';
@@ -166,6 +165,20 @@ export const extractDataFromFiles = async (files: File[]): Promise<Record<string
     
     console.log("Final extracted data:", extractedData);
     
+    // Add default values for missing but required fields for inventory documents
+    if (extractedData.falecido || extractedData.inventariante || extractedData.herdeiro1 || 
+        content.toLowerCase().includes('inventário') || content.toLowerCase().includes('espólio')) {
+      
+      // Add missing standard fields with placeholders if they don't exist
+      if (!extractedData.falecido) extractedData.falecido = "Não identificado";
+      if (!extractedData.inventariante) extractedData.inventariante = "Não identificado";
+      if (!extractedData.dataFalecimento) extractedData.dataFalecimento = "Não identificada";
+      if (!extractedData.herdeiro1) extractedData.herdeiro1 = "Não identificado";
+      if (!extractedData.dataCasamento) extractedData.dataCasamento = "Não identificada";
+      if (!extractedData.regimeBens) extractedData.regimeBens = "comunhão parcial de bens";
+      if (!extractedData.advogado) extractedData.advogado = "Não identificado";
+    }
+    
     // If we didn't extract any meaningful data, add a warning
     if (Object.keys(extractedData).length === 0) {
       console.warn("No data could be extracted from the provided files");
@@ -201,37 +214,76 @@ const extractDataFromFileContent = (
     
     console.log("Identified as inventory document");
     
-    // Try to extract the deceased person's name
-    const deceasedMatch = content.match(/(?:falecido|de cujus|inventariado)(?:[:\s]+)([A-Za-zÀ-ÖØ-öø-ÿ\s]+?)(?:[,\.]|$)/i) ||
-                          content.match(/espólio\s+de\s+([A-Za-zÀ-ÖØ-öø-ÿ\s]+?)(?:[,\.]|$)/i);
+    // Try to extract the deceased person's name - improved pattern matching
+    const deceasedMatch = content.match(/(?:falecido|de cujus|inventariado|autor[a]? da herança)(?:[:\s]+)([A-Za-zÀ-ÖØ-öø-ÿ\s]+?)(?:[,\.]|$)/i) ||
+                          content.match(/espólio\s+de\s+([A-Za-zÀ-ÖØ-öø-ÿ\s]+?)(?:[,\.]|$)/i) ||
+                          content.match(/(?:falecimento de|faleceu)(?:[:\s]+)([A-Za-zÀ-ÖØ-öø-ÿ\s]+?)(?:[,\.]|$)/i);
     if (deceasedMatch && deceasedMatch[1]) {
       extractedData.falecido = deceasedMatch[1].trim();
       console.log(`Extracted deceased person: ${extractedData.falecido}`);
     }
     
-    // Try to extract death date
-    const deathDateMatch = content.match(/(?:falecido\s+em|data\s+do\s+óbito)(?:[:\s]+)([\d\/]+)/i);
+    // Try to extract death date - improved pattern matching
+    const deathDateMatch = content.match(/(?:falecido\s+em|data\s+do\s+óbito|faleceu\s+aos)(?:[:\s]+)([\d\/\s]+d[e\s]+[a-zç]+d[e\s]+\d{4}|[\d\/\.-]+)/i);
     if (deathDateMatch && deathDateMatch[1]) {
       extractedData.dataFalecimento = deathDateMatch[1].trim();
       console.log(`Extracted death date: ${extractedData.dataFalecimento}`);
     }
     
-    // Try to extract inventory administrator
-    const inventoryAdminMatch = content.match(/(?:inventariante)(?:[:\s]+)([A-Za-zÀ-ÖØ-öø-ÿ\s]+?)(?:[,\.]|$)/i);
+    // Try to extract inventory administrator - improved pattern matching
+    const inventoryAdminMatch = content.match(/(?:inventariante|viúvo\(a\)-meeiro\(a\))(?:[:\s]+)([A-Za-zÀ-ÖØ-öø-ÿ\s]+?)(?:[,\.]|$)/i) ||
+                              content.match(/nomeiam como inventariante\s+([A-Za-zÀ-ÖØ-öø-ÿ\s]+?)(?:[,\.]|$)/i);
     if (inventoryAdminMatch && inventoryAdminMatch[1]) {
       extractedData.inventariante = inventoryAdminMatch[1].trim();
       console.log(`Extracted inventory administrator: ${extractedData.inventariante}`);
     }
     
-    // Try to extract heirs
-    const heirMatch = content.match(/(?:herdeiro|herdeira)(?:[:\s]+)([A-Za-zÀ-ÖØ-öø-ÿ\s]+?)(?:[,\.]|$)/i);
+    // Try to extract the spouse
+    const spouseMatch = content.match(/(?:cônjuge|casado\s+com|casada\s+com)(?:[:\s]+)([A-Za-zÀ-ÖØ-öø-ÿ\s]+?)(?:[,\.]|$)/i);
+    if (spouseMatch && spouseMatch[1]) {
+      extractedData.conjuge = spouseMatch[1].trim();
+      console.log(`Extracted spouse: ${extractedData.conjuge}`);
+    }
+    
+    // Try to extract marriage date
+    const marriageDateMatch = content.match(/(?:desde|data do casamento|casados desde)(?:[:\s]+)([\d\/\s]+d[e\s]+[a-zç]+d[e\s]+\d{4}|[\d\/\.-]+)/i);
+    if (marriageDateMatch && marriageDateMatch[1]) {
+      extractedData.dataCasamento = marriageDateMatch[1].trim();
+      console.log(`Extracted marriage date: ${extractedData.dataCasamento}`);
+    }
+    
+    // Try to extract marriage regime
+    const marriageRegimeMatch = content.match(/(?:regime\s+de|sob\s+o\s+regime\s+de)(?:[:\s]+)([A-Za-zÀ-ÖØ-öø-ÿ\s]+?)(?:[,\.]|$)/i);
+    if (marriageRegimeMatch && marriageRegimeMatch[1]) {
+      extractedData.regimeBens = marriageRegimeMatch[1].trim();
+      console.log(`Extracted marriage regime: ${extractedData.regimeBens}`);
+    }
+    
+    // Try to extract lawyer
+    const lawyerMatch = content.match(/(?:advogado\(a\)|na qualidade de advogado)(?:[:\s]+)([A-Za-zÀ-ÖØ-öø-ÿ\s]+?)(?:[,\.]|$)/i) ||
+                        content.match(/(?:Dr\.|Dra\.)(?:[:\s]+)([A-Za-zÀ-ÖØ-öø-ÿ\s]+?)(?:[,\.]|$)/i);
+    if (lawyerMatch && lawyerMatch[1]) {
+      extractedData.advogado = lawyerMatch[1].trim();
+      console.log(`Extracted lawyer: ${extractedData.advogado}`);
+    }
+    
+    // Try to extract OAB number
+    const oabMatch = content.match(/(?:OAB\/[A-Z]{2})(?:[:\s]+)([\d]+)/i) ||
+                     content.match(/(?:inscrito\(a\) na OAB\/[A-Z]{2})(?:[:\s]+)([\d]+)/i);
+    if (oabMatch && oabMatch[1]) {
+      extractedData.oabAdvogado = oabMatch[1].trim();
+      console.log(`Extracted OAB number: ${extractedData.oabAdvogado}`);
+    }
+    
+    // Try to extract heirs - improved pattern matching
+    const heirMatch = content.match(/(?:herdeiro|herdeira|na qualidade de herdeiro)(?:[:\s]+)([A-Za-zÀ-ÖØ-öø-ÿ\s]+?)(?:[,\.]|$)/i);
     if (heirMatch && heirMatch[1]) {
       extractedData.herdeiro1 = heirMatch[1].trim();
       console.log(`Extracted heir: ${extractedData.herdeiro1}`);
     }
     
     // Scan for additional heirs
-    const heirLines = content.match(/(?:herdeiros)(?:[:\s]+)([^\n]+)/i);
+    const heirLines = content.match(/(?:herdeiros|filhos)(?:[:\s]+)([^\n]+)/i);
     if (heirLines && heirLines[1]) {
       const heirList = heirLines[1].split(',');
       if (heirList.length > 0 && !extractedData.herdeiro1) {
@@ -242,6 +294,62 @@ const extractDataFromFileContent = (
         extractedData.herdeiro2 = heirList[1].trim();
         console.log(`Extracted heir 2: ${extractedData.herdeiro2}`);
       }
+    }
+    
+    // Try to extract property details - apartment number
+    const apartmentNumberMatch = content.match(/(?:apartamento|apto)(?:[:\s]+n[º°]?\s*)([\d]+)/i);
+    if (apartmentNumberMatch && apartmentNumberMatch[1]) {
+      extractedData.numeroApartamento = apartmentNumberMatch[1].trim();
+      console.log(`Extracted apartment number: ${extractedData.numeroApartamento}`);
+    }
+    
+    // Try to extract property details - block
+    const blockMatch = content.match(/(?:bloco)(?:[:\s]+["']?([A-Z]?)["']?)/i);
+    if (blockMatch && blockMatch[1]) {
+      extractedData.blocoApartamento = blockMatch[1].trim();
+      console.log(`Extracted block: ${extractedData.blocoApartamento}`);
+    }
+    
+    // Try to extract property address - specific to Brasília format (SQN, etc)
+    const addressMatch = content.match(/(?:S[QC][NS]|CRS|CLS)(?:[:\s]+)([\d]+)/i);
+    if (addressMatch && addressMatch[1]) {
+      extractedData.quadraApartamento = addressMatch[0] + " " + addressMatch[1].trim();
+      console.log(`Extracted address: ${extractedData.quadraApartamento}`);
+    }
+    
+    // Try to extract property registration number
+    const propertyRegMatch = content.match(/(?:matrícula)(?:[:\s]+n[º°]?\s*)([\d\.]+)/i);
+    if (propertyRegMatch && propertyRegMatch[1]) {
+      extractedData.matriculaImovel = propertyRegMatch[1].trim();
+      console.log(`Extracted property registration: ${extractedData.matriculaImovel}`);
+    }
+    
+    // Try to extract GDF registration number
+    const gdfRegMatch = content.match(/(?:GDF sob o n[º°])(?:[:\s]+)([\d\.]+)/i);
+    if (gdfRegMatch && gdfRegMatch[1]) {
+      extractedData.inscricaoGDF = gdfRegMatch[1].trim();
+      console.log(`Extracted GDF registration: ${extractedData.inscricaoGDF}`);
+    }
+    
+    // Try to extract property value
+    const propertyValueMatch = content.match(/(?:valor de)(?:[:\s]+)(R\$\s*[\d\.,]+)/i);
+    if (propertyValueMatch && propertyValueMatch[1]) {
+      extractedData.valorPartilhaImovel = propertyValueMatch[1].trim();
+      console.log(`Extracted property value: ${extractedData.valorPartilhaImovel}`);
+    }
+    
+    // Try to extract ITCMD registration number
+    const itcmdRegMatch = content.match(/(?:ITCMD)(?:[,\s]+)(?:sob o n[º°])(?:[:\s]+)([\d\.]+)/i);
+    if (itcmdRegMatch && itcmdRegMatch[1]) {
+      extractedData.numeroITCMD = itcmdRegMatch[1].trim();
+      console.log(`Extracted ITCMD registration: ${extractedData.numeroITCMD}`);
+    }
+    
+    // Try to extract ITCMD value
+    const itcmdValueMatch = content.match(/(?:ITCMD)(?:[,\s]+)(?:no valor de)(?:[:\s]+)(R\$\s*[\d\.,]+)/i);
+    if (itcmdValueMatch && itcmdValueMatch[1]) {
+      extractedData.valorITCMD = itcmdValueMatch[1].trim();
+      console.log(`Extracted ITCMD value: ${extractedData.valorITCMD}`);
     }
   }
   
@@ -461,295 +569,4 @@ E, pelo OUTORGANTE VENDEDOR, me foi dito que é legítimo proprietário do segui
 
 IMÓVEL: ${data.descricaoImovel || `Apartamento nº 101, localizado no 10º andar do Edifício Residencial Primavera`}, situado na ${data.enderecoImovel || 'Rua dos Ipês, nº 789, Bairro Jardim Paulista'}, nesta Capital, com área privativa de ${data.areaImovel || '120,00m² (cento e vinte metros quadrados)'}, área comum de 40,00m² (quarenta metros quadrados), perfazendo a área total de 160,00m² (cento e sessenta metros quadrados), correspondendo-lhe uma fração ideal no terreno de 2,5% (dois vírgula cinco por cento), registrado sob a ${data.registroImovel || 'matrícula nº 12.345 no 5º Oficial de Registro de Imóveis desta Capital'}.
 
-TÍTULO AQUISITIVO: O referido imóvel foi adquirido pelo OUTORGANTE VENDEDOR através de Escritura Pública de Compra e Venda lavrada no 10º Tabelionato de Notas desta Capital, no Livro 500, fls. 150, em 10/05/2010, devidamente registrada na matrícula do imóvel.
-
-E pela presente escritura e nos melhores termos de direito, o OUTORGANTE VENDEDOR vende, como de fato vendido tem, ao OUTORGADO COMPRADOR, o imóvel acima descrito e caracterizado, pelo preço certo e ajustado de ${data.valorImovel || 'R$ 800.000,00 (oitocentos mil reais)'}, que confessa e declara haver recebido, em moeda corrente nacional, dando ao OUTORGADO COMPRADOR, plena, geral e irrevogável quitação, para nada mais reclamar em tempo algum.`;
-      break;
-      
-    case 'Inventário':
-      content = `ESCRITURA PÚBLICA DE INVENTÁRIO E PARTILHA, na forma abaixo:
-= S A I B A M = quantos esta virem que, ${formattedDate}, nesta cidade de Brasília, Distrito
-Federal, Capital da República Federativa do Brasil, nesta Serventia, perante
-mim, Escrevente, compareceram como Outorgantes e reciprocamente
-Outorgados, na qualidade de viúvo(a)-meeiro(a):
-${data.inventariante || data.nome || 'MARIA OLIVEIRA'}, ${data.nacionalidade || 'brasileira'}, ${data.estadoCivil || 'viúva'}, ${data.profissao || 'professora'}, portadora da Cédula de Identidade RG nº ${data.rg || '98.765.432-1 SSP/SP'}, inscrita no CPF/MF sob nº ${data.cpf || '987.654.321-00'}, residente e domiciliada na ${data.endereco || 'Avenida Central, nº 456, Bairro Centro, CEP 12345-678, nesta Capital'};
-
-e, na qualidade de herdeiros-filhos:
-${data.herdeiro1 || 'PEDRO SANTOS'}, brasileiro, solteiro, estudante, CPF nº ${data.cpfHerdeiro1 || '111.222.333-44'}, residente e domiciliado na ${data.enderecoHerdeiro1 || 'Rua A, nº 123, CEP 12345-678, Brasília-DF'};
-${data.herdeiro2 ? `${data.herdeiro2}, brasileiro(a), ${data.estadoCivilHerdeiro2 || 'solteiro(a)'}, ${data.profissaoHerdeiro2 || 'estudante'}, CPF nº ${data.cpfHerdeiro2 || '555.666.777-88'}, residente e domiciliado(a) na ${data.enderecoHerdeiro2 || 'Rua B, nº 456, CEP 12345-678, Brasília-DF'};` : ''}
-
-e, na qualidade de advogado:
-Dr(a). ${data.advogado || 'JOSÉ SILVA'}, inscrito(a) na OAB/DF sob o nº ${data.oabAdvogado || '12345'}, com escritório na ${data.enderecoAdvogado || 'Rua dos Advogados, nº 789, CEP 12345-678, Brasília-DF'};
-
-Todos os presentes foram reconhecidos e identificados como os próprios de que
-trato, pelos documentos apresentados, cuja capacidade jurídica reconheço e dou
-fé. E, pelos Outorgantes e reciprocamente Outorgados, devidamente orientados
-pelo(a) advogado(a), acima nomeado e qualificado, legalmente constituído(a)
-para este ato, me foi requerida a lavratura do inventário e partilha amigável
-dos bens e direitos deixados pelo falecimento de ${data.falecido || 'JOSÉ SANTOS'}, conforme dispõe na Lei
-nº 13.105/2015, regulamentada pela Resolução nº 35 de 24 abril de 2007, do
-Conselho Nacional de Justiça, nos seguintes termos e condições:
-
-1. DO(A) AUTOR(A) DA HERANÇA – O(A) autor(a) da herança,
-1.1. Foi casado com o(a) viúvo(a)-meeiro(a), ${data.inventariante || data.nome || 'MARIA OLIVEIRA'}, já anteriormente
-qualificado(a), desde ${data.dataCasamento || '10/05/1990'}, sob o regime de ${data.regimeBens || 'comunhão parcial de bens'}, conforme certidão
-de casamento expedida aos ${data.dataCertidaoCasamento || '15/05/1990'}, registrada sob a matrícula nº ${data.matriculaCasamento || '123456'}, pelo
-Cartório do ${data.cartorioCasamento || '1º Ofício de Registro Civil de Brasília-DF'};
-
-1.2. Faleceu aos ${data.dataFalecimento || '10/01/2023'}, no Hospital ${data.hospitalFalecimento || 'Santa Luzia'}, na cidade de ${data.cidadeFalecimento || 'Brasília-DF'}, conforme certidão de
-óbito expedida aos ${data.dataCertidaoObito || '12/01/2023'}, registrada sob a matrícula nº ${data.matriculaObito || '987654'}, pelo Cartório do ${data.cartorioObito || '2º Ofício de Registro Civil de Brasília-DF'};
-
-1.3. Do relacionamento do(a) autor(a) da herança com o(a) ora viúvo(a)-
-meeiro(a) nasceram ${data.quantidadeFilhos || 'dois'} filhos, todos maiores e capazes, a saber:
-${data.herdeiro1 || 'PEDRO SANTOS'} e ${data.herdeiro2 || 'ANA SANTOS'}, declarando os presentes que desconhece(m) a existência de
-outros herdeiros, a não ser o(s) mencionado(s) no presente ato.
-
-DAS DECLARAÇÕES DAS PARTES - As partes declaram sob as penas da lei,
-que:
-a) o(a) autor(a) da herança não deixou testamento conhecido, por qualquer
-natureza;
-${data.temTestamento ? `a) o(a) falecido(a) deixou testamento que foi aberto nos autos do processo nº ${data.processoTestamento || '12345-67.2023.8.07.0001'} e teve autorização expressa para realização do inventário por meio de Escritura Pública emanada pelo (a) Juiz (a) ${data.juizTestamento || 'Dr. Paulo Souza'}, em ${data.dataAutorizacao || '20/01/2023'}, tudo conforme o estabelecido no artigo 12-B da resolução 35 do Conselho Nacional de Justiça.` : ''}
-b) desconhecem quaisquer débitos em nome do(a) autor(a) da herança, por
-ocasião da abertura da sucessão; c) desconhecem quaisquer obrigações
-assumidas pelo(a) autor(a) da herança; d) desconhecem a existência de outros
-herdeiros, a não ser os que estão presentes nesta escritura; e) a presente
-escritura não prejudica os direitos adquiridos e interesses de terceiros; f) não
-existem feitos ajuizados fundados em ações reais, pessoais ou reipersecutórias
-que afetem os bens e direitos partilhados; g) o(a) falecido(a) não era
-empregador(a) ou, de qualquer forma, responsável por recolhimento de
-contribuições à Previdência Social; h) os bens ora partilhados encontram-se
-livres e desembaraçados de quaisquer ônus, dívidas, tributos de quaisquer
-naturezas; i) não tramita inventário e partilha na via judicial.
-
-3. DA NOMEAÇÃO DE INVENTARIANTE - Os Outorgantes e reciprocamente
-Outorgados, de comum acordo, nomeiam como inventariante do espólio, ${data.inventariante || data.nome || 'MARIA OLIVEIRA'},
-já anteriormente qualificado(a), conferindo-lhe todos os poderes que se fizerem
-necessários para representar o espólio em Juízo ou fora dele; podendo ainda,
-praticar todos os atos de administração dos bens, constituir advogado(a) em
-nome do espólio, ingressar em juízo, ativa ou passivamente; podendo enfim
-praticar todos os atos que se fizerem necessários em defesa do espólio e ao
-cumprimento de suas eventuais obrigações; 3.1. O(A) nomeado(a) declara que
-aceita este encargo, prestando, aqui, o compromisso de cumprir, fiel e
-eficazmente, seu ofício; 3.2. O(A) inventariante declara estar ciente da
-responsabilidade civil e criminal que envolve o desempenho de seu encargo,
-inclusive pelas declarações aqui prestadas.
-
-4. DOS BENS E SEUS VALORES - O(A) autor(a) da herança deixou, por
-ocasião da abertura da sucessão, o(s) seguinte(s) bem(s):
-4.1. Apartamento nº ${data.numeroApartamento || '101'}, do Bloco "${data.blocoApartamento || 'A'}", da ${data.quadraApartamento || 'SQN 123'}, desta Capital,
-${data.descricaoAdicionalImovel || 'com área privativa de 120,00m²'} com direito a vaga na garagem, melhor descrito e caracterizado na
-matrícula nº ${data.matriculaImovel || '12345'}, do ${data.cartorioRegistroImovel || '2º'} Ofício do Registro de Imóveis do
-Distrito Federal. Inscrição do imóvel junto ao GDF sob o nº ${data.inscricaoGDF || '12345678901'}. Que
-referido imóvel foi adquirido pelo(a) autor(a) da herança e seu cônjuge da
-seguinte forma: conforme R-${data.registroMatricula || '1'}, na matrícula nº ${data.matriculaImovel || '12345'}, do mencionado registro
-imobiliário, e ao referido imóvel o(a)(s) herdeiro(a)(s) atribui(em) meramente
-para fins em partilha o valor de ${data.valorPartilhaImovel || 'R$ 800.000,00 (oitocentos mil reais)'}, sendo o valor para fins em
-meação em ${data.valorMeacaoImovel || 'R$ 400.000,00 (quatrocentos mil reais)'}, e o valor arbitrado pela SEFAZ/DF para fins de
-cálculo de ITCD em 2025 no valor de ${data.valorITCDImovel || 'R$ 800.000,00 (oitocentos mil reais)'};
-
-${data.temVeiculo ? `4.2. VEÍCULO marca ${data.marcaVeiculo || 'Toyota'}, cor ${data.corVeiculo || 'prata'}, categoria PARTICULAR, combustível
-ÁLCOOL/GASOLINA, placa ${data.placaVeiculo || 'ABC1234'}, chassi nº ${data.chassiVeiculo || '9BRBLWHEXG0107721'}, ano ${data.anoVeiculo || '2020'}, modelo ${data.modeloVeiculo || 'Corolla'}, 
-renavam nº ${data.renavamVeiculo || '01234567890'}, e ao referido veículo o(a)(s) herdeiro(a)(s) atribui(em) 
-meramente para fins em partilha o valor de ${data.valorPartilhaVeiculo || 'R$ 90.000,00 (noventa mil reais)'}, sendo o valor para 
-fins em meação em ${data.valorMeacaoVeiculo || 'R$ 45.000,00 (quarenta e cinco mil reais)'}, e o valor arbitrado pela SEFAZ/DF para fins 
-de cálculo de ITCD em 2025 no valor de ${data.valorITCDVeiculo || 'R$ 90.000,00 (noventa mil reais)'};` : ''}
-
-${data.temContaBancaria ? `4.3. Saldo em Conta corrente/poupança nº ${data.numeroConta || '12345-6'}, Agência nº ${data.numeroAgencia || '1234'}, junto ao
-Banco ${data.nomeBanco || 'Banco do Brasil'}, no valor de ${data.valorConta || 'R$ 30.000,00 (trinta mil reais)'} e acréscimos ou deduções se houver;` : ''}
-
-${data.temCotas ? `4.4. ${data.quantidadeCotas || '1.000 (mil)'} cotas de Capital Social da Empresa 
-${data.nomeEmpresa || 'XYZ Empreendimentos Ltda.'}, inscrita no CNPJ sob o nº ${data.cnpjEmpresa || '12.345.678/0001-90'}, correspondente a 
-${data.percentualCotas || '50% (cinquenta por cento)'} do patrimônio liquido. As partes atribuem o valor de 
-R$ ${data.valorCotas || '100.000,00 (cem mil reais)'}, para fins de partilha. Conforme Contrato Social o valor do capital 
-social é de R$ ${data.valorCapitalSocial || '200.000,00 (duzentos mil reais)'}, conforme balanço patrimonial o valor do patrimônio 
-líquido é de R$ ${data.valorPatrimonioLiquido || '300.000,00 (trezentos mil reais)'};` : ''}
-
-5. DA PARTILHA - O(s) bem(s) constante(s) do item "4." da presente, soma(m)
-ou valor de ${data.valorTotalBens || 'R$ 920.000,00 (novecentos e vinte mil reais)'} e será(ão) partilhado(s) da seguinte forma:
-5.1. Caberá ao(a) viúvo(a)-meeiro(a), ${data.inventariante || data.nome || 'MARIA OLIVEIRA'}, em razão de sua meação, 50%
-(cinquenta por cento) de todos os bens descritos e caracterizados no item "4."
-da presente, correspondendo ao valor de ${data.valorMeacao || 'R$ 460.000,00 (quatrocentos e sessenta mil reais)'};
-5.2. Caberá a cada um do(s) herdeiro(s), ${data.herdeiro1 || 'PEDRO SANTOS'}${data.herdeiro2 ? ` e ${data.herdeiro2}` : ''}, em razão da sucessão legítima,
-${data.percentualHerdeiros || '25% (vinte e cinco por cento)'}, de todos o(s) bem(s) descrito(s) e caracterizados no item "4." da presente,
-correspondendo ao valor unitário de ${data.valorParteHerdeiro || 'R$ 230.000,00 (duzentos e trinta mil reais)'}.
-
-6. DAS CERTIDÕES E DOCUMENTOS APRESENTADOS - Foram-me
-apresentados e aqui arquivados os seguintes documentos e certidões para esta:
-a) Os documentos mencionados no artigo 22 da Resolução nº 35 do Conselho
-Nacional de Justiça, de 24 de abril de 2007, bem como os especificados na lei
-7.433/85, regulamentada pelo Decreto-Lei 93.240/86; b) Certidão de matrícula e
-ônus reais e pessoais reipersecutórias, relativa(s) ao(s) imóvel(s) objeto(s) desta
-escritura, bem como os documentos comprobatórios dos demais bens descritos
-e caracterizados no item "4." da presente; c) Certidão Negativa de Débitos
-relativos aos Tributos Federais e à Dívida Ativa da União, expedida pela
-Procuradoria-Geral da Fazenda Nacional e Secretaria da Receita Federal sob o
-nº ${data.numeroDebitosFederais || '12345678'}, emitida aos ${data.dataDebitosFederais || '15/01/2023'}, às ${data.horaDebitosFederais || '10:15'}, válida até ${data.validadeDebitosFederais || '15/07/2023'}, em nome e CPF do(a) falecido(a);
-d) Certidão Negativa de Débitos, expedida pelo GDF sob o nº ${data.numeroDebitosGDF || '87654321'}, emitida aos ${data.dataDebitosGDF || '16/01/2023'}, 
-válida até ${data.validadeDebitosGDF || '16/07/2023'}, em nome e CPF do(a) falecido(a);
-e) Certidão Negativa de Débitos de Tributos Imobiliários, expedida pelo GDF sob
-o nº ${data.numeroDebitosImobiliarios || '12348765'}, emitida aos ${data.dataDebitosImobiliarios || '17/01/2023'}, válida até ${data.validadeDebitosImobiliarios || '17/07/2023'}, referente ao imóvel descrito no subitem ${data.subitemImovel || '4.1'}, 
-inscrição ${data.inscricaoImovel || '12345678901'};
-f) Certidão Negativa de Testamento, emitida pela Central de Serviços Eletrônicos
-Compartilhados - CENSEC, em nome do(a)(s) autor(a)(es) da herança.
-
-${data.temImovelOutroEstado ? `g) Certidão Negativa de Débitos, expedida pela Prefeitura de ${data.cidadePrefeitura || 'São Paulo'} sob o nº 
-${data.numeroDebitosPrefeitura || '123456'}, emitida aos ${data.dataDebitosPrefeitura || '18/01/2023'}, válida até ${data.validadeDebitosPrefeitura || '18/07/2023'}, em nome e CPF do(a) falecido(a);` : ''}
-
-${data.temImovelRural ? `g) Certificado de Cadastro de Imóvel Rural - CCIR, sob o nº ${data.numeroCCIR || '12345'}, código do imóvel 
-rural ${data.codigoImovelRural || '12345678-9'}, referente ao exercício ${data.exercicioCCIR || '2023'}, com as seguintes medidas: área total ${data.areaTotalRural || '25,5 hectares'}, 
-denominação do imóvel ${data.denominacaoImovelRural || 'Fazenda Boa Esperança'}, indicações para localização do imóvel: ${data.localizacaoImovelRural || 'Rodovia BR-123, km 45'}, município 
-sede do imóvel: ${data.municipioImovelRural || 'Planaltina-DF'}, classificação fundiária ${data.classificacaoFundiaria || 'Pequena Propriedade'}, nºs. de módulos fiscais ${data.modulosFiscais || '2'}, fração 
-mínima de parcelamento ${data.fracaoMinima || '2 hectares'}, área registrada ${data.areaRegistrada || '25,5 hectares'}, posse a justo título ${data.posseJustoTitulo || 'Sim'}, em relação ao 
-imóvel descrito e caracterizado no item ${data.itemImovelRural || '4.4'};
-
-h) Certidão Negativa de Débitos Relativos ao Imposto sobre a Propriedade 
-Territorial Rural, expedida pela SRFB, sob o nº ${data.numeroCNDITR || '123456'}, emitida às ${data.horaCNDITR || '11:30'} horas, dia ${data.dataCNDITR || '19/01/2023'}, válida 
-até ${data.validadeCNDITR || '19/07/2023'}, CIB: ${data.cibITR || '12345.67890.12345.12345'}, em relação ao imóvel descrito e caracterizado no item ${data.itemImovelITR || '4.4'};
-
-i) Certidão Negativa de Débitos - Ministério do Meio Ambiente - MMA - Instituto 
-Brasileiro do Meio Ambiente e dos Recursos Naturais Renováveis - IBAMA, sob 
-os nº ${data.numeroCNDIBAMA || '123456'}, expedida em ${data.dataCNDIBAMA || '20/01/2023'}, válida até ${data.validadeCNDIBAMA || '20/07/2023'}, em nome do autor da herança.` : ''}
-
-7. DO IMPOSTO DE TRANSMISSÃO "CAUSA MORTIS" E DOAÇÃO - Guia de
-transmissão causa mortis e doação de quaisquer bens e direitos - ITCMD,
-expedida pela Secretaria de Estado da Fazenda do Distrito Federal sob o nº
-${data.numeroITCMD || '123456'}, no valor de ${data.valorITCMD || 'R$ 18.400,00 (dezoito mil e quatrocentos reais)'}, paga aos ${data.dataPagamentoITCMD || '25/01/2023'}, no mesmo valor, sob a alíquota de 4% sobre o valor total tributável de ${data.valorTributavelITCMD || 'R$ 460.000,00 (quatrocentos e sessenta mil reais)'}, em relação à sucessão legítima.
-
-8. DAS DECLARAÇÕES DO(A) ADVOGADO(A) - Pelo(a) advogado(a) me foi
-dito que, na qualidade de advogado(a) das partes, assessorou e aconselhou
-seus constituintes, tendo conferido a correção da partilha e seus valores de
-acordo com a Lei. 9. DAS DECLARAÇÕES FINAIS - Os comparecentes
-requerem e autorizam ao Cartório do Registro de Imóveis competente ${data.cartorioRegistroCompetente || '2º Ofício de Registro de Imóveis do Distrito Federal'} e
-demais órgãos, a praticar(em) todos os atos que se fizerem necessários ao
-cumprimento da presente escritura; 9.1. Os comparecentes que figuram neste
-instrumento declaram estar cientes da responsabilidade civil e criminal, pelas
-declarações de bens e pela inexistência de outros herdeiros conhecidos e pela
-veracidade de todos os fatos relatados neste instrumento de Inventário e
-Partilha; 9.2. Declaram, ainda, que em relação ao(s) imóvel(s) descrito(s) e
-caracterizado(s) no item 4, encontram-se quites com suas obrigações
-condominiais; 9.3. Pelo(s) mandatário(s) foi declarado sob responsabilidade civil
-e penal, que não ocorreram quaisquer das causas de extinção do mandato,
-tratadas no artigo 682, do Código Civil brasileiro. 9.4. As partes declaram-se
-cientes sobre a possibilidade de obtenção prévia das certidões de feitos
-ajuizados expedidas pela Justiça do Distrito Federal e dos Territórios ou
-Estadual, Justiça Federal e Justiça do Trabalho, em nome do(s) autor(es) da
-herança, em atendimento ao disposto no artigo 45, § 6º do Provimento Geral da
-Corregedoria da Justiça do Distrito Federal e dos Territórios, inclusive Certidão
-Negativa de Débitos Trabalhistas - CNDT, expedida pelo TST - Tribunal Superior
-do Trabalho. Demais taxas, certidões e impostos serão apresentados por
-ocasião do registro. As partes declaram ter conhecimento de que outros
-documentos poderão ser solicitados por ocasião do registro da presente
-escritura no Cartório de Registro de Imóveis competente. Certifica que, foi feita
-a consulta prévia junto a Central Nacional de Indisponibilidade de Bens - CNIB,
-no(s) CPF do(a) autor(a) da herança, conforme código hash sob o nº ${data.hashCNIB || 'a1b2c3d4e5f6'}, com o
-resultado NEGATIVO, conforme dispõe o artigo 7º, do Provimento nº 39/2014,
-da Corregedoria Nacional de Justiça, datado de 25 de Julho de 2014. Emitida a
-DOI - Declaração sobre operação imobiliária, conforme instrução normativa da
-Receita Federal do Brasil. Ficam ressalvados eventuais erros, omissões ou
-direitos de terceiros porventura existentes. Assim o disseram, pediram-me e eu
-Escrevente lhes lavrei a presente escritura, que feita e lhes sendo lida, foi achada
-em tudo conforme, aceitam e assinam.`;
-      break;
-      
-    case 'Doação':
-      content = `ESCRITURA PÚBLICA DE DOAÇÃO DE BEM IMÓVEL
-
-SAIBAM todos quantos esta Escritura Pública de Doação virem que, aos ${formattedDate}, nesta cidade e comarca de São Paulo, Estado de São Paulo, perante mim, Tabelião, compareceram as partes:
-
-DOADOR: ${data.doador || data.vendedor || 'JOÃO DA SILVA'}, ${data.nacionalidadeDoador || 'brasileiro'}, ${data.estadoCivilDoador || 'casado'}, ${data.profissaoDoador || 'empresário'}, portador da Cédula de Identidade RG nº ${data.rgDoador || '12.345.678-9 SSP/SP'}, inscrito no CPF/MF sob nº ${data.cpfDoador || '123.456.789-00'}, residente e domiciliado na ${data.enderecoDoador || 'Rua das Flores, nº 123, Bairro Jardim, CEP 01234-567, nesta Capital'};
-
-DONATÁRIO: ${data.donatario || data.nome || 'MARIA OLIVEIRA'}, ${data.nacionalidadeDonatario || 'brasileira'}, ${data.estadoCivilDonatario || 'solteira'}, ${data.profissaoDonatario || 'advogada'}, portadora da Cédula de Identidade RG nº ${data.rgDonatario || data.rg || '98.765.432-1 SSP/SP'}, inscrita no CPF/MF sob nº ${data.cpfDonatario || data.cpf || '987.654.321-00'}, residente e domiciliada na ${data.enderecoDonatario || data.endereco || 'Avenida Central, nº 456, Bairro Centro, CEP 12345-678, nesta Capital'};
-
-Os presentes, juridicamente capazes, identificados por mim, Tabelião, conforme documentos apresentados, do que dou fé.
-
-BEM DOADO: ${data.descricaoImovel || data.enderecoImovel || 'Apartamento nº 101, localizado no 10º andar do Edifício Residencial Primavera, situado na Rua dos Ipês, nº 789, Bairro Jardim Paulista'}, registrado sob a ${data.registroImovel || 'matrícula nº 12.345 no 5º Oficial de Registro de Imóveis desta Capital'}, avaliado em ${data.valorImovel || 'R$ 800.000,00 (oitocentos mil reais)'}.
-
-Pelo presente instrumento e na melhor forma de direito, o DOADOR, livre e espontaneamente, doa, como efetivamente doado tem, ao DONATÁRIO, que aceita esta doação, o imóvel acima descrito e caracterizado, transmitindo-lhe, desde já, toda posse, domínio, direito e ação que exercia sobre o imóvel ora doado.
-
-O DOADOR declara que o imóvel ora doado encontra-se livre e desembaraçado de quaisquer ônus, dívidas, hipotecas, penhoras ou quaisquer outras restrições.
-
-O DONATÁRIO, aceitando a presente doação, agradece ao DOADOR pela liberalidade.`;
-      break;
-    
-    case 'União Estável':
-      content = `ESCRITURA PÚBLICA DE DECLARAÇÃO DE UNIÃO ESTÁVEL
-
-SAIBAM todos quantos esta Escritura Pública de Declaração de União Estável virem que, aos ${formattedDate}, nesta cidade e comarca de São Paulo, Estado de São Paulo, perante mim, Tabelião, compareceram as partes:
-
-DECLARANTE 1: ${data.nome1 || data.nome || 'JOÃO DA SILVA'}, ${data.nacionalidade1 || 'brasileiro'}, ${data.profissao1 || 'empresário'}, portador da Cédula de Identidade RG nº ${data.rg1 || data.rg || '12.345.678-9 SSP/SP'}, inscrito no CPF/MF sob nº ${data.cpf1 || data.cpf || '123.456.789-00'}, nascido em ${data.dataNascimento1 || '10/05/1980'}, filho de ${data.filiacao1 || 'José da Silva e Maria da Silva'}, residente e domiciliado na ${data.endereco1 || data.endereco || 'Rua das Flores, nº 123, Bairro Jardim, CEP 01234-567, nesta Capital'};
-
-DECLARANTE 2: ${data.nome2 || 'MARIA OLIVEIRA'}, ${data.nacionalidade2 || 'brasileira'}, ${data.profissao2 || 'advogada'}, portadora da Cédula de Identidade RG nº ${data.rg2 || '98.765.432-1 SSP/SP'}, inscrita no CPF/MF sob nº ${data.cpf2 || '987.654.321-00'}, nascida em ${data.dataNascimento2 || '15/08/1985'}, filha de ${data.filiacao2 || 'Pedro Oliveira e Ana Oliveira'}, residente e domiciliada no mesmo endereço do Declarante 1;
-
-Os presentes, identificados por mim, Tabelião, conforme documentos apresentados, do que dou fé.
-
-Os DECLARANTES, por livre e espontânea vontade, cientes da responsabilidade civil e criminal de suas declarações, declaram que convivem em união estável, de forma pública, contínua, duradoura e com o objetivo de constituir família, desde ${data.inicioUniao || '15/06/2018'}, nos termos do art. 1.723 do Código Civil Brasileiro.
-
-Na constância da união estável, os conviventes adotam o regime da ${data.regimeBens || 'comunhão parcial de bens'}, nos termos do art. 1.725 do Código Civil Brasileiro.`;
-      break;
-      
-    case 'Procuração':
-      content = `PROCURAÇÃO PÚBLICA
-
-SAIBAM todos quantos esta Procuração Pública virem que, aos ${formattedDate}, nesta cidade e comarca de São Paulo, Estado de São Paulo, perante mim, Tabelião, compareceu como OUTORGANTE:
-
-${data.outorgante || data.nome || 'JOÃO DA SILVA'}, ${data.nacionalidadeOutorgante || 'brasileiro'}, ${data.estadoCivilOutorgante || 'casado'}, ${data.profissaoOutorgante || 'empresário'}, portador da Cédula de Identidade RG nº ${data.rgOutorgante || data.rg || '12.345.678-9 SSP/SP'}, inscrito no CPF/MF sob nº ${data.cpfOutorgante || data.cpf || '123.456.789-00'}, residente e domiciliado na ${data.enderecoOutorgante || data.endereco || 'Rua das Flores, nº 123, Bairro Jardim, CEP 01234-567, nesta Capital'};
-
-O presente, identificado por mim, Tabelião, do que dou fé.
-
-E, por este instrumento público, nomeia e constitui como seu bastante PROCURADOR:
-
-${data.procurador || 'MARIA OLIVEIRA'}, ${data.nacionalidadeProcurador || 'brasileira'}, ${data.estadoCivilProcurador || 'solteira'}, ${data.profissaoProcurador || 'advogada'}, portadora da Cédula de Identidade RG nº ${data.rgProcurador || '98.765.432-1 SSP/SP'}, inscrita no CPF/MF sob nº ${data.cpfProcurador || '987.654.321-00'}, residente e domiciliada na ${data.enderecoProcurador || 'Avenida Central, nº 456, Bairro Centro, CEP 12345-678, nesta Capital'};
-
-A quem confere poderes para ${data.poderes || 'representá-lo perante repartições públicas federais, estaduais, municipais e autárquicas, inclusive junto à Receita Federal, Detran, Cartórios de Registro de Imóveis, Tabelionatos, podendo requerer, assinar e retirar documentos, pagar taxas e emolumentos, prestar declarações e informações, bem como especialmente para vender, prometer vender, ceder ou transferir, pelo preço e condições que ajustar, o imóvel de propriedade do Outorgante situado na Rua dos Ipês, nº 789, Bairro Jardim Paulista, nesta Capital, registrado sob a matrícula nº 12.345 no 5º Oficial de Registro de Imóveis desta Capital, podendo para tanto assinar escrituras públicas, contratos particulares, receber valores e dar quitação, transmitir posse, domínio, direito e ação, responder pela evicção, prestar declarações fiscais e de situação jurídica do imóvel'}.
-
-Os poderes ora conferidos terão validade pelo prazo de ${data.prazoValidade || '1 (um) ano'}, a contar desta data.`;
-      break;
-      
-    case 'Testamento':
-      content = `TESTAMENTO PÚBLICO
-
-SAIBAM todos quantos este Testamento Público virem que, aos ${formattedDate}, nesta cidade e comarca de São Paulo, Estado de São Paulo, perante mim, Tabelião, compareceu como TESTADOR:
-
-${data.testador || data.nome || 'JOÃO DA SILVA'}, ${data.nacionalidadeTestador || 'brasileiro'}, ${data.estadoCivilTestador || 'casado'}, ${data.profissaoTestador || 'empresário'}, portador da Cédula de Identidade RG nº ${data.rgTestador || data.rg || '12.345.678-9 SSP/SP'}, inscrito no CPF/MF sob nº ${data.cpfTestador || data.cpf || '123.456.789-00'}, residente e domiciliado na ${data.enderecoTestador || data.endereco || 'Rua das Flores, nº 123, Bairro Jardim, CEP 01234-567, nesta Capital'};
-
-O presente, identificado por mim, Tabelião, conforme documentos apresentados, o qual se encontra em perfeito estado de saúde mental e em pleno gozo de suas faculdades intelectuais, do que dou fé, e perante as testemunhas adiante nomeadas e assinadas, declarou que, livre e espontaneamente, sem coação ou influência de qualquer espécie, resolve fazer seu testamento, pela forma a seguir:
-
-1. Declaro que sou casado com ${data.conjugeTestador || 'MARIA DA SILVA'}, sob o regime da ${data.regimeBensTestador || 'comunhão parcial de bens'}.
-
-2. Declaro que tenho os seguintes filhos: ${data.filhosTestador || 'PEDRO DA SILVA e ANA DA SILVA'}.
-
-3. Para depois de minha morte, respeitada a legítima dos herdeiros necessários, disponho dos meus bens na seguinte forma:
-
-   a) Deixo ao meu filho ${data.beneficiario1 || 'PEDRO DA SILVA'}, o imóvel situado na ${data.enderecoImovel1 || 'Rua dos Ipês, nº 789, Bairro Jardim Paulista, nesta Capital'}, registrado sob a ${data.registroImovel1 || 'matrícula nº 12.345 no 5º Oficial de Registro de Imóveis desta Capital'}.
-   
-   b) Deixo à minha filha ${data.beneficiario2 || 'ANA DA SILVA'}, o imóvel situado na ${data.enderecoImovel2 || 'Avenida das Palmeiras, nº 456, Bairro Moema, nesta Capital'}, registrado sob a ${data.registroImovel2 || 'matrícula nº 54.321 no 10º Oficial de Registro de Imóveis desta Capital'}.
-   
-   c) Deixo ao meu amigo ${data.beneficiario3 || 'JOSÉ OLIVEIRA'}, como legado, a importância de ${data.valorLegado || 'R$ 50.000,00 (cinquenta mil reais)'}, que deverá ser retirada de minhas aplicações financeiras.
-
-4. Nomeio como inventariante e testamenteiro ${data.testamenteiro || 'minha esposa, MARIA DA SILVA'}, a quem concedo os poderes de representação ativa e passiva do espólio, em juízo ou fora dele.
-
-Este é o meu testamento, que faço de livre e espontânea vontade, para que produza seus jurídicos e legais efeitos.`;
-      break;
-    
-    default:
-      content = `DOCUMENTO JURÍDICO - ${type}
-
-Documento gerado automaticamente com base nos dados fornecidos em ${formattedDate}.
-
-Nome: ${data.nome || 'Nome não fornecido'}
-${data.rg ? `RG: ${data.rg}` : ''}
-${data.cpf ? `CPF: ${data.cpf}` : ''}
-${data.profissao ? `Profissão: ${data.profissao}` : ''}
-${data.estadoCivil ? `Estado Civil: ${data.estadoCivil}` : ''}
-${data.nacionalidade ? `Nacionalidade: ${data.nacionalidade}` : ''}
-${data.endereco ? `Endereço: ${data.endereco}` : ''}
-${data.enderecoImovel ? `Endereço do imóvel: ${data.enderecoImovel}` : ''}
-${data.valorImovel ? `Valor: ${data.valorImovel}` : ''}
-${data.registroImovel ? `Registro: ${data.registroImovel}` : ''}
-${data.areaImovel ? `Área: ${data.areaImovel}` : ''}
-
-Este é um documento modelo. Em uma aplicação real, o conteúdo completo seria gerado com base nos dados extraídos dos documentos enviados e no tipo de minuta selecionado.`;
-  }
-  
-  return content;
-};
+TÍTULO AQUISITIVO: O referido imóvel foi adquirido pelo OUTORGANTE VENDEDOR através de Escritura Pública de Compra e Venda lavrada no 10º Tabelionato de Notas desta

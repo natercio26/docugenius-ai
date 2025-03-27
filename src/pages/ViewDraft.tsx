@@ -1,13 +1,11 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Navbar from '@/components/Navbar';
 import DraftViewer from '@/components/DraftViewer';
 import { Draft } from '@/types';
-import { Download, Edit, Check, Info } from 'lucide-react';
+import { Download, Edit, Check } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
-// Sample draft content for demonstration (fallback if no generated content)
 const sampleContent = `ESCRITURA PÚBLICA DE COMPRA E VENDA
 
 SAIBAM todos quantos esta Escritura Pública de Compra e Venda virem que, aos 15 (quinze) dias do mês de setembro do ano de 2023 (dois mil e vinte e três), nesta cidade e comarca de São Paulo, Estado de São Paulo, perante mim, Tabelião, compareceram as partes entre si justas e contratadas, a saber:
@@ -50,7 +48,6 @@ E, assim, lida em voz alta e clara esta escritura às partes e achada conforme, 
 
 Eu, Tabelião, lavrei a presente escritura, conferi, dou fé e assino.`;
 
-// Sample draft for the "new" draft (simulating a newly generated one)
 const newDraft: Draft = {
   id: 'new',
   title: 'Escritura de Compra e Venda - Apartamento',
@@ -60,7 +57,6 @@ const newDraft: Draft = {
   updatedAt: new Date()
 };
 
-// Mock data for other drafts
 const mockDrafts: Draft[] = [
   {
     id: '1',
@@ -80,7 +76,6 @@ const mockDrafts: Draft[] = [
   }
 ];
 
-// Default draft for fallback
 const defaultNewDraft: Draft = {
   id: 'new',
   title: 'Escritura de Compra e Venda - Apartamento',
@@ -90,7 +85,6 @@ const defaultNewDraft: Draft = {
   updatedAt: new Date()
 };
 
-// Extended Draft type that includes extracted data
 interface ExtendedDraft extends Draft {
   extractedData?: Record<string, string>;
 }
@@ -100,16 +94,13 @@ const ViewDraft: React.FC = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [draft, setDraft] = useState<ExtendedDraft | null>(null);
-  const [showExtractedData, setShowExtractedData] = useState(false);
   
   useEffect(() => {
-    // Try to load generated draft from sessionStorage
     if (id === 'new') {
       const storedDraft = sessionStorage.getItem('generatedDraft');
       if (storedDraft) {
         try {
           const parsedDraft = JSON.parse(storedDraft);
-          // Convert string dates back to Date objects
           parsedDraft.createdAt = new Date(parsedDraft.createdAt);
           parsedDraft.updatedAt = new Date(parsedDraft.updatedAt);
           setDraft(parsedDraft);
@@ -121,7 +112,6 @@ const ViewDraft: React.FC = () => {
         setDraft(defaultNewDraft);
       }
     } else {
-      // Find from mock drafts
       const foundDraft = mockDrafts.find(d => d.id === id);
       setDraft(foundDraft || null);
     }
@@ -132,7 +122,6 @@ const ViewDraft: React.FC = () => {
       title: "Download iniciado",
       description: "Seu documento será baixado em instantes."
     });
-    // In a real app, this would trigger a PDF download
   };
   
   const handleApprove = () => {
@@ -140,13 +129,8 @@ const ViewDraft: React.FC = () => {
       title: "Minuta aprovada",
       description: "A minuta foi aprovada e armazenada com sucesso."
     });
-    // Clear the sessionStorage after approval
     sessionStorage.removeItem('generatedDraft');
     navigate('/');
-  };
-
-  const toggleExtractedData = () => {
-    setShowExtractedData(!showExtractedData);
   };
 
   if (!draft) {
@@ -180,14 +164,6 @@ const ViewDraft: React.FC = () => {
           <h1 className="heading-1">Minuta Gerada</h1>
           <div className="flex space-x-3">
             <button 
-              onClick={toggleExtractedData}
-              className="button-outline flex items-center space-x-2"
-              title="Mostrar dados extraídos"
-            >
-              <Info className="h-4 w-4" />
-              <span>Dados Extraídos</span>
-            </button>
-            <button 
               onClick={() => navigate(`/edit/${draft.id}`)}
               className="button-outline flex items-center space-x-2"
             >
@@ -211,25 +187,11 @@ const ViewDraft: React.FC = () => {
           </div>
         </div>
         
-        {showExtractedData && draft.extractedData && (
-          <div className="max-w-4xl mx-auto mb-6 glass p-4 rounded-lg animate-fade-in">
-            <h2 className="text-lg font-medium mb-3">Dados Extraídos dos Documentos</h2>
-            <div className="grid grid-cols-2 gap-4">
-              {Object.entries(draft.extractedData).map(([key, value]) => (
-                <div key={key} className="bg-background/50 p-3 rounded-md">
-                  <p className="text-sm font-medium text-primary">{key}:</p>
-                  <p className="text-sm">{value}</p>
-                </div>
-              ))}
-            </div>
-            <p className="text-xs text-muted-foreground mt-4">
-              Estes são os dados que foram extraídos automaticamente dos documentos enviados.
-            </p>
-          </div>
-        )}
-        
         <div className="animate-scale-in" style={{ animationDelay: '100ms' }}>
-          <DraftViewer draft={draft} />
+          <DraftViewer 
+            draft={draft} 
+            extractedData={draft.extractedData}
+          />
         </div>
       </main>
     </div>
