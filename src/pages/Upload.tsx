@@ -52,7 +52,7 @@ const Upload: React.FC = () => {
       let extractedData: ExtractedData = {};
       
       try {
-        const batchSize = 3;
+        const batchSize = 5; // Increased batch size for faster processing
         
         for (let i = 0; i < files.length; i += batchSize) {
           if (isCancelled) return;
@@ -126,26 +126,63 @@ const Upload: React.FC = () => {
         console.log("Identificação de partes e papéis concluída:", enhancedData);
         
         if (docType === 'Inventário') {
-          if (!enhancedData['falecido'] || enhancedData['falecido'] === 'Não identificado') {
-            const falecidoPattern = /(?:falec[ido|eu|imento]|de cujus|óbito de|espólio de)[\s\S]{1,100}([A-Z][a-zÀ-ÿ]+(?:\s+[A-Z][a-zÀ-ÿ]+){1,5})/i;
-            
-            for (const file of files) {
-              try {
+          for (const file of files) {
+            try {
+              const text = await new Promise<string>((resolve) => {
                 const reader = new FileReader();
-                const fileContent = await new Promise<string>((resolve) => {
-                  reader.onload = () => resolve(reader.result as string);
-                  reader.onerror = () => resolve('');
+                reader.onload = () => resolve(reader.result as string);
+                reader.onerror = () => resolve('');
+                if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
                   reader.readAsText(file);
-                });
-                
-                const falecidoMatch = fileContent.match(falecidoPattern);
+                } else {
+                  reader.readAsText(file);
+                }
+              });
+              
+              if (!enhancedData['falecido'] || enhancedData['falecido'] === 'Não identificado') {
+                const falecidoPattern = /(?:falec[ido|eu|imento]|de cujus|óbito de|espólio de)[\s\S]{1,100}([A-Z][a-zÀ-ÿ]+(?:\s+[A-Z][a-zÀ-ÿ]+){1,5})/i;
+                const falecidoMatch = text.match(falecidoPattern);
                 if (falecidoMatch && falecidoMatch[1]) {
                   enhancedData['falecido'] = falecidoMatch[1].trim();
-                  break;
                 }
-              } catch (error) {
-                console.warn("Erro ao ler arquivo para busca adicional:", error);
               }
+              
+              for (let i = 1; i <= 5; i++) {
+                if (!enhancedData[`herdeiro${i}`]) {
+                  const herdeiroPattern = /(?:herdeiro|herdeira|filho|filha)[\s\S]{1,100}([A-Z][a-zÀ-ÿ]+(?:\s+[A-Z][a-zÀ-ÿ]+){1,5})/i;
+                  const herdeiroMatch = text.match(herdeiroPattern);
+                  if (herdeiroMatch && herdeiroMatch[1]) {
+                    enhancedData[`herdeiro${i}`] = herdeiroMatch[1].trim();
+                    break;
+                  }
+                }
+              }
+              
+              if (!enhancedData['advogado']) {
+                const advogadoPattern = /(?:advogad[o|a]|OAB)[\s\S]{1,100}([A-Z][a-zÀ-ÿ]+(?:\s+[A-Z][a-zÀ-ÿ]+){1,5})/i;
+                const advogadoMatch = text.match(advogadoPattern);
+                if (advogadoMatch && advogadoMatch[1]) {
+                  enhancedData['advogado'] = advogadoMatch[1].trim();
+                }
+              }
+              
+              if (!enhancedData['conjuge']) {
+                const conjugePattern = /(?:cônjuge|viúv[o|a]|esposa|esposo|meeiro|meeira)[\s\S]{1,100}([A-Z][a-zÀ-ÿ]+(?:\s+[A-Z][a-zÀ-ÿ]+){1,5})/i;
+                const conjugeMatch = text.match(conjugePattern);
+                if (conjugeMatch && conjugeMatch[1]) {
+                  enhancedData['conjuge'] = conjugeMatch[1].trim();
+                }
+              }
+              
+              if (!enhancedData['inventariante']) {
+                const inventariantePattern = /(?:inventariante)[\s\S]{1,100}([A-Z][a-zÀ-ÿ]+(?:\s+[A-Z][a-zÀ-ÿ]+){1,5})/i;
+                const inventarianteMatch = text.match(inventariantePattern);
+                if (inventarianteMatch && inventarianteMatch[1]) {
+                  enhancedData['inventariante'] = inventarianteMatch[1].trim();
+                }
+              }
+            } catch (fileError) {
+              console.warn("Erro ao analisar arquivo para dados específicos:", fileError);
             }
           }
         }

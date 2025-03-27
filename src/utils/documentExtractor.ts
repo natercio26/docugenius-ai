@@ -1,6 +1,7 @@
 
 import { DraftType } from '@/types';
 import { identifyPartiesAndRoles } from './partyIdentifier';
+import * as Tesseract from 'tesseract.js';
 
 // Export the identifyPartiesAndRoles function to be used elsewhere
 export { identifyPartiesAndRoles };
@@ -34,7 +35,7 @@ async function extractTextFromPDF(file: File): Promise<string> {
             try {
               // Use a timeout to prevent infinite processing
               const timeoutPromise = new Promise<string>((_, reject) => {
-                setTimeout(() => reject(new Error("PDF processing timeout")), 20000); 
+                setTimeout(() => reject(new Error("PDF processing timeout")), 30000); // Increased timeout for image processing
               });
               
               const processingPromise = new Promise<string>(async (resolveProcessing) => {
@@ -43,21 +44,65 @@ async function extractTextFromPDF(file: File): Promise<string> {
                   const pdfDocument = await loadingTask.promise;
                   
                   let fullText = '';
-                  // Process more pages to get more content (up to 20 pages)
-                  const maxPages = Math.min(pdfDocument.numPages, 20);
+                  // Process more pages to get more content (up to all pages)
+                  const maxPages = pdfDocument.numPages;
                   
                   // Process all pages to extract more data
                   for (let pageNum = 1; pageNum <= maxPages; pageNum++) {
                     try {
                       const page = await pdfDocument.getPage(pageNum);
-                      const textContent = await page.getTextContent();
                       
-                      // Get all text from the page, not just limited items
+                      // Extract text content
+                      const textContent = await page.getTextContent();
                       const pageText = textContent.items
                         .map(item => 'str' in item ? (item as any).str : '')
                         .join(' ');
                         
                       fullText += pageText + '\n';
+                      
+                      // Try to extract images if text is minimal
+                      if (pageText.trim().length < 100) {
+                        try {
+                          // Get page as canvas to extract images via OCR
+                          const viewport = page.getViewport({ scale: 1.5 }); // Higher scale for better OCR
+                          const canvas = document.createElement('canvas');
+                          const context = canvas.getContext('2d');
+                          
+                          if (context) {
+                            canvas.height = viewport.height;
+                            canvas.width = viewport.width;
+                            
+                            await page.render({
+                              canvasContext: context,
+                              viewport: viewport
+                            }).promise;
+                            
+                            // Use Tesseract to extract text from the rendered page
+                            try {
+                              const ocrResult = await Tesseract.recognize(
+                                canvas.toDataURL('image/png'),
+                                'por', // Portuguese language
+                                { 
+                                  logger: m => {
+                                    if (m.status === 'recognizing text') {
+                                      console.log(`OCR processing page ${pageNum}: ${Math.round(m.progress * 100)}%`);
+                                    }
+                                  }
+                                }
+                              );
+                              
+                              if (ocrResult?.data?.text && ocrResult.data.text.length > pageText.length) {
+                                fullText += " " + ocrResult.data.text + '\n';
+                                console.log(`Added OCR text from page ${pageNum}, length: ${ocrResult.data.text.length}`);
+                              }
+                            } catch (ocrError) {
+                              console.warn(`OCR failed for page ${pageNum}:`, ocrError);
+                            }
+                          }
+                        } catch (imageError) {
+                          console.warn(`Failed to extract images from page ${pageNum}:`, imageError);
+                        }
+                      }
                       
                       // Brief pause to prevent UI freezing
                       await new Promise(r => setTimeout(r, 10));
@@ -145,10 +190,48 @@ export async function extractDataFromFiles(files: File[]): Promise<{ [key: strin
                   fileName.endsWith('.jpeg') || 
                   fileName.endsWith('.png')) {
           console.log('Processando imagem...');
-          // For images, just log for now (we would need OCR for actual text extraction)
+          // Use tesseract for OCR on images
+          try {
+            const reader = new FileReader();
+            const imageData = await new Promise<string>((resolve) => {
+              reader.onload = () => resolve(reader.result as string);
+              reader.onerror = () => resolve('');
+              reader.readAsDataURL(file);
+            });
+            
+            if (imageData) {
+              const ocrResult = await Tesseract.recognize(
+                imageData,
+                'por', // Portuguese language
+                { logger: m => console.log(`OCR: ${m.status} (${Math.round(m.progress * 100)}%)`) }
+              );
+              
+              textContent = ocrResult?.data?.text || '';
+              console.log(`Texto extraído da imagem ${file.name}: ${textContent.length} caracteres`);
+            }
+          } catch (ocrError) {
+            console.warn(`Erro no OCR para ${file.name}:`, ocrError);
+          }
         } else if (fileType.includes('document') || fileName.endsWith('.docx')) {
           console.log('Processando documento do Word...');
-          // For Word docs, just log for now
+          try {
+            const mammoth = await import('mammoth');
+            const reader = new FileReader();
+            
+            const docData = await new Promise<ArrayBuffer>((resolve) => {
+              reader.onload = () => resolve(reader.result as ArrayBuffer);
+              reader.onerror = () => resolve(new ArrayBuffer(0));
+              reader.readAsArrayBuffer(file);
+            });
+            
+            if (docData.byteLength > 0) {
+              const result = await mammoth.extractRawText({ arrayBuffer: docData });
+              textContent = result.value;
+              console.log(`Texto extraído do Word ${file.name}: ${textContent.length} caracteres`);
+            }
+          } catch (docxError) {
+            console.warn(`Erro ao processar documento Word ${file.name}:`, docxError);
+          }
         }
         
         if (textContent) {
@@ -181,195 +264,35 @@ function extractComprehensiveData(text: string, extractedData: { [key: string]: 
   }
 
   try {
-    // Extract common patterns with more comprehensive regex
+    // Common patterns for personal information
+    extractPersonalInfo(text, extractedData);
     
     // Dates
-    const datePattern = /(\d{1,2}\/\d{1,2}\/\d{4}|\d{1,2}\s+de\s+[a-zÀ-ÿ]+\s+de\s+\d{4})/gi;
-    const dateMatches = text.match(datePattern);
-    if (dateMatches && dateMatches.length > 0) {
-      if (!extractedData['data']) extractedData['data'] = dateMatches[0];
-      if (dateMatches.length > 1 && !extractedData['dataFalecimento']) {
-        // Look for death date specifically
-        const deathContext = text.match(/falec[ido|eu|imento][\s\S]{0,50}(\d{1,2}\/\d{1,2}\/\d{4}|\d{1,2}\s+de\s+[a-zÀ-ÿ]+\s+de\s+\d{4})/i);
-        if (deathContext && deathContext[1]) {
-          extractedData['dataFalecimento'] = deathContext[1];
-        } else {
-          extractedData['dataFalecimento'] = dateMatches[1];
-        }
-      }
-      if (dateMatches.length > 2 && !extractedData['dataCasamento']) {
-        // Look for marriage date specifically
-        const marriageContext = text.match(/casad[ao][\s\S]{0,50}(\d{1,2}\/\d{1,2}\/\d{4}|\d{1,2}\s+de\s+[a-zÀ-ÿ]+\s+de\s+\d{4})/i);
-        if (marriageContext && marriageContext[1]) {
-          extractedData['dataCasamento'] = marriageContext[1];
-        } else {
-          extractedData['dataCasamento'] = dateMatches[2];
-        }
-      }
-    }
-    
-    // Names
-    const namePattern = /(?:[A-Z][a-zÀ-ÿ]{1,20}\s){1,3}(?:[A-Z][a-zÀ-ÿ]{1,20})/g;
-    const nameMatches = text.match(namePattern);
-    if (nameMatches && nameMatches.length > 0) {
-      // Try to identify names by role context
-      
-      // Falecido - look for context
-      const deceasedContext = text.match(/(?:fale[c|ç][ido|eu|imento]|de cujus|autor[a]? da herança|espólio de)[\s\S]{0,100}([A-Z][a-zÀ-ÿ]+\s(?:[A-Z][a-zÀ-ÿ]+\s){0,3}[A-Z][a-zÀ-ÿ]+)/i);
-      if (deceasedContext && deceasedContext[1]) {
-        extractedData['falecido'] = deceasedContext[1].trim();
-      }
-      
-      // Cônjuge - look for context
-      const spouseContext = text.match(/(?:cônjuge|viúv[o|a]|esposa|esposo|viúv[o|a]-meeiro[a]|casad[o|a] com)[\s\S]{0,100}([A-Z][a-zÀ-ÿ]+\s(?:[A-Z][a-zÀ-ÿ]+\s){0,3}[A-Z][a-zÀ-ÿ]+)/i);
-      if (spouseContext && spouseContext[1]) {
-        extractedData['conjuge'] = spouseContext[1].trim();
-      }
-      
-      // Inventariante - look for context
-      const inventoryManagerContext = text.match(/(?:inventariante|responsável pelo espólio)[\s\S]{0,100}([A-Z][a-zÀ-ÿ]+\s(?:[A-Z][a-zÀ-ÿ]+\s){0,3}[A-Z][a-zÀ-ÿ]+)/i);
-      if (inventoryManagerContext && inventoryManagerContext[1]) {
-        extractedData['inventariante'] = inventoryManagerContext[1].trim();
-      }
-      
-      // Herdeiro - look for context
-      const heirContext = text.match(/(?:herdeiro|herdeira|sucessor|filho|filha)[\s\S]{0,100}([A-Z][a-zÀ-ÿ]+\s(?:[A-Z][a-zÀ-ÿ]+\s){0,3}[A-Z][a-zÀ-ÿ]+)/i);
-      if (heirContext && heirContext[1]) {
-        extractedData['herdeiro1'] = heirContext[1].trim();
-      }
-      
-      // Multiple heirs - scan for more
-      if (nameMatches.length > 3) {
-        // Find names not already assigned
-        const assignedNames = [
-          extractedData['falecido'], 
-          extractedData['conjuge'], 
-          extractedData['inventariante'],
-          extractedData['herdeiro1']
-        ].filter(Boolean);
-        
-        let heirIndex = 1;
-        for (const name of nameMatches) {
-          // Skip already assigned names
-          if (assignedNames.includes(name)) continue;
-          
-          // Find next available herdeiro slot
-          while (extractedData[`herdeiro${heirIndex}`] && heirIndex < 5) {
-            heirIndex++;
-          }
-          
-          if (heirIndex < 5) {
-            extractedData[`herdeiro${heirIndex}`] = name;
-            heirIndex++;
-          }
-        }
-      }
-      
-      // Advogado - look for context
-      const lawyerContext = text.match(/(?:advogad[o|a]|OAB)[\s\S]{0,100}([A-Z][a-zÀ-ÿ]+\s(?:[A-Z][a-zÀ-ÿ]+\s){0,3}[A-Z][a-zÀ-ÿ]+)/i);
-      if (lawyerContext && lawyerContext[1]) {
-        extractedData['advogado'] = lawyerContext[1].trim();
-      }
-    }
-    
-    // Document numbers and registrations
-    
-    // CPF/CNPJ/RG
-    const documentPattern = /(?:CPF|CNPJ|RG)[\s.:]*(\d[\d\.\-\/]+)/gi;
-    const docMatches = text.matchAll(documentPattern);
-    for (const match of docMatches) {
-      if (match[0].includes('CPF') && !extractedData['cpf']) {
-        extractedData['cpf'] = match[1];
-      } else if (match[0].includes('CNPJ') && !extractedData['cnpj']) {
-        extractedData['cnpj'] = match[1];
-      } else if (match[0].includes('RG') && !extractedData['rg']) {
-        extractedData['rg'] = match[1];
-      }
-    }
+    extractDates(text, extractedData);
     
     // Addresses
-    const addressPattern = /(?:residente|domiciliado|endereço)[^\n,;]+((?:[A-Z][a-zÀ-ÿ]+[\s,]*)+(?:\d+)?[^\n;]*)/gi;
-    const addressMatch = text.match(addressPattern);
-    if (addressMatch && addressMatch[0]) {
-      extractedData['endereco'] = addressMatch[0].replace(/(?:residente|domiciliado|endereço)[^\n,;]+/i, '').trim();
-    }
+    extractAddresses(text, extractedData);
     
-    // Property details (especialmente importante para inventários)
+    // Property details
+    extractPropertyDetails(text, extractedData);
     
-    // Apartment number
-    const aptNumberPattern = /(?:apartamento|apto)[\s\.]*(?:n[º°]?\.?)?[\s\.]*(\d+)/i;
-    const aptNumberMatch = text.match(aptNumberPattern);
-    if (aptNumberMatch && aptNumberMatch[1]) {
-      extractedData['numeroApartamento'] = aptNumberMatch[1];
-    }
+    // Document IDs and legal information
+    extractDocumentIDs(text, extractedData);
     
-    // Block
-    const blockPattern = /(?:bloco|bl)[\s\.]*["']?([A-Z0-9]+)["']?/i;
-    const blockMatch = text.match(blockPattern);
-    if (blockMatch && blockMatch[1]) {
-      extractedData['blocoApartamento'] = blockMatch[1];
-    }
+    // Financial values
+    extractFinancialData(text, extractedData);
     
-    // Quadra/location
-    const locationPattern = /(?:quadra|sqn|sqs|qn|qs|qi|qd)[\s\.]*(\d+)/i;
-    const locationMatch = text.match(locationPattern);
-    if (locationMatch && locationMatch[1]) {
-      extractedData['quadraApartamento'] = `Quadra ${locationMatch[1]}`;
-    }
-    
-    // Registration
-    const registrationPattern = /matrícula[\s\.]*(?:n[º°]?\.?)?[\s\.]*(\d[\d\.\-\/]+)/i;
-    const registrationMatch = text.match(registrationPattern);
-    if (registrationMatch && registrationMatch[1]) {
-      extractedData['matriculaImovel'] = registrationMatch[1];
-    }
-    
-    // ITCMD
-    const itcmdPattern = /ITCMD[\s\.]*(?:n[º°]?\.?)?[\s\.]*(\d[\d\.\-\/]+)/i;
-    const itcmdMatch = text.match(itcmdPattern);
-    if (itcmdMatch && itcmdMatch[1]) {
-      extractedData['numeroITCMD'] = itcmdMatch[1];
-    }
-    
-    // Valores monetários
-    const moneyPattern = /R\$\s*([\d\.,]+)/g;
-    const moneyMatches = text.matchAll(moneyPattern);
-    let valueCounter = 0;
-    for (const match of moneyMatches) {
-      if (valueCounter === 0 && !extractedData['valorTotalBens']) {
-        extractedData['valorTotalBens'] = `R$ ${match[1]}`;
-        
-        // Calculate meação if possible
-        try {
-          const cleanValue = match[1].replace(/\./g, '').replace(',', '.');
-          const numValue = parseFloat(cleanValue);
-          
-          if (!isNaN(numValue)) {
-            const meacao = numValue / 2;
-            extractedData['valorTotalMeacao'] = `R$ ${meacao.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
-            
-            // Estimate value per heir based on number of children
-            let numHerdeiros = 1;
-            
-            // Count how many heirs we've found
-            for (let i = 1; i <= 5; i++) {
-              if (extractedData[`herdeiro${i}`]) numHerdeiros = i;
-            }
-            
-            extractedData['numeroFilhos'] = String(numHerdeiros);
-            
-            const valorPorHerdeiro = meacao / numHerdeiros;
-            extractedData['valorUnitarioHerdeiros'] = `R$ ${valorPorHerdeiro.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
-            extractedData['percentualHerdeiros'] = `${(50 / numHerdeiros).toFixed(2)}%`;
-          }
-        } catch (error) {
-          console.warn("Error calculating values:", error);
-        }
-      } else if (valueCounter === 1 && !extractedData['valorITCMD']) {
-        extractedData['valorITCMD'] = `R$ ${match[1]}`;
+    // Additional data specific to inventory/inheritance
+    if (!extractedData['falecido']) {
+      const deceasedPattern = /(?:falec[ido|eu|imento]|de cujus|autor[a]? da herança|espólio de)[\s\S]{0,100}([A-Z][a-zÀ-ÿ]+(?:\s+[A-Z][a-zÀ-ÿ]+){1,8})/i;
+      const deceasedMatch = text.match(deceasedPattern);
+      if (deceasedMatch && deceasedMatch[1]) {
+        extractedData['falecido'] = deceasedMatch[1].trim();
       }
-      valueCounter++;
     }
+    
+    // More specific patterns for special roles
+    extractSpecialRoles(text, extractedData);
     
     // Collection of heirs for nomesFilhos
     if (!extractedData['nomesFilhos']) {
@@ -381,47 +304,412 @@ function extractComprehensiveData(text: string, extractedData: { [key: string]: 
       extractedData['nomesFilhos'] = filhos;
     }
     
-    // Regime de bens
-    const regimePattern = /regime\s+de\s+(?:bens)?\s*(?:d[eo])?\s*([a-zÀ-ÿ\s]+)(?:de bens)?/i;
-    const regimeMatch = text.match(regimePattern);
-    if (regimeMatch && regimeMatch[1]) {
-      extractedData['regimeBens'] = regimeMatch[1].trim();
-    }
-    
-    // Hospital
-    const hospitalPattern = /(?:Hospital|Instituição)[\s:]+((?:[A-Z][a-zÀ-ÿ]+[\s]*)+)/i;
-    const hospitalMatch = text.match(hospitalPattern);
-    if (hospitalMatch && hospitalMatch[1]) {
-      extractedData['hospitalFalecimento'] = hospitalMatch[1].trim();
-    }
-    
-    // Cidade
-    const cidadePattern = /(?:cidade|município)[\s:]+((?:[A-Z][a-zÀ-ÿ]+[\s]*)+)/i;
-    const cidadeMatch = text.match(cidadePattern);
-    if (cidadeMatch && cidadeMatch[1]) {
-      extractedData['cidadeFalecimento'] = cidadeMatch[1].trim();
-    }
-    
-    // Cartórios
-    const cartorioPattern = /(?:Cartório|Serventia|Ofício)[\s:]+((?:[^,;.\n]+))/i;
-    const cartorioMatch = text.match(cartorioPattern);
-    if (cartorioMatch && cartorioMatch[1]) {
-      extractedData['cartorioImovel'] = cartorioMatch[1].trim();
-    }
-    
-    // CNIB hash
-    const hashPattern = /hash[\s:]*(?:n[º°]?\.?)?[\s:]*([A-Za-z0-9]+)/i;
-    const hashMatch = text.match(hashPattern);
-    if (hashMatch && hashMatch[1]) {
-      extractedData['hashCNIB'] = hashMatch[1];
-    }
+    // Fill in missing required fields with defaults
+    fillMissingFields(extractedData);
     
   } catch (error) {
     console.warn("Error in comprehensive data extraction:", error);
   }
 }
 
-// Updated document content generation with improved data insertion
+// Extract personal information of individuals
+function extractPersonalInfo(text: string, extractedData: { [key: string]: any }): void {
+  // Names - more comprehensive pattern that catches longer names with multiple parts
+  const namePattern = /(?:[A-Z][a-zÀ-ÿ]{1,20}\s){1,8}(?:[A-Z][a-zÀ-ÿ]{1,20})/g;
+  const nameMatches = text.match(namePattern);
+  
+  if (nameMatches && nameMatches.length > 0) {
+    // Try to match names with roles based on proximity
+    
+    // Roles with corresponding patterns
+    const rolePatterns = [
+      { role: 'viuvoMeeiro', pattern: /viúv[oa][\s\-]*(?:meeiro|meeira)/i },
+      { role: 'conjuge', pattern: /(?:cônjuge|viúv[o|a]|esposa|esposo|casad[o|a] com)/i },
+      { role: 'inventariante', pattern: /inventariante/i },
+      { role: 'herdeiro1', pattern: /(?:herdeiro|herdeira|sucessor|filho|filha)/i },
+      { role: 'advogado', pattern: /(?:advogad[o|a]|OAB)/i },
+      { role: 'falecido', pattern: /(?:falec[ido|eu|imento]|de cujus|espólio|autor[a]? da herança)/i }
+    ];
+    
+    // Check for context-specific names
+    for (const { role, pattern } of rolePatterns) {
+      if (!extractedData[role] || extractedData[role] === 'Não identificado' || extractedData[role] === '=====') {
+        const contextMatch = text.match(new RegExp(`${pattern.source}[\\s\\S]{0,150}([A-Z][a-zÀ-ÿ]+(?:\\s+[A-Z][a-zÀ-ÿ]+){1,8})`, 'i'));
+        if (contextMatch && contextMatch[1]) {
+          extractedData[role] = contextMatch[1].trim();
+        }
+      }
+    }
+    
+    // Fill other herdeiros (heirs) if we have names left
+    const assignedNames = Object.values(extractedData).filter(Boolean);
+    let heirIndex = 1;
+    
+    for (const name of nameMatches) {
+      // Skip already assigned names
+      if (assignedNames.includes(name)) continue;
+      
+      // Fill next available heir slot
+      while (extractedData[`herdeiro${heirIndex}`] && heirIndex < 10) {
+        heirIndex++;
+      }
+      
+      if (heirIndex < 10 && !extractedData[`herdeiro${heirIndex}`]) {
+        extractedData[`herdeiro${heirIndex}`] = name;
+        assignedNames.push(name);
+        heirIndex++;
+      }
+    }
+  }
+  
+  // National IDs - CPF/CNPJ/RG
+  const cpfPattern = /CPF[\s.:]*(\d{3}[\.\s]?\d{3}[\.\s]?\d{3}[\-\.\s]?\d{2})/gi;
+  const cpfMatches = text.matchAll(cpfPattern);
+  for (const match of cpfMatches) {
+    if (!extractedData['cpf']) {
+      extractedData['cpf'] = match[1];
+    } else if (!extractedData['cpfConjuge']) {
+      extractedData['cpfConjuge'] = match[1];
+    }
+  }
+  
+  const rgPattern = /RG[\s.:]*(\d[\d\.\-\/]+)/gi;
+  const rgMatches = text.matchAll(rgPattern);
+  for (const match of rgMatches) {
+    if (!extractedData['rg']) {
+      extractedData['rg'] = match[1];
+    } else if (!extractedData['rgConjuge']) {
+      extractedData['rgConjuge'] = match[1];
+    }
+  }
+  
+  // Professions - look for profession indicators
+  const professionPattern = /(?:profissão|ocupação)\s*(?:de|do|da)?\s*([a-zÀ-ÿ]+(?:\s+[a-zÀ-ÿ]+){0,3})/i;
+  const professionMatch = text.match(professionPattern);
+  if (professionMatch && professionMatch[1]) {
+    extractedData['profissao'] = professionMatch[1].trim();
+  }
+  
+  // Nationality
+  const nationalityPattern = /(?:nacionalidade|nascionalidade)\s*(?:de|do|da)?\s*([a-zÀ-ÿ]+(?:\s+[a-zÀ-ÿ]+){0,1})/i;
+  const nationalityMatch = text.match(nationalityPattern);
+  if (nationalityMatch && nationalityMatch[1]) {
+    extractedData['nacionalidade'] = nationalityMatch[1].trim();
+  }
+  
+  // Marital status
+  const maritalStatusPattern = /(?:estado\s*civil|estado\-civil)\s*(?:de|do|da)?\s*([a-zÀ-ÿ]+(?:\s+[a-zÀ-ÿ]+){0,1})/i;
+  const maritalStatusMatch = text.match(maritalStatusPattern);
+  if (maritalStatusMatch && maritalStatusMatch[1]) {
+    extractedData['estadoCivil'] = maritalStatusMatch[1].trim();
+  }
+}
+
+// Extract dates from text
+function extractDates(text: string, extractedData: { [key: string]: any }): void {
+  // All dates in the document
+  const datePattern = /(\d{1,2}\/\d{1,2}\/\d{4}|\d{1,2}\s+de\s+[a-zÀ-ÿ]+\s+de\s+\d{4})/gi;
+  const dateMatches = text.match(datePattern);
+  
+  if (dateMatches && dateMatches.length > 0) {
+    if (!extractedData['data']) extractedData['data'] = dateMatches[0];
+    
+    // Death date
+    const deathDatePattern = /falec[ido|eu|imento][\s\S]{0,70}(\d{1,2}\/\d{1,2}\/\d{4}|\d{1,2}\s+de\s+[a-zÀ-ÿ]+\s+de\s+\d{4})/i;
+    const deathDateMatch = text.match(deathDatePattern);
+    if (deathDateMatch && deathDateMatch[1]) {
+      extractedData['dataFalecimento'] = deathDateMatch[1];
+    } else if (dateMatches.length > 1 && !extractedData['dataFalecimento']) {
+      extractedData['dataFalecimento'] = dateMatches[1];
+    }
+    
+    // Marriage date
+    const marriageDatePattern = /casad[ao][\s\S]{0,70}(\d{1,2}\/\d{1,2}\/\d{4}|\d{1,2}\s+de\s+[a-zÀ-ÿ]+\s+de\s+\d{4})/i;
+    const marriageDateMatch = text.match(marriageDatePattern);
+    if (marriageDateMatch && marriageDateMatch[1]) {
+      extractedData['dataCasamento'] = marriageDateMatch[1];
+    } else if (dateMatches.length > 2 && !extractedData['dataCasamento']) {
+      extractedData['dataCasamento'] = dateMatches[2];
+    }
+    
+    // Certificate dates
+    if (dateMatches.length > 3 && !extractedData['dataCertidaoCasamento']) {
+      extractedData['dataCertidaoCasamento'] = dateMatches[3];
+    }
+    
+    if (dateMatches.length > 4 && !extractedData['dataExpedicaoCertidaoObito']) {
+      extractedData['dataExpedicaoCertidaoObito'] = dateMatches[4];
+    }
+  }
+}
+
+// Extract addresses from text
+function extractAddresses(text: string, extractedData: { [key: string]: any }): void {
+  // General address pattern
+  const addressPattern = /(?:residente|domiciliado|endereço)[^\n,;]+((?:[A-Z][a-zÀ-ÿ]+[\s,]*)+(?:\d+)?[^\n;]*)/gi;
+  const addressMatches = text.match(addressPattern);
+  
+  if (addressMatches && addressMatches.length > 0) {
+    extractedData['endereco'] = addressMatches[0].replace(/(?:residente|domiciliado|endereço)[^\n,;]+/i, '').trim();
+    
+    if (addressMatches.length > 1 && !extractedData['enderecoConjuge']) {
+      extractedData['enderecoConjuge'] = addressMatches[1].replace(/(?:residente|domiciliado|endereço)[^\n,;]+/i, '').trim();
+    }
+  }
+}
+
+// Extract property details from text
+function extractPropertyDetails(text: string, extractedData: { [key: string]: any }): void {
+  // Apartment number
+  const aptNumberPattern = /(?:apartamento|apto)[\s\.]*(?:n[º°]?\.?)?[\s\.]*(\d+)/i;
+  const aptNumberMatch = text.match(aptNumberPattern);
+  if (aptNumberMatch && aptNumberMatch[1]) {
+    extractedData['numeroApartamento'] = aptNumberMatch[1];
+  }
+  
+  // Block
+  const blockPattern = /(?:bloco|bl)[\s\.]*["']?([A-Z0-9]+)["']?/i;
+  const blockMatch = text.match(blockPattern);
+  if (blockMatch && blockMatch[1]) {
+    extractedData['blocoApartamento'] = blockMatch[1];
+  }
+  
+  // Location (quadra)
+  const locationPattern = /(?:quadra|sqn|sqs|qn|qs|qi|qd)[\s\.]*(\d+)/i;
+  const locationMatch = text.match(locationPattern);
+  if (locationMatch && locationMatch[1]) {
+    extractedData['quadraApartamento'] = `Quadra ${locationMatch[1]}`;
+  }
+  
+  // More specific location details for SQS/SQN/QI formats
+  const brasiliaSectorPattern = /(SQS|SQN|SQSW|SQNW|QI|QL)[\s\.]*(\d+)[\s\.,]*(?:Bloco|Bl\.?)[\s\.]*["']?([A-Z0-9]+)["']?/i;
+  const brasiliaSectorMatch = text.match(brasiliaSectorPattern);
+  if (brasiliaSectorMatch) {
+    const [_, sector, number, block] = brasiliaSectorMatch;
+    if (!extractedData['quadraApartamento']) {
+      extractedData['quadraApartamento'] = `${sector} ${number}`;
+    }
+    if (!extractedData['blocoApartamento']) {
+      extractedData['blocoApartamento'] = block;
+    }
+  }
+  
+  // Property additional description
+  const descriptionPattern = /(?:com|tendo)[\s\.]*((?:vaga|garagem|depósito|área)[\s\S]{5,100}?)(?:[,\.\n])/i;
+  const descriptionMatch = text.match(descriptionPattern);
+  if (descriptionMatch && descriptionMatch[1]) {
+    extractedData['descricaoAdicionalImovel'] = descriptionMatch[1].trim();
+  }
+}
+
+// Extract document IDs and registration numbers
+function extractDocumentIDs(text: string, extractedData: { [key: string]: any }): void {
+  // Property registration
+  const registrationPattern = /matrícula[\s\.]*(?:n[º°]?\.?)?[\s\.]*(\d[\d\.\-\/]+)/i;
+  const registrationMatch = text.match(registrationPattern);
+  if (registrationMatch && registrationMatch[1]) {
+    extractedData['matriculaImovel'] = registrationMatch[1];
+  }
+  
+  // Marriage certificate
+  const marriageRegPattern = /certidão[\s\.]de[\s\.]casamento[\s\S]{0,100}matrícula[\s\.]*(?:n[º°]?\.?)?[\s\.]*(\d[\d\.\-\/]+)/i;
+  const marriageRegMatch = text.match(marriageRegPattern);
+  if (marriageRegMatch && marriageRegMatch[1]) {
+    extractedData['matriculaCasamento'] = marriageRegMatch[1];
+  }
+  
+  // Death certificate
+  const deathRegPattern = /certidão[\s\.]de[\s\.]óbito[\s\S]{0,100}matrícula[\s\.]*(?:n[º°]?\.?)?[\s\.]*(\d[\d\.\-\/]+)/i;
+  const deathRegMatch = text.match(deathRegPattern);
+  if (deathRegMatch && deathRegMatch[1]) {
+    extractedData['matriculaObito'] = deathRegMatch[1];
+  }
+  
+  // GDF registration
+  const gdfPattern = /GDF[\s\.]*(?:sob[\s\.](?:o|nº))?[\s\.]*(\d[\d\.\-\/]+)/i;
+  const gdfMatch = text.match(gdfPattern);
+  if (gdfMatch && gdfMatch[1]) {
+    extractedData['inscricaoGDF'] = gdfMatch[1];
+  }
+  
+  // ITCMD
+  const itcmdPattern = /ITCMD[\s\.]*(?:n[º°]?\.?)?[\s\.]*(\d[\d\.\-\/]+)/i;
+  const itcmdMatch = text.match(itcmdPattern);
+  if (itcmdMatch && itcmdMatch[1]) {
+    extractedData['numeroITCMD'] = itcmdMatch[1];
+  }
+  
+  // CNIB hash
+  const hashPattern = /hash[\s:]*(?:n[º°]?\.?)?[\s:]*([A-Za-z0-9]+)/i;
+  const hashMatch = text.match(hashPattern);
+  if (hashMatch && hashMatch[1]) {
+    extractedData['hashCNIB'] = hashMatch[1];
+  }
+  
+  // Registry Office (Cartório)
+  const registryPattern = /(?:Cartório|Serventia|Ofício)[\s:]+((?:[^,;.\n]+))/i;
+  const registryMatch = text.match(registryPattern);
+  if (registryMatch && registryMatch[1]) {
+    extractedData['cartorioImovel'] = registryMatch[1].trim();
+  }
+  
+  // Marriage Registry Office
+  const marriageRegistryPattern = /certidão[\s\.]de[\s\.]casamento[\s\S]{0,100}(?:Cartório|Serventia|Ofício)[\s:]+((?:[^,;.\n]+))/i;
+  const marriageRegistryMatch = text.match(marriageRegistryPattern);
+  if (marriageRegistryMatch && marriageRegistryMatch[1]) {
+    extractedData['cartorioCasamento'] = marriageRegistryMatch[1].trim();
+  } else if (registryMatch && !extractedData['cartorioCasamento']) {
+    extractedData['cartorioCasamento'] = registryMatch[1].trim();
+  }
+  
+  // Death Registry Office
+  const deathRegistryPattern = /certidão[\s\.]de[\s\.]óbito[\s\S]{0,100}(?:Cartório|Serventia|Ofício)[\s:]+((?:[^,;.\n]+))/i;
+  const deathRegistryMatch = text.match(deathRegistryPattern);
+  if (deathRegistryMatch && deathRegistryMatch[1]) {
+    extractedData['cartorioObito'] = deathRegistryMatch[1].trim();
+  } else if (registryMatch && !extractedData['cartorioObito']) {
+    extractedData['cartorioObito'] = registryMatch[1].trim();
+  }
+}
+
+// Extract financial data from text
+function extractFinancialData(text: string, extractedData: { [key: string]: any }): void {
+  // Financial values (money)
+  const moneyPattern = /R\$\s*([\d\.,]+)/g;
+  const moneyMatches = text.matchAll(moneyPattern);
+  
+  let valueCounter = 0;
+  const financialValues: string[] = [];
+  
+  for (const match of moneyMatches) {
+    financialValues.push(match[1]);
+  }
+  
+  // If we have financial values, assign them to specific fields
+  if (financialValues.length > 0) {
+    // Total property value
+    extractedData['valorTotalBens'] = `R$ ${financialValues[0]}`;
+    
+    try {
+      // Calculate related values
+      const cleanValue = financialValues[0].replace(/\./g, '').replace(',', '.');
+      const numValue = parseFloat(cleanValue);
+      
+      if (!isNaN(numValue)) {
+        // Meação (half share)
+        const meacao = numValue / 2;
+        extractedData['valorTotalMeacao'] = `R$ ${meacao.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+        
+        // Count number of heirs
+        let numHerdeiros = 0;
+        for (let i = 1; i <= 10; i++) {
+          if (extractedData[`herdeiro${i}`]) numHerdeiros++;
+        }
+        
+        if (numHerdeiros === 0) numHerdeiros = 1;
+        extractedData['numeroFilhos'] = String(numHerdeiros);
+        
+        // Per-heir amount
+        const valorPorHerdeiro = meacao / numHerdeiros;
+        extractedData['valorUnitarioHerdeiros'] = `R$ ${valorPorHerdeiro.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+        extractedData['percentualHerdeiros'] = `${(50 / numHerdeiros).toFixed(2)}%`;
+      }
+    } catch (error) {
+      console.warn("Error calculating financial values:", error);
+    }
+    
+    // ITCMD value
+    if (financialValues.length > 1) {
+      extractedData['valorITCMD'] = `R$ ${financialValues[1]}`;
+      
+      // Look for specific ITCMD context
+      const itcmdValuePattern = /ITCMD[\s\S]{0,50}R\$\s*([\d\.,]+)/i;
+      const itcmdValueMatch = text.match(itcmdValuePattern);
+      if (itcmdValueMatch && itcmdValueMatch[1]) {
+        extractedData['valorITCMD'] = `R$ ${itcmdValueMatch[1]}`;
+      }
+    }
+  }
+}
+
+// Extract specific roles from text
+function extractSpecialRoles(text: string, extractedData: { [key: string]: any }): void {
+  // Marital property regime
+  const regimePattern = /regime\s+de\s+(?:bens)?\s*(?:d[eo])?\s*([a-zÀ-ÿ\s]+)(?:de bens)?/i;
+  const regimeMatch = text.match(regimePattern);
+  if (regimeMatch && regimeMatch[1]) {
+    extractedData['regimeBens'] = regimeMatch[1].trim();
+  }
+  
+  // Hospital
+  const hospitalPattern = /(?:Hospital|Instituição|Casa de Saúde)[\s:]+((?:[A-Z][a-zÀ-ÿ]+[\s]*)+)/i;
+  const hospitalMatch = text.match(hospitalPattern);
+  if (hospitalMatch && hospitalMatch[1]) {
+    extractedData['hospitalFalecimento'] = hospitalMatch[1].trim();
+  }
+  
+  // City/location
+  const cidadePattern = /(?:cidade|município)[\s:]+((?:[A-Z][a-zÀ-ÿ]+[\s]*)+)/i;
+  const cidadeMatch = text.match(cidadePattern);
+  if (cidadeMatch && cidadeMatch[1]) {
+    extractedData['cidadeFalecimento'] = cidadeMatch[1].trim();
+  } else if (!extractedData['cidadeFalecimento']) {
+    extractedData['cidadeFalecimento'] = 'Brasília'; // Default to Brasília
+  }
+  
+  // OAB registration (for lawyers)
+  const oabPattern = /(?:OAB|Ordem dos Advogados)[\s\/\-\.nº:]*(\d+)/i;
+  const oabMatch = text.match(oabPattern);
+  if (oabMatch && oabMatch[1]) {
+    extractedData['oabAdvogado'] = oabMatch[1];
+  }
+}
+
+// Fill missing fields with default values
+function fillMissingFields(extractedData: { [key: string]: any }): void {
+  // If we're missing the deceased name but have an heir or spouse
+  if ((!extractedData['falecido'] || extractedData['falecido'] === 'Não identificado') && 
+      (extractedData['herdeiro1'] || extractedData['conjuge'])) {
+    // Try once more with a broader pattern
+    if (extractedData['conjuge']) {
+      extractedData['falecido'] = 'Autor da Herança (cônjuge de ' + extractedData['conjuge'] + ')';
+    } else {
+      extractedData['falecido'] = 'Autor da Herança';
+    }
+  }
+  
+  // Default inventariante if not found (typically spouse)
+  if (!extractedData['inventariante'] && extractedData['conjuge']) {
+    extractedData['inventariante'] = extractedData['conjuge'];
+  } else if (!extractedData['inventariante'] && extractedData['viuvoMeeiro']) {
+    extractedData['inventariante'] = extractedData['viuvoMeeiro'];
+  } else if (!extractedData['inventariante'] && extractedData['herdeiro1']) {
+    extractedData['inventariante'] = extractedData['herdeiro1'];
+  }
+  
+  // If there's a viuvoMeeiro but no conjuge, copy the value
+  if (extractedData['viuvoMeeiro'] && !extractedData['conjuge']) {
+    extractedData['conjuge'] = extractedData['viuvoMeeiro'];
+  }
+  
+  // If there's no hospital information
+  if (!extractedData['hospitalFalecimento']) {
+    extractedData['hospitalFalecimento'] = 'Hospital local';
+  }
+  
+  // Default marital regime
+  if (!extractedData['regimeBens']) {
+    extractedData['regimeBens'] = 'comunhão parcial de bens';
+  }
+  
+  // Basic date if missing
+  if (!extractedData['data']) {
+    const today = new Date();
+    extractedData['data'] = today.toLocaleDateString('pt-BR');
+  }
+}
+
+// Updated document content generation with improved data insertion and order
 export function generateDocumentContent(documentType: DraftType, extractedData: { [key: string]: any }): string {
   switch (documentType) {
     case 'Inventário':
@@ -432,17 +720,17 @@ export function generateDocumentContent(documentType: DraftType, extractedData: 
 Federal, Capital da República Federativa do Brasil, nesta Serventia, perante
 mim, Escrevente, compareceram como Outorgantes e reciprocamente
 Outorgados, na qualidade de viúvo(a)-meeiro(a):</p>
-<p>${extractedData['conjuge'] || extractedData['viuvoMeeiro'] || '====='}</p>
+<p>${extractedData['conjuge'] || extractedData['viuvoMeeiro'] || '====='}, ${extractedData['nacionalidade'] || 'brasileiro(a)'}, ${extractedData['estadoCivil'] || 'viúvo(a)'}, ${extractedData['profissao'] || 'aposentado(a)'}, portador(a) da cédula de identidade RG nº ${extractedData['rgConjuge'] || extractedData['rg'] || '====='}, inscrito(a) no CPF/MF sob nº ${extractedData['cpfConjuge'] || extractedData['cpf'] || '====='}, residente e domiciliado(a) ${extractedData['enderecoConjuge'] || extractedData['endereco'] || '====='}</p>
 
 <p>e, na qualidade de herdeiros-filhos:</p>
-<p>${extractedData['herdeiro1'] || '====='}</p>
-${extractedData['herdeiro2'] ? `<p>${extractedData['herdeiro2']}</p>` : ''}
-${extractedData['herdeiro3'] ? `<p>${extractedData['herdeiro3']}</p>` : ''}
-${extractedData['herdeiro4'] ? `<p>${extractedData['herdeiro4']}</p>` : ''}
-${extractedData['herdeiro5'] ? `<p>${extractedData['herdeiro5']}</p>` : ''}
+<p>${extractedData['herdeiro1'] || '====='}, ${extractedData['nacionalidade'] || 'brasileiro(a)'}, ${extractedData['estadoCivilHerdeiro1'] || 'maior e capaz'}, ${extractedData['profissaoHerdeiro1'] || 'profissão não informada'}, portador(a) da cédula de identidade RG nº ${extractedData['rgHerdeiro1'] || '====='}, inscrito(a) no CPF/MF sob nº ${extractedData['cpfHerdeiro1'] || '====='}, residente e domiciliado(a) ${extractedData['enderecoHerdeiro1'] || extractedData['endereco'] || '====='}</p>
+${extractedData['herdeiro2'] ? `<p>${extractedData['herdeiro2']}, ${extractedData['nacionalidade'] || 'brasileiro(a)'}, ${extractedData['estadoCivilHerdeiro2'] || 'maior e capaz'}, ${extractedData['profissaoHerdeiro2'] || 'profissão não informada'}, portador(a) da cédula de identidade RG nº ${extractedData['rgHerdeiro2'] || '====='}, inscrito(a) no CPF/MF sob nº ${extractedData['cpfHerdeiro2'] || '====='}, residente e domiciliado(a) ${extractedData['enderecoHerdeiro2'] || extractedData['endereco'] || '====='}</p>` : ''}
+${extractedData['herdeiro3'] ? `<p>${extractedData['herdeiro3']}, ${extractedData['nacionalidade'] || 'brasileiro(a)'}, ${extractedData['estadoCivilHerdeiro3'] || 'maior e capaz'}, ${extractedData['profissaoHerdeiro3'] || 'profissão não informada'}, portador(a) da cédula de identidade RG nº ${extractedData['rgHerdeiro3'] || '====='}, inscrito(a) no CPF/MF sob nº ${extractedData['cpfHerdeiro3'] || '====='}, residente e domiciliado(a) ${extractedData['enderecoHerdeiro3'] || extractedData['endereco'] || '====='}</p>` : ''}
+${extractedData['herdeiro4'] ? `<p>${extractedData['herdeiro4']}, ${extractedData['nacionalidade'] || 'brasileiro(a)'}, ${extractedData['estadoCivilHerdeiro4'] || 'maior e capaz'}, ${extractedData['profissaoHerdeiro4'] || 'profissão não informada'}, portador(a) da cédula de identidade RG nº ${extractedData['rgHerdeiro4'] || '====='}, inscrito(a) no CPF/MF sob nº ${extractedData['cpfHerdeiro4'] || '====='}, residente e domiciliado(a) ${extractedData['enderecoHerdeiro4'] || extractedData['endereco'] || '====='}</p>` : ''}
+${extractedData['herdeiro5'] ? `<p>${extractedData['herdeiro5']}, ${extractedData['nacionalidade'] || 'brasileiro(a)'}, ${extractedData['estadoCivilHerdeiro5'] || 'maior e capaz'}, ${extractedData['profissaoHerdeiro5'] || 'profissão não informada'}, portador(a) da cédula de identidade RG nº ${extractedData['rgHerdeiro5'] || '====='}, inscrito(a) no CPF/MF sob nº ${extractedData['cpfHerdeiro5'] || '====='}, residente e domiciliado(a) ${extractedData['enderecoHerdeiro5'] || extractedData['endereco'] || '====='}</p>` : ''}
 
 <p>e, na qualidade de advogado:</p>
-<p>${extractedData['advogado'] || '====='}</p>
+<p>${extractedData['advogado'] || '====='}, ${extractedData['nacionalidade'] || 'brasileiro(a)'}, advogado(a) inscrito(a) na OAB sob nº ${extractedData['oabAdvogado'] || '====='}</p>
 
 <p>Todos os presentes foram reconhecidos e identificados como os próprios de que
 trato, pelos documentos apresentados, cuja capacidade jurídica reconheço e dou
@@ -598,3 +886,4 @@ ${extractedData['numeroITCMD'] || '==='}, no valor de ${extractedData['valorITCM
       return `<h1>${documentType}</h1><p>Tipo de documento não suportado.</p>`;
   }
 }
+
