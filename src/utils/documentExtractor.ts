@@ -1,91 +1,145 @@
-
 import { DraftType } from '@/types';
 import { identifyPartiesAndRoles } from './partyIdentifier';
 
 // Function to extract text from PDF files
 async function extractTextFromPDF(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = async function () {
-      try {
-        const typedArray = new Uint8Array(reader.result as ArrayBuffer);
-        const pdfjsLib = await import('pdfjs-dist');
-        pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.js`;
-        const pdfDocument = await pdfjsLib.getDocument(typedArray).promise;
+    try {
+      const reader = new FileReader();
+      reader.onload = async function () {
+        try {
+          if (!reader.result) {
+            throw new Error("File reader returned empty result");
+          }
+          
+          const typedArray = new Uint8Array(reader.result as ArrayBuffer);
+          const pdfjsLib = await import('pdfjs-dist');
+          pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.js`;
+          
+          try {
+            const pdfDocument = await pdfjsLib.getDocument(typedArray).promise;
 
-        let fullText = '';
-        for (let pageNum = 1; pageNum <= pdfDocument.numPages; pageNum++) {
-          const page = await pdfDocument.getPage(pageNum);
-          const textContent = await page.getTextContent();
-          const pageText = textContent.items
-            .map(item => {
-              // Check if the item has a 'str' property before accessing it
-              return 'str' in item ? (item as any).str : '';
-            })
-            .join(' ');
-          fullText += pageText + '\n';
+            let fullText = '';
+            for (let pageNum = 1; pageNum <= pdfDocument.numPages; pageNum++) {
+              try {
+                const page = await pdfDocument.getPage(pageNum);
+                const textContent = await page.getTextContent();
+                const pageText = textContent.items
+                  .map(item => {
+                    // Check if the item has a 'str' property before accessing it
+                    return 'str' in item ? (item as any).str : '';
+                  })
+                  .join(' ');
+                fullText += pageText + '\n';
+              } catch (pageError) {
+                console.error(`Error extracting text from page ${pageNum}:`, pageError);
+                // Continue with other pages even if one fails
+              }
+            }
+            resolve(fullText || ""); // Ensure we at least return an empty string
+          } catch (pdfError) {
+            console.error("Error processing PDF document:", pdfError);
+            // Return empty string rather than rejecting to allow processing to continue
+            resolve("");
+          }
+        } catch (error) {
+          console.error("Error extracting text from PDF:", error);
+          // Return empty string rather than rejecting to allow processing to continue
+          resolve("");
         }
-        resolve(fullText);
-      } catch (error) {
-        console.error("Error extracting text from PDF:", error);
-        reject(error);
-      }
-    };
-    reader.onerror = (error) => {
-      console.error("Error reading PDF file:", error);
-      reject(error);
-    };
-    reader.readAsArrayBuffer(file);
+      };
+      reader.onerror = (error) => {
+        console.error("Error reading PDF file:", error);
+        // Return empty string rather than rejecting to allow processing to continue
+        resolve("");
+      };
+      reader.readAsArrayBuffer(file);
+    } catch (error) {
+      console.error("Unexpected error reading PDF file:", error);
+      resolve("");
+    }
   });
 }
 
 // Function to extract text from image files using OCR
 async function extractTextFromImage(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = async function () {
-      try {
-        const Tesseract = await import('tesseract.js');
-        const { data: { text } } = await Tesseract.recognize(
-          reader.result as string,
-          'por', // Use Portuguese language
-          { logger: m => console.log(m) }
-        );
-        resolve(text);
-      } catch (error) {
-        console.error("Error extracting text from image:", error);
-        reject(error);
-      }
-    };
-    reader.onerror = (error) => {
-      console.error("Error reading image file:", error);
-      reject(error);
-    };
-    reader.readAsDataURL(file);
+  return new Promise((resolve) => {
+    try {
+      const reader = new FileReader();
+      reader.onload = async function () {
+        try {
+          if (!reader.result) {
+            console.error("File reader returned empty result for image");
+            resolve("");
+            return;
+          }
+          
+          const Tesseract = await import('tesseract.js');
+          try {
+            const { data: { text } } = await Tesseract.recognize(
+              reader.result as string,
+              'por', // Use Portuguese language
+              { logger: m => console.log(m) }
+            );
+            resolve(text || "");
+          } catch (ocrError) {
+            console.error("Error during OCR processing:", ocrError);
+            resolve("");
+          }
+        } catch (error) {
+          console.error("Error extracting text from image:", error);
+          resolve("");
+        }
+      };
+      reader.onerror = (error) => {
+        console.error("Error reading image file:", error);
+        resolve("");
+      };
+      reader.readAsDataURL(file);
+    } catch (error) {
+      console.error("Unexpected error reading image file:", error);
+      resolve("");
+    }
   });
 }
 
 // Function to extract text from DOCX files
 async function extractTextFromDOCX(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = async function (e) {
-      try {
-        // Import mammoth module properly
-        const mammoth = await import('mammoth');
-        const arrayBuffer = e.target?.result as ArrayBuffer;
-        const { value } = await mammoth.extractRawText({ arrayBuffer: arrayBuffer });
-        resolve(value);
-      } catch (error) {
-        console.error("Error extracting text from DOCX:", error);
-        reject(error);
-      }
-    };
-    reader.onerror = (error) => {
-      console.error("Error reading DOCX file:", error);
-      reject(error);
-    };
-    reader.readAsArrayBuffer(file);
+  return new Promise((resolve) => {
+    try {
+      const reader = new FileReader();
+      reader.onload = async function (e) {
+        try {
+          if (!e.target?.result) {
+            console.error("File reader returned empty result for DOCX");
+            resolve("");
+            return;
+          }
+          
+          // Import mammoth module properly
+          const mammoth = await import('mammoth');
+          try {
+            const arrayBuffer = e.target.result as ArrayBuffer;
+            const { value } = await mammoth.extractRawText({ arrayBuffer: arrayBuffer });
+            resolve(value || "");
+          } catch (mammothError) {
+            console.error("Error extracting text with mammoth:", mammothError);
+            resolve("");
+          }
+        } catch (error) {
+          console.error("Error extracting text from DOCX:", error);
+          resolve("");
+        }
+      };
+      reader.onerror = (error) => {
+        console.error("Error reading DOCX file:", error);
+        resolve("");
+      };
+      reader.readAsArrayBuffer(file);
+    } catch (error) {
+      console.error("Unexpected error reading DOCX file:", error);
+      resolve("");
+    }
   });
 }
 
@@ -99,30 +153,49 @@ export async function extractDataFromFiles(files: File[]): Promise<{ [key: strin
   try {
     console.log('Iniciando extração de dados de', files.length, 'arquivo(s)');
     
+    if (!files || files.length === 0) {
+      console.warn('Nenhum arquivo para processar');
+      return extractedData;
+    }
+    
     // Process each file
     for (const file of files) {
+      if (!file) {
+        console.warn('Arquivo inválido encontrado na lista');
+        continue;
+      }
+      
       console.log('Processando arquivo:', file.name, 'tipo:', file.type);
       
       // Extract text content from the file based on its type
       let textContent = '';
       
-      if (file.type === 'application/pdf') {
-        // PDF processing
-        textContent = await extractTextFromPDF(file);
-      } else if (file.type.includes('image')) {
-        // Image processing
-        textContent = await extractTextFromImage(file);
-      } else if (file.type.includes('document')) {
-        // Document processing
-        textContent = await extractTextFromDOCX(file);
-      }
-      
-      if (textContent) {
-        console.log('Texto extraído com sucesso do arquivo:', file.name);
-        console.log('Analisando conteúdo para extração de dados...');
+      try {
+        if (file.type === 'application/pdf') {
+          // PDF processing
+          textContent = await extractTextFromPDF(file);
+        } else if (file.type.includes('image')) {
+          // Image processing
+          textContent = await extractTextFromImage(file);
+        } else if (file.type.includes('document') || file.name.endsWith('.docx')) {
+          // Document processing
+          textContent = await extractTextFromDOCX(file);
+        } else {
+          console.warn(`Tipo de arquivo não suportado: ${file.type}`);
+        }
         
-        // Extract basic data points
-        extractDataPoints(textContent, extractedData);
+        if (textContent) {
+          console.log('Texto extraído com sucesso do arquivo:', file.name);
+          console.log('Analisando conteúdo para extração de dados...');
+          
+          // Extract basic data points
+          extractDataPoints(textContent, extractedData);
+        } else {
+          console.warn(`Nenhum texto extraído do arquivo: ${file.name}`);
+        }
+      } catch (fileProcessError) {
+        console.error(`Erro ao processar arquivo ${file.name}:`, fileProcessError);
+        // Continue with other files
       }
     }
     

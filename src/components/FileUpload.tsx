@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { Upload, File, X } from 'lucide-react';
@@ -21,11 +22,27 @@ const FileUpload: React.FC<FileUploadProps> = ({ onUploadComplete, status }) => 
     'image/png'
   ];
 
+  const isAcceptedFileType = (file: File): boolean => {
+    // Check both mimetype and file extension
+    const isAcceptedMimetype = acceptedTypes.includes(file.type as AcceptedFileTypes);
+    
+    // Check file extension as a fallback
+    const filename = file.name.toLowerCase();
+    const isAcceptedExtension = 
+      filename.endsWith('.pdf') || 
+      filename.endsWith('.docx') || 
+      filename.endsWith('.jpg') || 
+      filename.endsWith('.jpeg') || 
+      filename.endsWith('.png');
+    
+    return isAcceptedMimetype || isAcceptedExtension;
+  };
+
   const handleFileChange = useCallback((selectedFiles: FileList | null) => {
     if (!selectedFiles) return;
 
     const newFiles: File[] = Array.from(selectedFiles).filter(file => {
-      const isAccepted = acceptedTypes.includes(file.type as AcceptedFileTypes);
+      const isAccepted = isAcceptedFileType(file);
       if (!isAccepted) {
         toast({
           title: "Formato não suportado",
