@@ -1,6 +1,7 @@
 
 import React from 'react';
 import { UploadStatus } from '@/types';
+import { FileText, RefreshCw, CheckCircle, XCircle } from 'lucide-react';
 
 interface StatusIndicatorProps {
   status: UploadStatus;
@@ -26,8 +27,17 @@ const StatusIndicator: React.FC<StatusIndicatorProps> = ({ status }) => {
 
   return (
     <div className="flex items-center space-x-2">
-      {(status === 'uploading' || status === 'processing') && (
-        <div className="animate-spin h-4 w-4 border-2 border-foreground rounded-full border-t-transparent"></div>
+      {status === 'uploading' && (
+        <RefreshCw className="h-4 w-4 animate-spin" />
+      )}
+      {status === 'processing' && (
+        <FileText className="h-4 w-4 animate-pulse" />
+      )}
+      {status === 'success' && (
+        <CheckCircle className="h-4 w-4 text-green-500" />
+      )}
+      {status === 'error' && (
+        <XCircle className="h-4 w-4 text-red-500" />
       )}
       <span>{getMessage()}</span>
     </div>

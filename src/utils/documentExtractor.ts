@@ -1,61 +1,113 @@
+
 import { DraftType } from '@/types';
 import { identifyPartiesAndRoles } from './partyIdentifier';
 
 // Function to extract text from PDF files
 async function extractTextFromPDF(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
+  return new Promise((resolve) => {
     try {
       const reader = new FileReader();
+      
       reader.onload = async function () {
         try {
           if (!reader.result) {
-            throw new Error("File reader returned empty result");
+            console.warn("File reader returned empty result");
+            resolve("");
+            return;
           }
           
-          const typedArray = new Uint8Array(reader.result as ArrayBuffer);
-          const pdfjsLib = await import('pdfjs-dist');
-          pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.js`;
-          
           try {
-            const pdfDocument = await pdfjsLib.getDocument(typedArray).promise;
-
-            let fullText = '';
-            for (let pageNum = 1; pageNum <= pdfDocument.numPages; pageNum++) {
-              try {
-                const page = await pdfDocument.getPage(pageNum);
-                const textContent = await page.getTextContent();
-                const pageText = textContent.items
-                  .map(item => {
-                    // Check if the item has a 'str' property before accessing it
-                    return 'str' in item ? (item as any).str : '';
-                  })
-                  .join(' ');
-                fullText += pageText + '\n';
-              } catch (pageError) {
-                console.error(`Error extracting text from page ${pageNum}:`, pageError);
-                // Continue with other pages even if one fails
-              }
+            const typedArray = new Uint8Array(reader.result as ArrayBuffer);
+            const pdfjsLib = await import('pdfjs-dist');
+            
+            // Set worker source with a try/catch
+            try {
+              pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.js`;
+            } catch (workerError) {
+              console.warn("Error setting PDF.js worker:", workerError);
+              // Continue anyway - the default worker might work
             }
-            resolve(fullText || ""); // Ensure we at least return an empty string
-          } catch (pdfError) {
-            console.error("Error processing PDF document:", pdfError);
-            // Return empty string rather than rejecting to allow processing to continue
+            
+            try {
+              // Use a timeout to prevent infinite processing
+              const timeoutPromise = new Promise<string>((_, reject) => {
+                setTimeout(() => reject(new Error("PDF processing timeout")), 30000);
+              });
+              
+              const processingPromise = new Promise<string>(async (resolveProcessing) => {
+                try {
+                  const loadingTask = pdfjsLib.getDocument(typedArray);
+                  const pdfDocument = await loadingTask.promise;
+                  
+                  let fullText = '';
+                  const maxPages = Math.min(pdfDocument.numPages, 20); // Limit to 20 pages for performance
+                  
+                  for (let pageNum = 1; pageNum <= maxPages; pageNum++) {
+                    try {
+                      const page = await pdfDocument.getPage(pageNum);
+                      const textContent = await page.getTextContent();
+                      const pageText = textContent.items
+                        .map(item => 'str' in item ? (item as any).str : '')
+                        .join(' ');
+                      fullText += pageText + '\n';
+                    } catch (pageError) {
+                      console.warn(`Error extracting text from page ${pageNum}:`, pageError);
+                      // Continue with other pages
+                    }
+                  }
+                  resolveProcessing(fullText || "");
+                } catch (error) {
+                  console.warn("PDF processing error:", error);
+                  resolveProcessing("");
+                }
+              });
+              
+              // Race between timeout and processing
+              const result = await Promise.race([processingPromise, timeoutPromise])
+                .catch(error => {
+                  console.warn("PDF extraction timed out or failed:", error);
+                  return "";
+                });
+              
+              resolve(result);
+            } catch (pdfError) {
+              console.warn("Error processing PDF document:", pdfError);
+              resolve("");
+            }
+          } catch (importError) {
+            console.warn("Error importing PDF.js:", importError);
             resolve("");
           }
         } catch (error) {
-          console.error("Error extracting text from PDF:", error);
-          // Return empty string rather than rejecting to allow processing to continue
+          console.warn("Error in PDF reader onload:", error);
           resolve("");
         }
       };
+      
       reader.onerror = (error) => {
-        console.error("Error reading PDF file:", error);
-        // Return empty string rather than rejecting to allow processing to continue
+        console.warn("Error reading PDF file:", error);
         resolve("");
       };
-      reader.readAsArrayBuffer(file);
+      
+      // Set a timeout for the overall file reading process
+      const timeoutId = setTimeout(() => {
+        console.warn("PDF file reading timed out");
+        resolve("");
+      }, 10000);
+      
+      reader.onloadend = () => {
+        clearTimeout(timeoutId);
+      };
+      
+      try {
+        reader.readAsArrayBuffer(file);
+      } catch (readError) {
+        console.warn("Error calling readAsArrayBuffer:", readError);
+        clearTimeout(timeoutId);
+        resolve("");
+      }
     } catch (error) {
-      console.error("Unexpected error reading PDF file:", error);
+      console.warn("Unexpected error in extractTextFromPDF:", error);
       resolve("");
     }
   });
@@ -66,38 +118,67 @@ async function extractTextFromImage(file: File): Promise<string> {
   return new Promise((resolve) => {
     try {
       const reader = new FileReader();
+      
       reader.onload = async function () {
         try {
           if (!reader.result) {
-            console.error("File reader returned empty result for image");
+            console.warn("File reader returned empty result for image");
             resolve("");
             return;
           }
           
-          const Tesseract = await import('tesseract.js');
           try {
-            const { data: { text } } = await Tesseract.recognize(
-              reader.result as string,
-              'por', // Use Portuguese language
-              { logger: m => console.log(m) }
-            );
-            resolve(text || "");
-          } catch (ocrError) {
-            console.error("Error during OCR processing:", ocrError);
+            // Set a timeout for Tesseract processing
+            const timeoutPromise = new Promise<string>((_, reject) => {
+              setTimeout(() => reject(new Error("OCR processing timeout")), 30000);
+            });
+            
+            const ocrPromise = new Promise<string>(async (resolveOcr) => {
+              try {
+                const Tesseract = await import('tesseract.js');
+                const { data: { text } } = await Tesseract.recognize(
+                  reader.result as string,
+                  'por', // Portuguese language
+                  { logger: m => console.log(m) }
+                );
+                resolveOcr(text || "");
+              } catch (ocrError) {
+                console.warn("Error during OCR processing:", ocrError);
+                resolveOcr("");
+              }
+            });
+            
+            // Race between timeout and OCR processing
+            const result = await Promise.race([ocrPromise, timeoutPromise])
+              .catch(error => {
+                console.warn("OCR timed out or failed:", error);
+                return "";
+              });
+            
+            resolve(result);
+          } catch (importError) {
+            console.warn("Error importing Tesseract:", importError);
             resolve("");
           }
         } catch (error) {
-          console.error("Error extracting text from image:", error);
+          console.warn("Error extracting text from image:", error);
           resolve("");
         }
       };
+      
       reader.onerror = (error) => {
-        console.error("Error reading image file:", error);
+        console.warn("Error reading image file:", error);
         resolve("");
       };
-      reader.readAsDataURL(file);
+      
+      try {
+        reader.readAsDataURL(file);
+      } catch (readError) {
+        console.warn("Error calling readAsDataURL:", readError);
+        resolve("");
+      }
     } catch (error) {
-      console.error("Unexpected error reading image file:", error);
+      console.warn("Unexpected error in extractTextFromImage:", error);
       resolve("");
     }
   });
@@ -108,36 +189,64 @@ async function extractTextFromDOCX(file: File): Promise<string> {
   return new Promise((resolve) => {
     try {
       const reader = new FileReader();
+      
       reader.onload = async function (e) {
         try {
           if (!e.target?.result) {
-            console.error("File reader returned empty result for DOCX");
+            console.warn("File reader returned empty result for DOCX");
             resolve("");
             return;
           }
           
-          // Import mammoth module properly
-          const mammoth = await import('mammoth');
           try {
-            const arrayBuffer = e.target.result as ArrayBuffer;
-            const { value } = await mammoth.extractRawText({ arrayBuffer: arrayBuffer });
-            resolve(value || "");
-          } catch (mammothError) {
-            console.error("Error extracting text with mammoth:", mammothError);
+            // Set a timeout for mammoth processing
+            const timeoutPromise = new Promise<string>((_, reject) => {
+              setTimeout(() => reject(new Error("DOCX processing timeout")), 20000);
+            });
+            
+            const docxPromise = new Promise<string>(async (resolveDocx) => {
+              try {
+                const mammoth = await import('mammoth');
+                const arrayBuffer = e.target.result as ArrayBuffer;
+                const { value } = await mammoth.extractRawText({ arrayBuffer: arrayBuffer });
+                resolveDocx(value || "");
+              } catch (mammothError) {
+                console.warn("Error extracting text with mammoth:", mammothError);
+                resolveDocx("");
+              }
+            });
+            
+            // Race between timeout and DOCX processing
+            const result = await Promise.race([docxPromise, timeoutPromise])
+              .catch(error => {
+                console.warn("DOCX processing timed out or failed:", error);
+                return "";
+              });
+            
+            resolve(result);
+          } catch (importError) {
+            console.warn("Error importing mammoth:", importError);
             resolve("");
           }
         } catch (error) {
-          console.error("Error extracting text from DOCX:", error);
+          console.warn("Error extracting text from DOCX:", error);
           resolve("");
         }
       };
+      
       reader.onerror = (error) => {
-        console.error("Error reading DOCX file:", error);
+        console.warn("Error reading DOCX file:", error);
         resolve("");
       };
-      reader.readAsArrayBuffer(file);
+      
+      try {
+        reader.readAsArrayBuffer(file);
+      } catch (readError) {
+        console.warn("Error calling readAsArrayBuffer for DOCX:", readError);
+        resolve("");
+      }
     } catch (error) {
-      console.error("Unexpected error reading DOCX file:", error);
+      console.warn("Unexpected error in extractTextFromDOCX:", error);
       resolve("");
     }
   });
@@ -158,8 +267,18 @@ export async function extractDataFromFiles(files: File[]): Promise<{ [key: strin
       return extractedData;
     }
     
-    // Process each file
+    // Set an overall timeout for the entire extraction process
+    const startTime = Date.now();
+    const maxProcessingTime = 45000; // 45 seconds maximum
+    
+    // Process each file with time tracking
     for (const file of files) {
+      // Check if we've exceeded the total processing time
+      if (Date.now() - startTime > maxProcessingTime) {
+        console.warn('Tempo máximo de extração excedido, interrompendo processamento');
+        break;
+      }
+      
       if (!file) {
         console.warn('Arquivo inválido encontrado na lista');
         continue;
@@ -171,17 +290,22 @@ export async function extractDataFromFiles(files: File[]): Promise<{ [key: strin
       let textContent = '';
       
       try {
-        if (file.type === 'application/pdf') {
-          // PDF processing
+        const fileType = file.type.toLowerCase();
+        const fileName = file.name.toLowerCase();
+        
+        // PDF processing
+        if (fileType === 'application/pdf' || fileName.endsWith('.pdf')) {
           textContent = await extractTextFromPDF(file);
-        } else if (file.type.includes('image')) {
-          // Image processing
+        } 
+        // Image processing
+        else if (fileType.includes('image') || /\.(jpg|jpeg|png|gif|bmp|webp)$/i.test(fileName)) {
           textContent = await extractTextFromImage(file);
-        } else if (file.type.includes('document') || file.name.endsWith('.docx')) {
-          // Document processing
+        } 
+        // Document processing
+        else if (fileType.includes('document') || fileName.endsWith('.docx') || fileName.endsWith('.doc')) {
           textContent = await extractTextFromDOCX(file);
         } else {
-          console.warn(`Tipo de arquivo não suportado: ${file.type}`);
+          console.warn(`Tipo de arquivo não suportado: ${fileType}`);
         }
         
         if (textContent) {
@@ -221,22 +345,49 @@ function extractDataPoints(text: string, extractedData: { [key: string]: any }):
     { role: 'locatário', pattern: /locatário[:\s]+([A-Z][a-zÀ-ÿ]+\s(?:[A-Z][a-zÀ-ÿ]+\s)*[A-Z][a-zÀ-ÿ]+)/i }
   ];
 
+  // Safety check for text input
+  if (!text || typeof text !== 'string') {
+    console.warn('Texto inválido recebido para extração de dados');
+    return;
+  }
+
   rolePatterns.forEach(({ role, pattern }) => {
-    const match = text.match(pattern);
-    if (match && match[1]) {
-      extractedData[role] = match[1].trim();
+    try {
+      const match = text.match(pattern);
+      if (match && match[1]) {
+        extractedData[role] = match[1].trim();
+      }
+    } catch (patternError) {
+      console.warn(`Erro ao aplicar padrão para ${role}:`, patternError);
     }
   });
 
   // Look for paragraphs that might contain multiple heirs
-  if (text.includes('herdeiro') || text.includes('Herdeiro')) {
-    const heirsParagraphMatch = text.match(/(?:herdeiros?|Herdeiros?).*?(?:\.|$)/gm);
-    if (heirsParagraphMatch) {
-      const heirsParagraph = heirsParagraphMatch.join(' ');
-      const namesMatch = heirsParagraph.match(/[A-Z][a-zÀ-ÿ]+\s(?:[A-Z][a-zÀ-ÿ]+\s)*[A-Z][a-zÀ-ÿ]+/g);
-      if (namesMatch && namesMatch.length > 0) {
-        extractedData['herdeiros'] = namesMatch.join(', ');
+  try {
+    if (text.includes('herdeiro') || text.includes('Herdeiro')) {
+      const heirsParagraphMatch = text.match(/(?:herdeiros?|Herdeiros?).*?(?:\.|$)/gm);
+      if (heirsParagraphMatch) {
+        const heirsParagraph = heirsParagraphMatch.join(' ');
+        const namesMatch = heirsParagraph.match(/[A-Z][a-zÀ-ÿ]+\s(?:[A-Z][a-zÀ-ÿ]+\s)*[A-Z][a-zÀ-ÿ]+/g);
+        if (namesMatch && namesMatch.length > 0) {
+          extractedData['herdeiros'] = namesMatch.join(', ');
+        }
       }
+    }
+  } catch (heirsError) {
+    console.warn('Erro ao extrair herdeiros:', heirsError);
+  }
+  
+  // Ensure we have at least some basic data
+  if (Object.keys(extractedData).length === 0) {
+    try {
+      // Extract any name-like patterns as a fallback
+      const namePatterns = text.match(/[A-Z][a-zÀ-ÿ]+\s(?:[A-Z][a-zÀ-ÿ]+\s)+[A-Z][a-zÀ-ÿ]+/g);
+      if (namePatterns && namePatterns.length > 0) {
+        extractedData['nome'] = namePatterns[0].trim();
+      }
+    } catch (nameError) {
+      console.warn('Erro ao extrair padrões de nome:', nameError);
     }
   }
 }

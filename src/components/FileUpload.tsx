@@ -1,7 +1,7 @@
 
 import React, { useState, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import { Upload, File, X } from 'lucide-react';
+import { Upload, File, X, AlertTriangle } from 'lucide-react';
 import { UploadStatus, AcceptedFileTypes } from '@/types';
 import StatusIndicator from './StatusIndicator';
 
@@ -13,6 +13,7 @@ interface FileUploadProps {
 const FileUpload: React.FC<FileUploadProps> = ({ onUploadComplete, status }) => {
   const [files, setFiles] = useState<File[]>([]);
   const [dragActive, setDragActive] = useState(false);
+  const [validating, setValidating] = useState(false);
   const { toast } = useToast();
 
   const acceptedTypes: AcceptedFileTypes[] = [
@@ -23,39 +24,77 @@ const FileUpload: React.FC<FileUploadProps> = ({ onUploadComplete, status }) => 
   ];
 
   const isAcceptedFileType = (file: File): boolean => {
-    // Check both mimetype and file extension
+    // If no file type is detected, check extension
+    if (!file.type) {
+      const extension = file.name.split('.').pop()?.toLowerCase();
+      return extension === 'pdf' || extension === 'docx' || 
+             extension === 'jpg' || extension === 'jpeg' || extension === 'png';
+    }
+    
+    // Check mimetype
     const isAcceptedMimetype = acceptedTypes.includes(file.type as AcceptedFileTypes);
     
-    // Check file extension as a fallback
-    const filename = file.name.toLowerCase();
-    const isAcceptedExtension = 
-      filename.endsWith('.pdf') || 
-      filename.endsWith('.docx') || 
-      filename.endsWith('.jpg') || 
-      filename.endsWith('.jpeg') || 
-      filename.endsWith('.png');
+    // If mimetype isn't matched, check extension as a fallback
+    if (!isAcceptedMimetype) {
+      const filename = file.name.toLowerCase();
+      return filename.endsWith('.pdf') || 
+             filename.endsWith('.docx') || 
+             filename.endsWith('.jpg') || 
+             filename.endsWith('.jpeg') || 
+             filename.endsWith('.png');
+    }
     
-    return isAcceptedMimetype || isAcceptedExtension;
+    return true;
   };
 
   const handleFileChange = useCallback((selectedFiles: FileList | null) => {
-    if (!selectedFiles) return;
-
-    const newFiles: File[] = Array.from(selectedFiles).filter(file => {
-      const isAccepted = isAcceptedFileType(file);
-      if (!isAccepted) {
+    if (!selectedFiles || selectedFiles.length === 0) return;
+    
+    setValidating(true);
+    
+    // Use setTimeout to prevent UI freezing during validation
+    setTimeout(() => {
+      try {
+        const newFiles: File[] = Array.from(selectedFiles).filter(file => {
+          // Check file size (limit to 10MB)
+          if (file.size > 10 * 1024 * 1024) {
+            toast({
+              title: "Arquivo muito grande",
+              description: `O arquivo ${file.name} excede o limite de 10MB.`,
+              variant: "destructive"
+            });
+            return false;
+          }
+          
+          // Check file type
+          const isAccepted = isAcceptedFileType(file);
+          if (!isAccepted) {
+            toast({
+              title: "Formato não suportado",
+              description: `O arquivo ${file.name} não é suportado. Por favor, use PDF, DOCX, JPG ou PNG.`,
+              variant: "destructive"
+            });
+            return false;
+          }
+          
+          return true;
+        });
+  
+        if (newFiles.length > 0) {
+          setFiles(prev => [...prev, ...newFiles]);
+        }
+        
+        setValidating(false);
+      } catch (error) {
+        console.error("Erro ao validar arquivos:", error);
         toast({
-          title: "Formato não suportado",
-          description: `O arquivo ${file.name} não é suportado. Por favor, use PDF, DOCX, JPG ou PNG.`,
+          title: "Erro ao processar arquivos",
+          description: "Ocorreu um erro ao validar os arquivos selecionados.",
           variant: "destructive"
         });
+        setValidating(false);
       }
-      return isAccepted;
-    });
-
-    if (newFiles.length > 0) {
-      setFiles(prev => [...prev, ...newFiles]);
-    }
+    }, 100);
   }, [toast]);
 
   const handleDrag = useCallback((e: React.DragEvent) => {
@@ -74,8 +113,12 @@ const FileUpload: React.FC<FileUploadProps> = ({ onUploadComplete, status }) => 
     e.stopPropagation();
     setDragActive(false);
     
+    if (status === 'uploading' || status === 'processing' || validating) {
+      return;
+    }
+    
     handleFileChange(e.dataTransfer.files);
-  }, [handleFileChange]);
+  }, [handleFileChange, status, validating]);
 
   const handleSubmit = useCallback(() => {
     if (files.length === 0) {
@@ -92,7 +135,10 @@ const FileUpload: React.FC<FileUploadProps> = ({ onUploadComplete, status }) => 
       description: "Seus documentos estão sendo processados para identificar partes, herdeiros e outras informações importantes.",
     });
     
-    onUploadComplete(files);
+    // Use a timeout to prevent UI freezing
+    setTimeout(() => {
+      onUploadComplete(files);
+    }, 100);
   }, [files, onUploadComplete, toast]);
 
   const removeFile = useCallback((index: number) => {
@@ -100,11 +146,15 @@ const FileUpload: React.FC<FileUploadProps> = ({ onUploadComplete, status }) => 
   }, []);
 
   const getFileIcon = (type: string) => {
-    if (type.includes('pdf')) return 'PDF';
-    if (type.includes('document')) return 'DOC';
-    if (type.includes('image')) return 'IMG';
+    if (type.includes('pdf') || type === '' && files[0]?.name.endsWith('.pdf')) return 'PDF';
+    if (type.includes('document') || type === '' && files[0]?.name.endsWith('.docx')) return 'DOC';
+    if (type.includes('image') || 
+        type === '' && (files[0]?.name.endsWith('.jpg') || files[0]?.name.endsWith('.jpeg') || files[0]?.name.endsWith('.png'))) 
+      return 'IMG';
     return 'FILE';
   };
+
+  const isDisabled = status === 'uploading' || status === 'processing' || validating;
 
   return (
     <div className="w-full max-w-3xl mx-auto">
@@ -113,19 +163,19 @@ const FileUpload: React.FC<FileUploadProps> = ({ onUploadComplete, status }) => 
           dragActive 
           ? 'border-accent bg-accent/5' 
           : 'border-muted-foreground/20 hover:border-muted-foreground/30'
-        }`}
-        onDragEnter={handleDrag}
-        onDragLeave={handleDrag}
-        onDragOver={handleDrag}
-        onDrop={handleDrop}
+        } ${isDisabled ? 'opacity-70 cursor-not-allowed' : ''}`}
+        onDragEnter={isDisabled ? undefined : handleDrag}
+        onDragLeave={isDisabled ? undefined : handleDrag}
+        onDragOver={isDisabled ? undefined : handleDrag}
+        onDrop={isDisabled ? undefined : handleDrop}
       >
         <input
           type="file"
-          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-          onChange={(e) => handleFileChange(e.target.files)}
+          className={`absolute inset-0 w-full h-full opacity-0 ${isDisabled ? 'cursor-not-allowed' : 'cursor-pointer'} z-10`}
+          onChange={(e) => !isDisabled && handleFileChange(e.target.files)}
           multiple
           accept=".pdf,.docx,.jpg,.jpeg,.png"
-          disabled={status === 'uploading' || status === 'processing'}
+          disabled={isDisabled}
         />
         
         <div className="flex flex-col items-center justify-center py-6 text-center">
@@ -134,6 +184,13 @@ const FileUpload: React.FC<FileUploadProps> = ({ onUploadComplete, status }) => 
           <p className="text-sm text-muted-foreground">
             Suporte para PDF, DOCX, JPG e PNG
           </p>
+          
+          {validating && (
+            <div className="mt-4 flex items-center gap-2 text-muted-foreground">
+              <div className="animate-spin h-4 w-4 border-2 border-current rounded-full border-t-transparent"></div>
+              <span className="text-sm">Validando arquivos...</span>
+            </div>
+          )}
         </div>
       </div>
 
@@ -153,9 +210,9 @@ const FileUpload: React.FC<FileUploadProps> = ({ onUploadComplete, status }) => 
                   <span className="text-sm truncate max-w-[300px]">{file.name}</span>
                 </div>
                 <button 
-                  onClick={() => removeFile(index)}
-                  className="text-muted-foreground hover:text-destructive"
-                  disabled={status === 'uploading' || status === 'processing'}
+                  onClick={() => !isDisabled && removeFile(index)}
+                  className={`text-muted-foreground hover:text-destructive ${isDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  disabled={isDisabled}
                   aria-label="Remover arquivo"
                 >
                   <X className="h-4 w-4" />
@@ -168,22 +225,33 @@ const FileUpload: React.FC<FileUploadProps> = ({ onUploadComplete, status }) => 
       
       <div className="mt-8 flex justify-center">
         <button
-          className="button-primary min-w-[200px] flex items-center justify-center space-x-2 py-2.5"
+          className={`button-primary min-w-[200px] flex items-center justify-center space-x-2 py-2.5 ${
+            isDisabled || files.length === 0 ? 'opacity-70 cursor-not-allowed' : ''
+          }`}
           onClick={handleSubmit}
-          disabled={files.length === 0 || status === 'uploading' || status === 'processing'}
+          disabled={files.length === 0 || isDisabled}
         >
-          {status === 'idle' && (
+          {status === 'idle' && !validating && (
             <>
               <span>Gerar Minuta com IA</span>
             </>
           )}
-          {(status === 'uploading' || status === 'processing') && (
-            <>
-              <StatusIndicator status={status} />
-            </>
+          {validating && (
+            <div className="flex items-center space-x-2">
+              <div className="animate-spin h-4 w-4 border-2 border-current rounded-full border-t-transparent"></div>
+              <span>Validando arquivos...</span>
+            </div>
           )}
-          {status === 'success' && <span>Minuta Gerada com Sucesso!</span>}
-          {status === 'error' && <span>Erro ao Processar! Tente Novamente</span>}
+          {(status === 'uploading' || status === 'processing') && !validating && (
+            <StatusIndicator status={status} />
+          )}
+          {status === 'success' && !validating && <span>Minuta Gerada com Sucesso!</span>}
+          {status === 'error' && !validating && (
+            <span className="flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4" />
+              <span>Erro ao Processar! Tente Novamente</span>
+            </span>
+          )}
         </button>
       </div>
     </div>

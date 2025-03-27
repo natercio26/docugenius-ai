@@ -3,6 +3,7 @@ import { DraftType } from '@/types';
 
 interface ExtractedData {
   [key: string]: any;
+  nome?: string;
 }
 
 // Regular expressions for identifying different types of entities
@@ -95,7 +96,7 @@ const roleIdentifiers: Record<DraftType, Record<string, RegExp[]>> = {
   }
 };
 
-// Helper to find names near role patterns
+// Helper to find names near role patterns with improved error handling
 function findNamesInContext(content: string, rolePatterns: RegExp[], windowSize: number = 100): string[] {
   if (!content || typeof content !== 'string') {
     return [];
@@ -105,9 +106,11 @@ function findNamesInContext(content: string, rolePatterns: RegExp[], windowSize:
   
   rolePatterns.forEach(pattern => {
     try {
+      // Create a new RegExp instance to avoid lastIndex issues
+      const patternCopy = new RegExp(pattern.source, pattern.flags);
+      
       let match;
-      pattern.lastIndex = 0; // Reset the regex lastIndex
-      while ((match = pattern.exec(content)) !== null) {
+      while ((match = patternCopy.exec(content)) !== null) {
         const matchIndex = match.index;
         const startContext = Math.max(0, matchIndex - windowSize);
         const endContext = Math.min(content.length, matchIndex + match[0].length + windowSize);
@@ -117,25 +120,40 @@ function findNamesInContext(content: string, rolePatterns: RegExp[], windowSize:
         try {
           // Create a new regex for each iteration to avoid lastIndex issues
           const nameRegex = new RegExp(personNamePattern);
-          const nameMatches = [...context.matchAll(nameRegex)];
+          let nameMatch;
           
-          nameMatches.forEach(nameMatch => {
-            // Avoid detecting the role mention as a name
+          // Use a safer approach to find all matches
+          const nameMatches: string[] = [];
+          while ((nameMatch = nameRegex.exec(context)) !== null) {
             if (nameMatch.index !== undefined && 
                 (nameMatch.index < windowSize || nameMatch.index > windowSize + match[0].length)) {
-              foundNames.push(nameMatch[0]);
+              nameMatches.push(nameMatch[0]);
             }
-          });
+            
+            // Prevent infinite loops
+            if (nameMatch.index === nameRegex.lastIndex) {
+              nameRegex.lastIndex++;
+            }
+          }
+          
+          // Add all found names
+          nameMatches.forEach(name => foundNames.push(name));
         } catch (regexError) {
-          console.error("Error matching names in context:", regexError);
+          console.warn("Error matching names in context:", regexError);
+        }
+        
+        // Prevent infinite loops
+        if (match.index === patternCopy.lastIndex) {
+          patternCopy.lastIndex++;
         }
       }
     } catch (patternError) {
-      console.error("Error with role pattern:", patternError);
+      console.warn("Error with role pattern:", patternError);
     }
   });
   
-  return [...new Set(foundNames)]; // Remove duplicates
+  // Remove duplicates and return
+  return [...new Set(foundNames)];
 }
 
 // Main function to identify parties and their roles in the document
@@ -158,8 +176,18 @@ export async function identifyPartiesAndRoles(
   }
   
   try {
+    // Set an overall timeout for the entire identification process
+    const startTime = Date.now();
+    const maxProcessingTime = 30000; // 30 seconds maximum
+    
     // Loop through each file to process content
     for (const file of files) {
+      // Check if we've exceeded the total processing time
+      if (Date.now() - startTime > maxProcessingTime) {
+        console.warn('Tempo máximo de identificação excedido, usando dados básicos');
+        break;
+      }
+      
       try {
         if (!file) {
           console.warn("Invalid file found in array");
@@ -194,89 +222,44 @@ export async function identifyPartiesAndRoles(
                 }
               }
             } catch (roleError) {
-              console.error(`Error processing role ${role}:`, roleError);
+              console.warn(`Error processing role ${role}:`, roleError);
             }
           }
         }
         
-        // Additional specific processing based on document type
-        try {
-          switch (documentType) {
-            case 'Inventário':
-              // Look for heirs specifically
-              if (!enhancedData['herdeiros'] && enhancedData['herdeiro']) {
-                enhancedData['herdeiros'] = enhancedData['herdeiro'];
-                delete enhancedData['herdeiro'];
-              }
+        // Ensure we at least have a 'nome' field
+        if (!enhancedData.nome && Object.keys(enhancedData).length > 0) {
+          // Use the first found name from any field
+          for (const key of Object.keys(enhancedData)) {
+            if (typeof enhancedData[key] === 'string' && enhancedData[key].match(/[A-Z][a-zÀ-ÿ]+/)) {
+              enhancedData.nome = enhancedData[key].split(',')[0].trim();
               break;
-            
-            case 'Escritura de Compra e Venda':
-              // Ensure both parties are identified
-              if (!enhancedData['Vendedor'] && enhancedData['vendedor']) {
-                enhancedData['Vendedor'] = enhancedData['vendedor'];
-              }
-              if (!enhancedData['Comprador'] && enhancedData['comprador']) {
-                enhancedData['Comprador'] = enhancedData['comprador'];
-              }
-              break;
-              
-            // Add specific processing for other document types as needed
+            }
           }
-        } catch (docTypeError) {
-          console.error("Error in document type specific processing:", docTypeError);
-        }
-        
-        // Find and add any additional entities not covered by roles
-        try {
-          const nameRegex = new RegExp(personNamePattern, 'g');
-          const allNames = [...fileContent.matchAll(nameRegex)].map(m => m[0]);
-          const uniqueNames = [...new Set(allNames)];
-          
-          if (uniqueNames.length > 0 && !enhancedData['pessoas_identificadas']) {
-            enhancedData['pessoas_identificadas'] = uniqueNames.join(', ');
-          }
-        } catch (namesError) {
-          console.error("Error extracting names:", namesError);
-        }
-        
-        // Add document numbers if found and not already present
-        try {
-          const docRegex = new RegExp(documentNumberPattern, 'g');
-          const documentNumbers = [...fileContent.matchAll(docRegex)].map(m => m[0]);
-          if (documentNumbers.length > 0 && !enhancedData['documentos']) {
-            enhancedData['documentos'] = documentNumbers.join(', ');
-          }
-        } catch (docsError) {
-          console.error("Error extracting document numbers:", docsError);
-        }
-        
-        // Add addresses if found and not already present
-        try {
-          const addrRegex = new RegExp(addressPattern, 'g');
-          const addresses = [...fileContent.matchAll(addrRegex)].map(m => m[0]);
-          if (addresses.length > 0 && !enhancedData['endereços']) {
-            enhancedData['endereços'] = addresses.join('; ');
-          }
-        } catch (addrError) {
-          console.error("Error extracting addresses:", addrError);
         }
         
       } catch (fileError) {
-        console.error(`Erro ao processar o arquivo ${file.name}:`, fileError);
+        console.warn(`Erro ao processar o arquivo ${file.name}:`, fileError);
       }
     }
   } catch (error) {
-    console.error("Error in party identification process:", error);
+    console.warn("Error in party identification process:", error);
+  }
+  
+  // Make sure we return at least something
+  if (Object.keys(enhancedData).length === 0) {
+    enhancedData.nome = "Participante não identificado";
   }
   
   return enhancedData;
 }
 
-// Helper function to read file content
+// Helper function to read file content with timeout
 async function readFileAsText(file: File): Promise<string> {
   return new Promise((resolve) => {
     try {
       const reader = new FileReader();
+      
       reader.onload = () => {
         if (reader.result && typeof reader.result === 'string') {
           resolve(reader.result);
@@ -285,13 +268,31 @@ async function readFileAsText(file: File): Promise<string> {
           resolve("");
         }
       };
+      
       reader.onerror = (error) => {
-        console.error("Error in FileReader:", error);
+        console.warn("Error in FileReader:", error);
         resolve("");
       };
-      reader.readAsText(file);
+      
+      // Set a timeout for the file reading process
+      const timeoutId = setTimeout(() => {
+        console.warn("File reading timed out");
+        resolve("");
+      }, 10000);
+      
+      reader.onloadend = () => {
+        clearTimeout(timeoutId);
+      };
+      
+      try {
+        reader.readAsText(file);
+      } catch (readError) {
+        console.warn("Error calling readAsText:", readError);
+        clearTimeout(timeoutId);
+        resolve("");
+      }
     } catch (error) {
-      console.error("Unexpected error in readFileAsText:", error);
+      console.warn("Unexpected error in readFileAsText:", error);
       resolve("");
     }
   });
