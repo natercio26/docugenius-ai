@@ -1,6 +1,11 @@
+
 import { DraftType } from '@/types';
-import * as pdfjs from 'pdf-parse';
+import * as PDFJS from 'pdfjs-dist';
 import Tesseract from 'tesseract.js';
+
+// Set up the PDF.js worker
+const pdfjsWorker = await import('pdfjs-dist/build/pdf.worker.entry');
+PDFJS.GlobalWorkerOptions.workerSrc = pdfjsWorker;
 
 // Function to read file contents
 export const readFileContents = async (file: File): Promise<string> => {
@@ -34,13 +39,29 @@ export const readFileContents = async (file: File): Promise<string> => {
   });
 };
 
-// Parse PDF content
+// Parse PDF content using PDF.js (browser-compatible)
 const parsePdfContent = async (file: File): Promise<string> => {
   try {
+    console.log("Starting PDF extraction process");
     const arrayBuffer = await file.arrayBuffer();
-    const data = await pdfjs(new Uint8Array(arrayBuffer));
-    console.log("PDF extracted text:", data.text);
-    return data.text;
+    
+    // Load the PDF document using PDF.js
+    const pdf = await PDFJS.getDocument({ data: arrayBuffer }).promise;
+    console.log(`PDF loaded with ${pdf.numPages} pages`);
+    
+    let fullText = '';
+    
+    // Extract text from each page
+    for (let i = 1; i <= pdf.numPages; i++) {
+      const page = await pdf.getPage(i);
+      const textContent = await page.getTextContent();
+      const pageText = textContent.items.map((item: any) => item.str).join(' ');
+      fullText += pageText + '\n';
+      console.log(`Extracted text from page ${i}`);
+    }
+    
+    console.log("PDF extraction complete, text length:", fullText.length);
+    return fullText;
   } catch (error) {
     console.error("Error parsing PDF:", error);
     return "";
@@ -104,7 +125,7 @@ export const extractDataFromFiles = async (files: File[]): Promise<Record<string
         console.log(`Processing file: ${file.name}, type: ${file.type}`);
         
         if (file.type === 'application/pdf') {
-          // For PDFs, extract text content
+          // For PDFs, extract text content using PDF.js
           content = await parsePdfContent(file);
           console.log(`PDF content extracted, length: ${content.length} characters`);
         } else if (file.type.startsWith('image/')) {
@@ -112,7 +133,7 @@ export const extractDataFromFiles = async (files: File[]): Promise<Record<string
           content = await extractTextFromImage(file);
           console.log(`Image OCR completed, extracted text length: ${content.length} characters`);
         } else if (file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
-          // For DOCX, we're still using filename (would need mammoth.js for full implementation)
+          // For DOCX, we're still using filename (would need a different approach for full implementation)
           content = file.name;
           console.log("DOCX processing not fully implemented, using filename");
         } else {
