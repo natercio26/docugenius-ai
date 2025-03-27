@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Navbar from '@/components/Navbar';
 import DraftViewer from '@/components/DraftViewer';
-import { Draft } from '@/types';
+import { Draft, DraftType } from '@/types';
 import { Download, Edit, Check } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
@@ -211,9 +211,9 @@ const ViewDraft: React.FC = () => {
           setDraft(parsedDraft);
         } catch (error) {
           console.error('Error parsing stored draft:', error);
-          // If we can determine the document type from the error, use the appropriate default
-          const draftType = parsedDraft?.type || 'Escritura de Compra e Venda';
-          setDraft(defaultNewDrafts[draftType as DraftType] || defaultNewDrafts['Escritura de Compra e Venda']);
+          // If there was an error parsing, use a default draft
+          const defaultType: DraftType = 'Escritura de Compra e Venda';
+          setDraft(defaultNewDrafts[defaultType]);
         }
       } else {
         // Default to Compra e Venda if no draft is stored
