@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Navbar from '@/components/Navbar';
@@ -193,7 +192,7 @@ const mockDrafts: Draft[] = [
   }
 ];
 
-const defaultNewDrafts: Record<DraftType, Draft> = {
+const defaultNewDrafts: Record<DraftType, ExtendedDraft> = {
   'Escritura de Compra e Venda': {
     id: 'new',
     title: 'Escritura de Compra e Venda - Apartamento',
@@ -208,7 +207,8 @@ const defaultNewDrafts: Record<DraftType, Draft> = {
     type: 'Inventário',
     content: inventarioSampleContent,
     createdAt: new Date(),
-    updatedAt: new Date()
+    updatedAt: new Date(),
+    extractedData: sampleExtractedData
   },
   'Doação': {
     id: 'new',
@@ -283,7 +283,7 @@ const ViewDraft: React.FC = () => {
       const storedDraft = sessionStorage.getItem('generatedDraft');
       if (storedDraft) {
         try {
-          const parsedDraft = JSON.parse(storedDraft);
+          const parsedDraft = JSON.parse(storedDraft) as ExtendedDraft;
           
           if (typeof parsedDraft.createdAt === 'string') {
             parsedDraft.createdAt = new Date(parsedDraft.createdAt);
@@ -311,17 +311,23 @@ const ViewDraft: React.FC = () => {
         }
       } else {
         const defaultDraft = {...defaultNewDrafts['Inventário']};
-        defaultDraft.extractedData = sampleExtractedData;
         setDraft(defaultDraft);
       }
     } else {
       const foundDraft = mockDrafts.find(d => d.id === id);
       
-      if (foundDraft && foundDraft.type === 'Inventário') {
-        const extendedDraft: ExtendedDraft = {...foundDraft, extractedData: sampleExtractedData};
-        setDraft(extendedDraft);
+      if (foundDraft) {
+        if (foundDraft.type === 'Inventário') {
+          const extendedDraft: ExtendedDraft = {
+            ...foundDraft, 
+            extractedData: sampleExtractedData
+          };
+          setDraft(extendedDraft);
+        } else {
+          setDraft(foundDraft);
+        }
       } else {
-        setDraft(foundDraft || null);
+        setDraft(null);
       }
     }
   }, [id]);
