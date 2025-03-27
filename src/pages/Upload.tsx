@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Navbar from '@/components/Navbar';
 import FileUpload from '@/components/FileUpload';
@@ -14,44 +14,67 @@ const Upload: React.FC = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  // Simulate the upload and processing flow
-  const handleUploadComplete = (files: File[]) => {
+  // Process the uploaded files and generate the document
+  const handleUploadComplete = async (files: File[]) => {
     setSelectedFiles(files);
     setStatus('uploading');
     
-    // Simulate upload time
-    setTimeout(() => {
-      setStatus('processing');
+    try {
+      // Simulate upload time
+      setTimeout(async () => {
+        setStatus('processing');
+        
+        try {
+          // Extract data from the uploaded files
+          const extractedData = await extractDataFromFiles(files);
+          console.log('Extracted data:', extractedData);
+          
+          // Generate document content based on the extracted data
+          const documentContent = generateDocumentContent(documentType, extractedData);
+          
+          // Store generated content in sessionStorage
+          sessionStorage.setItem('generatedDraft', JSON.stringify({
+            id: 'new',
+            title: `${documentType} - Gerado em ${new Date().toLocaleDateString('pt-BR')}`,
+            type: documentType,
+            content: documentContent,
+            createdAt: new Date(),
+            updatedAt: new Date()
+          }));
+          
+          // Update status to success
+          setStatus('success');
+          
+          toast({
+            title: "Minuta gerada com sucesso!",
+            description: "Sua minuta foi gerada com base nos dados extraídos dos documentos.",
+          });
+          
+          // Navigate to the view page after successful generation
+          setTimeout(() => {
+            navigate('/view/new');
+          }, 1000);
+        } catch (error) {
+          console.error('Error processing files:', error);
+          setStatus('error');
+          
+          toast({
+            title: "Erro ao processar documentos",
+            description: "Não foi possível extrair dados dos documentos. Por favor, tente novamente.",
+            variant: "destructive"
+          });
+        }
+      }, 1500);
+    } catch (error) {
+      console.error('Error handling upload:', error);
+      setStatus('error');
       
-      // Simulate AI processing time
-      setTimeout(() => {
-        setStatus('success');
-        
-        toast({
-          title: "Minuta gerada com sucesso!",
-          description: "Sua minuta foi gerada e está pronta para visualização.",
-        });
-        
-        // Extract data from files and generate document
-        const extractedData = extractDataFromFiles(files);
-        const documentContent = generateDocumentContent(documentType, extractedData);
-        
-        // Store generated content in sessionStorage
-        sessionStorage.setItem('generatedDraft', JSON.stringify({
-          id: 'new',
-          title: `${documentType} - Gerado em ${new Date().toLocaleDateString('pt-BR')}`,
-          type: documentType,
-          content: documentContent,
-          createdAt: new Date(),
-          updatedAt: new Date()
-        }));
-        
-        // Navigate to the view page after successful generation
-        setTimeout(() => {
-          navigate('/view/new');
-        }, 1000);
-      }, 3000);
-    }, 2000);
+      toast({
+        title: "Erro no upload",
+        description: "Houve um problema ao processar os arquivos. Por favor, tente novamente.",
+        variant: "destructive"
+      });
+    }
   };
 
   const handleTypeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {

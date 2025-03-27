@@ -1,37 +1,163 @@
+
 import { DraftType } from '@/types';
 
-// Simulate extraction of data from uploaded files
-export const extractDataFromFiles = (files: File[]): Record<string, string> => {
-  // In a real application, this would analyze the files using AI
-  // and extract relevant information. Here we're just simulating.
-  
-  const extractedData: Record<string, string> = {};
-  
-  // Simulate data extraction based on file types and names
-  files.forEach(file => {
-    if (file.name.toLowerCase().includes('identidade') || file.name.toLowerCase().includes('rg')) {
-      extractedData.nome = 'Maria Oliveira';
-      extractedData.rg = '98.765.432-1 SSP/SP';
-      extractedData.cpf = '987.654.321-00';
-    } 
-    else if (file.name.toLowerCase().includes('compra') || file.name.toLowerCase().includes('venda')) {
-      extractedData.valorImovel = 'R$ 800.000,00 (oitocentos mil reais)';
-      extractedData.enderecoImovel = 'Rua dos Ipês, nº 789, Apartamento 101, Bairro Jardim Paulista';
-      extractedData.vendedor = 'João da Silva';
-    }
-    else if (file.name.toLowerCase().includes('matricula') || file.name.toLowerCase().includes('imovel')) {
-      extractedData.areaImovel = '120,00m² (cento e vinte metros quadrados)';
-      extractedData.registroImovel = 'matrícula nº 12.345 no 5º Oficial de Registro de Imóveis';
+// Function to read file contents
+export const readFileContents = async (file: File): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    
+    reader.onload = (event) => {
+      if (event.target && typeof event.target.result === 'string') {
+        resolve(event.target.result);
+      } else {
+        reject(new Error('Failed to read file content'));
+      }
+    };
+    
+    reader.onerror = () => {
+      reject(new Error('Error reading file'));
+    };
+    
+    if (file.type === 'application/pdf') {
+      // For PDF files, read as array buffer (for future PDF.js processing)
+      reader.readAsArrayBuffer(file);
+    } else {
+      // For text files, read as text
+      reader.readAsText(file);
     }
   });
+};
+
+// Extract data from files based on their content
+export const extractDataFromFiles = async (files: File[]): Promise<Record<string, string>> => {
+  const extractedData: Record<string, string> = {};
   
-  // Add default values if nothing was extracted
-  if (Object.keys(extractedData).length === 0) {
-    extractedData.nome = 'Maria Oliveira';
-    extractedData.enderecoImovel = 'Rua dos Ipês, nº 789, Apartamento 101, Bairro Jardim Paulista';
+  try {
+    // Process each uploaded file
+    for (const file of files) {
+      let content = "";
+      
+      try {
+        if (file.type === 'application/pdf' || 
+            file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+          // For PDFs and DOCXs, we'll use the file name for now
+          // In a production app, you'd use a PDF/DOCX parsing library
+          content = file.name;
+        } else if (file.type.startsWith('image/')) {
+          // For images, we use the file name (in production, you'd use OCR)
+          content = file.name;
+        } else {
+          // For text files, read the content
+          content = await readFileContents(file);
+        }
+        
+        // Extract information based on content and filename
+        extractDataFromFileContent(file.name, content, extractedData);
+        
+      } catch (error) {
+        console.error(`Error processing file ${file.name}:`, error);
+      }
+    }
+    
+    return extractedData;
+  } catch (error) {
+    console.error('Error extracting data from files:', error);
+    return {};
+  }
+};
+
+// Helper function to extract data from file content
+const extractDataFromFileContent = (
+  fileName: string, 
+  content: string, 
+  extractedData: Record<string, string>
+): void => {
+  // Convert to lowercase for easier matching
+  const lowerFileName = fileName.toLowerCase();
+  const lowerContent = content.toLowerCase();
+  
+  // Extract data based on filename and content patterns
+  
+  // RG/Identity document patterns
+  if (lowerFileName.includes('identidade') || 
+      lowerFileName.includes('rg') || 
+      lowerContent.includes('documento de identidade') || 
+      lowerContent.includes('registro geral')) {
+    
+    // Try to extract name pattern (usually "Nome: [name]" or similar)
+    const nameMatch = content.match(/Nome:?\s+([A-Za-zÀ-ÖØ-öø-ÿ\s]+)/i);
+    if (nameMatch && nameMatch[1]) {
+      extractedData.nome = nameMatch[1].trim();
+    }
+    
+    // Try to extract RG number
+    const rgMatch = content.match(/RG:?\s*([\d.-]+\s*[A-Za-z/]*)/i) || 
+                    content.match(/([\d]{1,2}\.[\d]{3}\.[\d]{3}-[0-9A-Za-z])/i);
+    if (rgMatch && rgMatch[1]) {
+      extractedData.rg = rgMatch[1].trim();
+    }
+    
+    // Try to extract CPF number
+    const cpfMatch = content.match(/CPF:?\s*([\d.-]+)/i) || 
+                     content.match(/([\d]{3}\.[\d]{3}\.[\d]{3}-[\d]{2})/i);
+    if (cpfMatch && cpfMatch[1]) {
+      extractedData.cpf = cpfMatch[1].trim();
+    }
   }
   
-  return extractedData;
+  // Property/Real estate document patterns
+  if (lowerFileName.includes('imovel') || 
+      lowerFileName.includes('matricula') || 
+      lowerFileName.includes('escritura') || 
+      lowerContent.includes('imóvel') ||
+      lowerContent.includes('matrícula')) {
+    
+    // Try to extract property address
+    const addressMatch = content.match(/endereço:?\s+([^,.]+(,|\.)[^,.]+)/i) ||
+                         content.match(/situado\s+(?:na|no|em)\s+([^,.]+(,|\.)[^,.]+)/i);
+    if (addressMatch && addressMatch[1]) {
+      extractedData.enderecoImovel = addressMatch[1].trim();
+    }
+    
+    // Try to extract property value
+    const valueMatch = content.match(/valor:?\s+(R\$\s*[\d.,]+)/i) ||
+                       content.match(/(R\$\s*[\d.,]+\s*(?:\(.*?\))?)/i);
+    if (valueMatch && valueMatch[1]) {
+      extractedData.valorImovel = valueMatch[1].trim();
+    }
+    
+    // Try to extract property registration number
+    const regMatch = content.match(/matrícula\s+(?:n[º°]|número)?\s*([\d.]+)/i);
+    if (regMatch && regMatch[1]) {
+      extractedData.registroImovel = `matrícula nº ${regMatch[1].trim()}`;
+    }
+    
+    // Try to extract property area
+    const areaMatch = content.match(/área\s+(?:de)?\s*([\d,.]+\s*m²)/i);
+    if (areaMatch && areaMatch[1]) {
+      extractedData.areaImovel = areaMatch[1].trim();
+    }
+  }
+  
+  // Purchase/Sale document patterns
+  if (lowerFileName.includes('compra') || 
+      lowerFileName.includes('venda') || 
+      lowerContent.includes('compra e venda')) {
+    
+    // Try to extract seller name
+    const sellerMatch = content.match(/vendedor:?\s+([A-Za-zÀ-ÖØ-öø-ÿ\s]+)/i) ||
+                        content.match(/outorgante:?\s+([A-Za-zÀ-ÖØ-öø-ÿ\s]+)/i);
+    if (sellerMatch && sellerMatch[1]) {
+      extractedData.vendedor = sellerMatch[1].trim();
+    }
+    
+    // Try to extract buyer name
+    const buyerMatch = content.match(/comprador:?\s+([A-Za-zÀ-ÖØ-öø-ÿ\s]+)/i) ||
+                       content.match(/outorgado:?\s+([A-Za-zÀ-ÖØ-öø-ÿ\s]+)/i);
+    if (buyerMatch && buyerMatch[1]) {
+      extractedData.nome = buyerMatch[1].trim();
+    }
+  }
 };
 
 // Generate document content based on template type and extracted data
@@ -41,11 +167,24 @@ export const generateDocumentContent = (
 ): string => {
   let content = '';
   
+  // Get month name in Portuguese
+  const getMonthName = (date: Date): string => {
+    const monthNames = [
+      'janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho',
+      'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'
+    ];
+    return monthNames[date.getMonth()];
+  };
+  
+  // Format today's date
+  const today = new Date();
+  const formattedDate = `${today.getDate()} de ${getMonthName(today)} de ${today.getFullYear()}`;
+  
   switch(type) {
     case 'Escritura de Compra e Venda':
       content = `ESCRITURA PÚBLICA DE COMPRA E VENDA
 
-SAIBAM todos quantos esta Escritura Pública de Compra e Venda virem que, aos ${new Date().getDate()} dias do mês de ${new Date().toLocaleString('pt-BR', { month: 'long' })} do ano de ${new Date().getFullYear()}, nesta cidade e comarca de São Paulo, Estado de São Paulo, perante mim, Tabelião, compareceram as partes entre si justas e contratadas, a saber:
+SAIBAM todos quantos esta Escritura Pública de Compra e Venda virem que, aos ${formattedDate}, nesta cidade e comarca de São Paulo, Estado de São Paulo, perante mim, Tabelião, compareceram as partes entre si justas e contratadas, a saber:
 
 OUTORGANTE VENDEDOR: ${data.vendedor || 'JOÃO DA SILVA'}, brasileiro, casado, empresário, portador da Cédula de Identidade RG nº 12.345.678-9 SSP/SP, inscrito no CPF/MF sob nº 123.456.789-00, residente e domiciliado na Rua das Flores, nº 123, Bairro Jardim, CEP 01234-567, nesta Capital;
 
@@ -65,7 +204,7 @@ E pela presente escritura e nos melhores termos de direito, o OUTORGANTE VENDEDO
     case 'Inventário':
       content = `TERMO DE INVENTÁRIO E PARTILHA
 
-Aos ${new Date().getDate()} dias do mês de ${new Date().toLocaleString('pt-BR', { month: 'long' })} de ${new Date().getFullYear()}, na cidade de São Paulo, Estado de São Paulo, procede-se ao INVENTÁRIO E PARTILHA dos bens deixados por falecimento de ${data.falecido || 'JOSÉ SANTOS'}, falecido em ${data.dataFalecimento || '10/01/2023'}, conforme certidão de óbito apresentada.
+Aos ${formattedDate}, na cidade de São Paulo, Estado de São Paulo, procede-se ao INVENTÁRIO E PARTILHA dos bens deixados por falecimento de ${data.falecido || 'JOSÉ SANTOS'}, falecido em ${data.dataFalecimento || '10/01/2023'}, conforme certidão de óbito apresentada.
 
 INVENTARIANTE: ${data.inventariante || data.nome || 'MARIA OLIVEIRA'}, brasileira, ${data.estadoCivil || 'solteira'}, ${data.profissao || 'advogada'}, portadora da Cédula de Identidade RG nº ${data.rg || '98.765.432-1 SSP/SP'}, inscrita no CPF/MF sob nº ${data.cpf || '987.654.321-00'}, residente e domiciliada na ${data.endereco || 'Avenida Central, nº 456, Bairro Centro, CEP 12345-678, nesta Capital'}.
 
@@ -84,7 +223,7 @@ TOTAL DO ESPÓLIO: R$ 920.000,00 (novecentos e vinte mil reais).`;
     case 'Doação':
       content = `ESCRITURA PÚBLICA DE DOAÇÃO DE BEM IMÓVEL
 
-SAIBAM todos quantos esta Escritura Pública de Doação virem que, aos ${new Date().getDate()} dias do mês de ${new Date().toLocaleString('pt-BR', { month: 'long' })} do ano de ${new Date().getFullYear()}, nesta cidade e comarca de São Paulo, Estado de São Paulo, perante mim, Tabelião, compareceram as partes:
+SAIBAM todos quantos esta Escritura Pública de Doação virem que, aos ${formattedDate}, nesta cidade e comarca de São Paulo, Estado de São Paulo, perante mim, Tabelião, compareceram as partes:
 
 DOADOR: ${data.doador || data.vendedor || 'JOÃO DA SILVA'}, brasileiro, casado, empresário, portador da Cédula de Identidade RG nº 12.345.678-9 SSP/SP, inscrito no CPF/MF sob nº 123.456.789-00, residente e domiciliado na Rua das Flores, nº 123, Bairro Jardim, CEP 01234-567, nesta Capital;
 
