@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import Navbar from '@/components/Navbar';
 import { useToast } from '@/hooks/use-toast';
 import { DraftType } from '@/types';
@@ -6,7 +7,7 @@ import TypeSelector from '@/components/model-config/TypeSelector';
 import FieldList from '@/components/model-config/FieldList';
 import ActionButtons from '@/components/model-config/ActionButtons';
 
-const draftTypes: DraftType[] = [
+const defaultDraftTypes: DraftType[] = [
   'Inventário',
   'Escritura de Compra e Venda',
   'Doação',
@@ -16,8 +17,8 @@ const draftTypes: DraftType[] = [
   'Outro'
 ];
 
-// Mock fields for different document types
-const fieldsByType: Record<DraftType, { name: string, type: string, required: boolean }[]> = {
+// Default fields for different document types
+const defaultFieldsByType: Record<DraftType, { name: string, type: string, required: boolean }[]> = {
   'Inventário': [
     { name: 'Nome do Autor da Herança', type: 'text', required: true },
     { name: 'Data do Falecimento', type: 'date', required: true },
@@ -61,10 +62,28 @@ const fieldsByType: Record<DraftType, { name: string, type: string, required: bo
   ],
 };
 
+const STORAGE_KEY = 'modelConfigFields';
+
 const ModelConfig: React.FC = () => {
   const [selectedType, setSelectedType] = useState<DraftType>('Escritura de Compra e Venda');
-  const [configFields, setConfigFields] = useState<Record<DraftType, { name: string, type: string, required: boolean }[]>>(fieldsByType);
+  const [configFields, setConfigFields] = useState<Record<DraftType, { name: string, type: string, required: boolean }[]>>(defaultFieldsByType);
+  const [draftTypes, setDraftTypes] = useState<DraftType[]>(defaultDraftTypes);
   const { toast } = useToast();
+  
+  // Load saved configurations from localStorage when component mounts
+  useEffect(() => {
+    const savedConfig = localStorage.getItem(STORAGE_KEY);
+    if (savedConfig) {
+      try {
+        const parsedConfig = JSON.parse(savedConfig);
+        setConfigFields(parsedConfig);
+      } catch (error) {
+        console.error("Error parsing saved configuration:", error);
+        // Use default if there's an error parsing saved config
+        setConfigFields(defaultFieldsByType);
+      }
+    }
+  }, []);
 
   // Get the current fields for the selected type
   const currentFields = configFields[selectedType];
@@ -93,7 +112,10 @@ const ModelConfig: React.FC = () => {
   };
 
   const handleSave = () => {
-    // Here you would typically save the configuration to a database
+    // Save to localStorage
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(configFields));
+    
+    // Show success toast
     toast({
       title: "Configurações salvas",
       description: `As configurações do modelo ${selectedType} foram salvas com sucesso.`

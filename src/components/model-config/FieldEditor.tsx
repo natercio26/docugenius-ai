@@ -1,5 +1,6 @@
 
 import React from 'react';
+import { Switch } from "@/components/ui/switch";
 
 interface FieldEditorProps {
   field: { name: string; type: string; required: boolean };
@@ -37,13 +38,11 @@ const FieldEditor: React.FC<FieldEditorProps> = ({ field, onUpdate, onRemove }) 
       </div>
       <div className="col-span-3">
         <label className="flex items-center space-x-2">
-          <input
-            type="checkbox"
+          <Switch 
             checked={field.required}
-            onChange={(e) => {
-              onUpdate({ ...field, required: e.target.checked });
+            onCheckedChange={(checked) => {
+              onUpdate({ ...field, required: checked });
             }}
-            className="rounded border-input h-4 w-4 text-accent focus:ring-accent"
           />
           <span className="text-sm">Obrigatório</span>
         </label>
