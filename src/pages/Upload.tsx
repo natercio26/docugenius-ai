@@ -314,10 +314,10 @@ const Upload: React.FC = () => {
       return;
     }
     
-    if (files.length > 10) {
+    if (files.length > 100) {
       toast({
         title: "Muitos arquivos",
-        description: "Por favor, selecione no máximo 10 arquivos para processar de uma vez.",
+        description: "Por favor, selecione no máximo 100 arquivos para processar de uma vez.",
         variant: "destructive"
       });
       return;
