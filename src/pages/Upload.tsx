@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Navbar from '@/components/Navbar';
 import FileUpload from '@/components/FileUpload';
@@ -31,41 +31,29 @@ const Upload: React.FC = () => {
   const [processingDialogOpen, setProcessingDialogOpen] = useState(false);
   const [processingProgress, setProcessingProgress] = useState(0);
   const [processingStage, setProcessingStage] = useState<string>('');
+  const [isCancelled, setIsCancelled] = useState(false);
   
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const handleUploadComplete = async (files: File[]) => {
-    if (!files || files.length === 0) {
-      toast({
-        title: "Nenhum arquivo selecionado",
-        description: "Por favor, selecione pelo menos um arquivo para processar.",
-        variant: "destructive"
-      });
-      return;
-    }
+  // Função para processar arquivos em etapas, evitando bloqueio da UI
+  const processFilesInSteps = useCallback(async (files: File[], docType: DraftType) => {
+    if (isCancelled) return;
     
-    setSelectedFiles(files);
-    setStatus('uploading');
-    setProcessingDialogOpen(true);
-    setProcessingProgress(10);
-    setProcessingStage('Iniciando processamento...');
-    
-    // Use a timeout to allow the UI to update before starting the processing
-    setTimeout(() => processFiles(files, documentType), 300);
-  };
-
-  const processFiles = async (files: File[], docType: DraftType) => {
     try {
       console.log("Iniciando o processamento dos arquivos:", files.map(f => f.name).join(', '));
       
-      // Extract basic data
+      // Etapa 1: Extração de dados básicos
       setProcessingStage('Extraindo dados básicos dos documentos...');
       setProcessingProgress(30);
+      
+      // Permitir que a UI atualize antes de continuar
+      await new Promise(resolve => setTimeout(resolve, 50));
       
       let extractedData: ExtractedData = {};
       
       try {
+        // Função modificada que processa arquivos em lotes
         extractedData = await extractDataFromFiles(files);
         
         if ('error' in extractedData) {
@@ -73,7 +61,6 @@ const Upload: React.FC = () => {
         }
         
         console.log("Extração de dados básicos concluída:", extractedData);
-        setProcessingProgress(50);
       } catch (extractionError) {
         console.error("Erro na extração de dados:", extractionError);
         toast({
@@ -84,9 +71,14 @@ const Upload: React.FC = () => {
         extractedData = { nome: "Participante não identificado" };
       }
       
-      // Identify parties and roles
+      if (isCancelled) return;
+      setProcessingProgress(50);
+      
+      // Atualização da UI antes da próxima etapa
+      await new Promise(resolve => setTimeout(resolve, 50));
+      
+      // Etapa 2: Identificar partes e papéis
       setProcessingStage('Identificando partes e papéis nos documentos...');
-      setProcessingProgress(70);
       
       let enhancedData: ExtractedData = extractedData;
       
@@ -102,9 +94,14 @@ const Upload: React.FC = () => {
         });
       }
       
-      // Generate document content
+      if (isCancelled) return;
+      setProcessingProgress(70);
+      
+      // Atualização da UI antes da próxima etapa
+      await new Promise(resolve => setTimeout(resolve, 50));
+      
+      // Etapa 3: Gerar conteúdo do documento
       setProcessingStage('Gerando conteúdo do documento...');
-      setProcessingProgress(85);
       
       let documentContent = "";
       
@@ -121,12 +118,17 @@ const Upload: React.FC = () => {
         });
       }
       
-      // Store the draft
+      if (isCancelled) return;
+      setProcessingProgress(85);
+      
+      // Atualização da UI antes da próxima etapa
+      await new Promise(resolve => setTimeout(resolve, 50));
+      
+      // Etapa 4: Armazenar o rascunho
       setProcessingStage('Finalizando e salvando o documento...');
-      setProcessingProgress(95);
       
       try {
-        // Create a sanitized version of extractedData that can be safely serialized
+        // Cria uma versão sanitizada dos dados extraídos
         const sanitizedData = Object.fromEntries(
           Object.entries(enhancedData).map(([key, value]) => [
             key,
@@ -136,7 +138,7 @@ const Upload: React.FC = () => {
           ])
         );
         
-        // Store the draft in session storage
+        // Armazena o rascunho no sessionStorage
         sessionStorage.setItem('generatedDraft', JSON.stringify({
           id: 'new',
           title: `${docType} - Gerado em ${new Date().toLocaleDateString('pt-BR')}`,
@@ -158,7 +160,9 @@ const Upload: React.FC = () => {
         return;
       }
       
-      // Complete processing
+      if (isCancelled) return;
+      
+      // Etapa final: Completar o processamento
       setStatus('success');
       setProcessingProgress(100);
       
@@ -167,30 +171,64 @@ const Upload: React.FC = () => {
         description: "Sua minuta foi gerada com base nos dados extraídos dos documentos.",
       });
       
-      // Add a slight delay to show success before navigating
+      // Atraso leve para mostrar o sucesso antes de navegar
       setTimeout(() => {
-        setProcessingDialogOpen(false);
-        navigate('/view/new');
+        if (!isCancelled) {
+          setProcessingDialogOpen(false);
+          navigate('/view/new');
+        }
       }, 1000);
       
     } catch (error) {
       console.error('Erro ao processar arquivos:', error);
-      setStatus('error');
-      setProcessingDialogOpen(false);
-      
+      if (!isCancelled) {
+        setStatus('error');
+        setProcessingDialogOpen(false);
+        
+        toast({
+          title: "Erro ao processar documentos",
+          description: "Ocorreu um erro inesperado. Por favor, tente novamente.",
+          variant: "destructive"
+        });
+      }
+    }
+  }, [navigate, toast, isCancelled]);
+
+  const handleUploadComplete = useCallback((files: File[]) => {
+    if (!files || files.length === 0) {
       toast({
-        title: "Erro ao processar documentos",
-        description: "Ocorreu um erro inesperado. Por favor, tente novamente.",
+        title: "Nenhum arquivo selecionado",
+        description: "Por favor, selecione pelo menos um arquivo para processar.",
         variant: "destructive"
       });
+      return;
     }
-  };
+    
+    setSelectedFiles(files);
+    setStatus('uploading');
+    setProcessingDialogOpen(true);
+    setProcessingProgress(10);
+    setProcessingStage('Iniciando processamento...');
+    setIsCancelled(false);
+    
+    // Usa requestAnimationFrame para garantir que a UI seja atualizada antes de iniciar o processamento pesado
+    requestAnimationFrame(() => {
+      processFilesInSteps(files, documentType);
+    });
+  }, [toast, documentType, processFilesInSteps]);
 
-  const handleTypeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+  const handleDialogClose = useCallback(() => {
+    // Se o usuário fechar o diálogo manualmente, cancelamos o processamento
+    setIsCancelled(true);
+    setProcessingDialogOpen(false);
+    setStatus('idle');
+  }, []);
+
+  const handleTypeChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
     const newType = e.target.value as DraftType;
     setDocumentType(newType);
     localStorage.setItem('selectedDocumentType', newType);
-  };
+  }, []);
 
   return (
     <div className="min-h-screen bg-background">
@@ -236,9 +274,17 @@ const Upload: React.FC = () => {
         </div>
       </main>
       
-      {/* Processing Dialog */}
-      <Dialog open={processingDialogOpen} onOpenChange={setProcessingDialogOpen}>
-        <DialogContent className="sm:max-w-md" onInteractOutside={(e) => e.preventDefault()}>
+      {/* Diálogo de Processamento com botão para fechar */}
+      <Dialog open={processingDialogOpen} onOpenChange={handleDialogClose}>
+        <DialogContent 
+          className="sm:max-w-md" 
+          onInteractOutside={(e) => {
+            // Permitir que o usuário feche o diálogo se houver erro
+            if (status === 'error') return;
+            // Caso contrário, impedir o fechamento durante o processamento
+            e.preventDefault();
+          }}
+        >
           <DialogHeader>
             <DialogTitle>Processando Documentos</DialogTitle>
             <DialogDescription>
@@ -260,6 +306,18 @@ const Upload: React.FC = () => {
               <p>Este processo pode levar alguns segundos, dependendo do tamanho e complexidade dos documentos.</p>
             )}
           </div>
+          
+          {/* Adicionar botão para cancelar o processamento */}
+          {status !== 'success' && status !== 'error' && (
+            <div className="flex justify-center mt-4">
+              <button 
+                onClick={handleDialogClose}
+                className="px-4 py-2 text-sm font-medium text-muted-foreground bg-secondary rounded-md hover:bg-secondary/80"
+              >
+                Cancelar Processamento
+              </button>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>

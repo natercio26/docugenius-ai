@@ -55,39 +55,56 @@ const FileUpload: React.FC<FileUploadProps> = ({ onUploadComplete, status }) => 
     
     setValidating(true);
     
-    // Use setTimeout to prevent UI freezing during validation
+    // Processamento por chunks para evitar bloqueio da UI
+    const processFiles = (index: number, accumulator: File[]) => {
+      if (index >= selectedFiles.length) {
+        // Finalizado o processamento de todos os arquivos
+        if (accumulator.length > 0) {
+          setFiles(prev => [...prev, ...accumulator]);
+        }
+        setValidating(false);
+        return;
+      }
+      
+      // Processa um arquivo por vez
+      const file = selectedFiles[index];
+      
+      // Verifica tamanho
+      if (file.size > FILE_SIZE_LIMIT) {
+        toast({
+          title: "Arquivo muito grande",
+          description: `O arquivo ${file.name} excede o limite de 50MB.`,
+          variant: "destructive"
+        });
+        // Continua com o próximo arquivo
+        setTimeout(() => processFiles(index + 1, accumulator), 10);
+        return;
+      }
+      
+      // Verifica tipo
+      const isAccepted = isAcceptedFileType(file);
+      if (!isAccepted) {
+        toast({
+          title: "Formato não suportado",
+          description: `O arquivo ${file.name} não é suportado. Por favor, use PDF, DOCX, JPG ou PNG.`,
+          variant: "destructive"
+        });
+        // Continua com o próximo arquivo
+        setTimeout(() => processFiles(index + 1, accumulator), 10);
+        return;
+      }
+      
+      // Arquivo válido, adiciona ao acumulador
+      accumulator.push(file);
+      
+      // Processa o próximo arquivo com uma pequena pausa para liberar a UI
+      setTimeout(() => processFiles(index + 1, accumulator), 10);
+    };
+    
+    // Inicia o processamento
     setTimeout(() => {
       try {
-        const newFiles: File[] = Array.from(selectedFiles).filter(file => {
-          // Check file size (limit to 50MB)
-          if (file.size > FILE_SIZE_LIMIT) {
-            toast({
-              title: "Arquivo muito grande",
-              description: `O arquivo ${file.name} excede o limite de 50MB.`,
-              variant: "destructive"
-            });
-            return false;
-          }
-          
-          // Check file type
-          const isAccepted = isAcceptedFileType(file);
-          if (!isAccepted) {
-            toast({
-              title: "Formato não suportado",
-              description: `O arquivo ${file.name} não é suportado. Por favor, use PDF, DOCX, JPG ou PNG.`,
-              variant: "destructive"
-            });
-            return false;
-          }
-          
-          return true;
-        });
-  
-        if (newFiles.length > 0) {
-          setFiles(prev => [...prev, ...newFiles]);
-        }
-        
-        setValidating(false);
+        processFiles(0, []);
       } catch (error) {
         console.error("Erro ao validar arquivos:", error);
         toast({
@@ -98,7 +115,7 @@ const FileUpload: React.FC<FileUploadProps> = ({ onUploadComplete, status }) => 
         setValidating(false);
       }
     }, 100);
-  }, [toast]);
+  }, [toast, FILE_SIZE_LIMIT, isAcceptedFileType]);
 
   const handleDrag = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -138,10 +155,10 @@ const FileUpload: React.FC<FileUploadProps> = ({ onUploadComplete, status }) => 
       description: "Seus documentos estão sendo processados para identificar partes, herdeiros e outras informações importantes.",
     });
     
-    // Use a timeout to prevent UI freezing
-    setTimeout(() => {
+    // Pequeno atraso para permitir atualização da UI antes de iniciar o processamento pesado
+    requestAnimationFrame(() => {
       onUploadComplete(files);
-    }, 100);
+    });
   }, [files, onUploadComplete, toast]);
 
   const removeFile = useCallback((index: number) => {
