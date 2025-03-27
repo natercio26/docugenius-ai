@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { Upload, File, X, Trash2, AlertTriangle, Search } from 'lucide-react';
@@ -165,12 +164,12 @@ const FileUpload: React.FC<FileUploadProps> = ({ onUploadComplete, status }) => 
     e.stopPropagation();
     setDragActive(false);
     
-    if (status === 'uploading' || status === 'processing' || validating) {
+    if (status === 'uploading' || status === 'processing') {
       return;
     }
     
     handleFileChange(e.dataTransfer.files);
-  }, [handleFileChange, status, validating]);
+  }, [handleFileChange, status]);
 
   const handleSubmit = useCallback(() => {
     if (files.length === 0) {
@@ -205,11 +204,13 @@ const FileUpload: React.FC<FileUploadProps> = ({ onUploadComplete, status }) => 
     return 'FILE';
   };
 
-  const isDisabled = status === 'uploading' || status === 'processing' || validating;
+  const isDisabled = status === 'uploading' || status === 'processing';
+  const isInputDisabled = isDisabled;
 
   const handleConfirmClearFiles = useCallback(() => {
     setFiles([]);
     setClearDialogOpen(false);
+    setValidating(false);
     toast({
       title: "Arquivos Limpos",
       description: "Todos os arquivos selecionados foram removidos.",
@@ -224,19 +225,19 @@ const FileUpload: React.FC<FileUploadProps> = ({ onUploadComplete, status }) => 
           dragActive 
           ? 'border-accent bg-accent/5' 
           : 'border-muted-foreground/20 hover:border-muted-foreground/30'
-        } ${isDisabled ? 'opacity-70 cursor-not-allowed' : ''}`}
-        onDragEnter={isDisabled ? undefined : handleDrag}
-        onDragLeave={isDisabled ? undefined : handleDrag}
-        onDragOver={isDisabled ? undefined : handleDrag}
-        onDrop={isDisabled ? undefined : handleDrop}
+        } ${isInputDisabled ? 'opacity-70 cursor-not-allowed' : ''}`}
+        onDragEnter={isInputDisabled ? undefined : handleDrag}
+        onDragLeave={isInputDisabled ? undefined : handleDrag}
+        onDragOver={isInputDisabled ? undefined : handleDrag}
+        onDrop={isInputDisabled ? undefined : handleDrop}
       >
         <input
           type="file"
-          className={`absolute inset-0 w-full h-full opacity-0 ${isDisabled ? 'cursor-not-allowed' : 'cursor-pointer'} z-10`}
-          onChange={(e) => !isDisabled && handleFileChange(e.target.files)}
+          className={`absolute inset-0 w-full h-full opacity-0 ${isInputDisabled ? 'cursor-not-allowed' : 'cursor-pointer'} z-10`}
+          onChange={(e) => !isInputDisabled && handleFileChange(e.target.files)}
           multiple
           accept=".pdf,.docx,.jpg,.jpeg,.png"
-          disabled={isDisabled}
+          disabled={isInputDisabled}
         />
         
         <div className="flex flex-col items-center justify-center py-6 text-center">
