@@ -1,9 +1,21 @@
+
 import React, { useState, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { Upload, File, X, Trash2, AlertTriangle, Search } from 'lucide-react';
 import { UploadStatus, AcceptedFileTypes } from '@/types';
 import StatusIndicator from './StatusIndicator';
 import { Button } from '@/components/ui/button';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 interface FileUploadProps {
   onUploadComplete: (files: File[]) => void;
@@ -14,6 +26,7 @@ const FileUpload: React.FC<FileUploadProps> = ({ onUploadComplete, status }) => 
   const [files, setFiles] = useState<File[]>([]);
   const [dragActive, setDragActive] = useState(false);
   const [validating, setValidating] = useState(false);
+  const [clearDialogOpen, setClearDialogOpen] = useState(false);
   const { toast } = useToast();
 
   const FILE_SIZE_LIMIT = 50 * 1024 * 1024;
@@ -194,8 +207,9 @@ const FileUpload: React.FC<FileUploadProps> = ({ onUploadComplete, status }) => 
 
   const isDisabled = status === 'uploading' || status === 'processing' || validating;
 
-  const clearFiles = useCallback(() => {
+  const handleConfirmClearFiles = useCallback(() => {
     setFiles([]);
+    setClearDialogOpen(false);
     toast({
       title: "Arquivos Limpos",
       description: "Todos os arquivos selecionados foram removidos.",
@@ -247,16 +261,33 @@ const FileUpload: React.FC<FileUploadProps> = ({ onUploadComplete, status }) => 
       {files.length > 0 && (
         <div className="mt-6 flex items-center justify-between">
           <h4 className="font-medium mb-2">Arquivos selecionados:</h4>
-          <Button 
-            variant="destructive" 
-            size="sm" 
-            onClick={clearFiles}
-            disabled={isDisabled}
-            className={`flex items-center gap-2 ${isDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
-          >
-            <Trash2 className="h-4 w-4" />
-            Limpar Arquivos
-          </Button>
+          <AlertDialog open={clearDialogOpen} onOpenChange={setClearDialogOpen}>
+            <AlertDialogTrigger asChild>
+              <Button 
+                variant="destructive" 
+                size="sm" 
+                disabled={isDisabled}
+                className={`flex items-center gap-2 ${isDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+              >
+                <Trash2 className="h-4 w-4" />
+                Limpar Arquivos
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Tem certeza?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Essa ação irá remover todos os arquivos selecionados.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                <AlertDialogAction onClick={handleConfirmClearFiles} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                  Confirmar
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
       )}
 
