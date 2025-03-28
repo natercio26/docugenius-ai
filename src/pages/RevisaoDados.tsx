@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { format } from "date-fns";
@@ -46,13 +45,12 @@ const RevisaoDados: React.FC = () => {
   }, [formData, navigate, toast]);
 
   const handleConfirm = () => {
-    // Aqui você implementaria a lógica para enviar os dados para o backend
+    // Navegar para a página de documento gerado com os dados do formulário
+    navigate('/cadastro/documento', { state: { formData } });
     toast({
-      title: "Cadastro realizado com sucesso",
-      description: "Seus dados foram enviados e serão processados em breve."
+      title: "Documento gerado com sucesso",
+      description: "Seus dados foram processados e o documento foi gerado."
     });
-    // Redirecionar para a página inicial ou outra página apropriada
-    navigate('/');
   };
 
   const handleBack = () => {

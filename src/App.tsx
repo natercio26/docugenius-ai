@@ -12,6 +12,7 @@ import ModelConfig from "./pages/ModelConfig";
 import Cadastro from "./pages/Cadastro";
 import CadastroSolteiro from "./pages/CadastroSolteiro";
 import RevisaoDados from "./pages/RevisaoDados";
+import DocumentoGerado from "./pages/DocumentoGerado";
 import NotFound from "./pages/NotFound";
 
 const App: React.FC = () => {
@@ -33,6 +34,7 @@ const App: React.FC = () => {
               <Route path="/cadastro" element={<Cadastro />} />
               <Route path="/cadastro/solteiro" element={<CadastroSolteiro />} />
               <Route path="/cadastro/revisar" element={<RevisaoDados />} />
+              <Route path="/cadastro/documento" element={<DocumentoGerado />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </TooltipProvider>
