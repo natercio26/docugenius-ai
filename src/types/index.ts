@@ -98,4 +98,5 @@ export interface ProtocoloData {
   cpf: string;
   conteudo: string;
   registrationData?: RegistrationData;
+  textoQualificacao?: string; // Added this property to fix the type error
 }
