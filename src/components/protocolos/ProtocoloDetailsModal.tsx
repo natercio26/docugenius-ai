@@ -82,8 +82,16 @@ const ProtocoloDetailsModal: React.FC<ProtocoloDetailsModalProps> = ({
                     <p className="font-medium">{protocolo.registrationData.personalInfo.rg}</p>
                   </div>
                   <div>
+                    <p className="text-sm text-muted-foreground">Órgão Expedidor</p>
+                    <p className="font-medium">{protocolo.registrationData.personalInfo.issuer || 'Não informado'}</p>
+                  </div>
+                  <div>
                     <p className="text-sm text-muted-foreground">Data de Nascimento</p>
                     <p className="font-medium">{protocolo.registrationData.personalInfo.birthDate}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Nacionalidade</p>
+                    <p className="font-medium">{protocolo.registrationData.personalInfo.nationality || 'Brasileiro(a)'}</p>
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">Naturalidade</p>
@@ -114,7 +122,7 @@ const ProtocoloDetailsModal: React.FC<ProtocoloDetailsModalProps> = ({
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">Telefone</p>
-                    <p className="font-medium">{protocolo.registrationData.personalInfo.phone}</p>
+                    <p className="font-medium">{protocolo.registrationData.personalInfo.phone || 'Não informado'}</p>
                   </div>
                 </div>
 
@@ -136,8 +144,16 @@ const ProtocoloDetailsModal: React.FC<ProtocoloDetailsModalProps> = ({
                         <p className="font-medium">{protocolo.registrationData.spouseInfo.rg}</p>
                       </div>
                       <div>
+                        <p className="text-sm text-muted-foreground">Órgão Expedidor</p>
+                        <p className="font-medium">{protocolo.registrationData.spouseInfo.issuer || 'Não informado'}</p>
+                      </div>
+                      <div>
                         <p className="text-sm text-muted-foreground">Data de Nascimento</p>
                         <p className="font-medium">{protocolo.registrationData.spouseInfo.birthDate}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-muted-foreground">Nacionalidade</p>
+                        <p className="font-medium">{protocolo.registrationData.spouseInfo.nationality || 'Brasileiro(a)'}</p>
                       </div>
                       <div>
                         <p className="text-sm text-muted-foreground">Naturalidade</p>
@@ -149,6 +165,14 @@ const ProtocoloDetailsModal: React.FC<ProtocoloDetailsModalProps> = ({
                       <div>
                         <p className="text-sm text-muted-foreground">Profissão</p>
                         <p className="font-medium">{protocolo.registrationData.spouseInfo.profession}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-muted-foreground">Filiação</p>
+                        <p className="font-medium">{protocolo.registrationData.spouseInfo.filiation || 'Não informado'}</p>
+                      </div>
+                      <div className="col-span-2">
+                        <p className="text-sm text-muted-foreground">Endereço</p>
+                        <p className="font-medium">{protocolo.registrationData.spouseInfo.address || 'Mesmo endereço'}</p>
                       </div>
                     </div>
                   </div>
@@ -162,6 +186,15 @@ const ProtocoloDetailsModal: React.FC<ProtocoloDetailsModalProps> = ({
               <h3 className="text-lg font-medium mb-2">Texto de Qualificação</h3>
               <div className="bg-slate-50 p-4 rounded-md">
                 <p className="text-sm whitespace-pre-line">{protocolo.textoQualificacao}</p>
+              </div>
+            </div>
+          )}
+
+          {protocolo.conteudo && (
+            <div className="pt-4 border-t">
+              <h3 className="text-lg font-medium mb-2">Conteúdo Completo</h3>
+              <div className="bg-slate-50 p-4 rounded-md">
+                <p className="text-sm whitespace-pre-line">{protocolo.conteudo}</p>
               </div>
             </div>
           )}
