@@ -1,5 +1,5 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -59,6 +59,7 @@ type FormValues = z.infer<typeof formSchema>;
 const CadastroSolteiro: React.FC = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
+  const location = useLocation();
   
   // Estados brasileiros
   const estados = [
@@ -99,9 +100,12 @@ const CadastroSolteiro: React.FC = () => {
     "Separado(a) judicialmente"
   ];
 
+  // Se houver dados no estado da navegação, usar como valores iniciais
+  const savedFormData = location.state?.formData;
+
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
-    defaultValues: {
+    defaultValues: savedFormData || {
       nome: "",
       naturalidade: "",
       uf: "",
@@ -120,25 +124,12 @@ const CadastroSolteiro: React.FC = () => {
     console.log("Dados do formulário:", data);
     toast({
       title: "Dados revisados com sucesso",
-      description: "Seus dados foram validados e estão prontos para processamento.",
+      description: "Seus dados foram validados e estão prontos para revisão.",
     });
-    // Aqui você pode implementar a lógica para salvar os dados ou navegar para a próxima página
+    navigate('/cadastro/revisar', { state: { formData: data } });
   };
 
   // Funções de formatação de input
-  const formatRG = (e: React.ChangeEvent<HTMLInputElement>) => {
-    let value = e.target.value.replace(/\D/g, '');
-    if (value.length <= 9) {
-      value = value.replace(/^(\d{2})(\d{3})(\d{3})(\d{1})?$/, (_, p1, p2, p3, p4) => {
-        if (p4) return `${p1}.${p2}.${p3}-${p4}`;
-        if (p3) return `${p1}.${p2}.${p3}`;
-        if (p2) return `${p1}.${p2}`;
-        return p1;
-      });
-      e.target.value = value;
-    }
-  };
-
   const formatCPF = (e: React.ChangeEvent<HTMLInputElement>) => {
     let value = e.target.value.replace(/\D/g, '');
     if (value.length <= 11) {
