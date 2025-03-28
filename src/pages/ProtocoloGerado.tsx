@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { useProtocolo } from "@/contexts/ProtocoloContext";
+import { RegistrationData } from "@/types";
 
 interface FormData {
   nome: string;
@@ -25,6 +26,7 @@ interface FormData {
   cpf: string;
   email: string;
   endereco: string;
+  nacionalidade?: string;
 }
 
 const ProtocoloGerado: React.FC = () => {
@@ -55,11 +57,33 @@ const ProtocoloGerado: React.FC = () => {
         // Preparar dados para o protocolo
         const documentoTexto = getDocumentoTexto(formData);
         
-        // Salvar o novo protocolo
+        // Converter formData para o formato de RegistrationData
+        const registrationData: RegistrationData = {
+          type: 'solteiro',
+          personalInfo: {
+            name: formData.nome,
+            birthDate: formData.dataNascimento.toISOString(),
+            cpf: formData.cpf,
+            rg: formData.rg,
+            address: formData.endereco,
+            email: formData.email,
+            phone: "",
+            naturality: formData.naturalidade,
+            uf: formData.uf,
+            filiation: formData.filiacao,
+            profession: formData.profissao,
+            civilStatus: formData.estadoCivil,
+            issuer: formData.orgaoExpedidor,
+            nationality: formData.nacionalidade || "Brasileiro(a)"
+          }
+        };
+        
+        // Salvar o novo protocolo com os dados de registro
         const novoProtocolo = protocolo.saveNewProtocolo({
           nome: formData.nome,
           cpf: formData.cpf,
-          conteudo: documentoTexto
+          conteudo: documentoTexto,
+          registrationData: registrationData
         });
         
         // Atualizar o estado com o número do protocolo gerado
@@ -87,7 +111,7 @@ const ProtocoloGerado: React.FC = () => {
   
   // Função para obter o texto completo do documento
   const getDocumentoTexto = (data: FormData): string => {
-    return `${data.nome}, brasileiro, nascido na cidade de ${data.naturalidade}-${data.uf}, aos ${formatarDataPorExtenso(data.dataNascimento)}, filho de ${data.filiacao}, profissão ${data.profissao}, estado civil ${data.estadoCivil}, o qual declara não conviver em regime de união estável, portador da Cédula de Identidade nº ${data.rg}-${data.orgaoExpedidor} e inscrito no CPF/MF sob o nº ${data.cpf}, endereço eletrônico: ${data.email}, residente e domiciliado na ${data.endereco};`;
+    return `${data.nome}, ${data.nacionalidade || "brasileiro(a)"}, natural de ${data.naturalidade}-${data.uf}, nascido(a) aos ${formatarDataPorExtenso(data.dataNascimento)}, filho(a) de ${data.filiacao}, profissão ${data.profissao}, estado civil ${data.estadoCivil}, portador(a) da Cédula de Identidade nº ${data.rg}-${data.orgaoExpedidor} e inscrito(a) no CPF/MF sob o nº ${data.cpf}, endereço eletrônico: ${data.email}, residente e domiciliado(a) na ${data.endereco};`;
   };
 
   // Função para copiar o texto para a área de transferência
@@ -187,7 +211,7 @@ const ProtocoloGerado: React.FC = () => {
             
             <div className="bg-white p-6 border rounded-md">
               <p id="documento-texto" className="text-justify leading-relaxed whitespace-pre-line">
-                {formData.nome}, brasileiro, nascido na cidade de {formData.naturalidade}-{formData.uf}, aos {formatarDataPorExtenso(formData.dataNascimento)}, filho de {formData.filiacao}, profissão {formData.profissao}, estado civil {formData.estadoCivil}, o qual declara não conviver em regime de união estável, portador da Cédula de Identidade nº {formData.rg}-{formData.orgaoExpedidor} e inscrito no CPF/MF sob o nº {formData.cpf}, endereço eletrônico: {formData.email}, residente e domiciliado na {formData.endereco};
+                {getDocumentoTexto(formData)}
               </p>
             </div>
           </CardContent>
