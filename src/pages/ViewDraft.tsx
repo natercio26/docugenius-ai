@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -253,6 +252,19 @@ const ViewDraft: React.FC = () => {
           
           console.log("Carregando rascunho com dados:", draftWithDates);
           
+          // Verificar se existe texto de qualificação no sessionStorage
+          const qualificacaoTexto = sessionStorage.getItem('documentoGeradoTexto');
+          if (qualificacaoTexto) {
+            console.log("Texto de qualificação encontrado no sessionStorage:", qualificacaoTexto);
+            
+            // Adicionar ao extractedData do rascunho
+            if (!draftWithDates.extractedData) {
+              draftWithDates.extractedData = {};
+            }
+            
+            draftWithDates.extractedData.qualificacaoCompleta = qualificacaoTexto;
+          }
+          
           // Se tiver protocoloInfo, verificar e carregar os dados completos do protocolo do storage
           if (draftWithDates.protocoloInfo && draftWithDates.protocoloInfo.numero) {
             const protocolo = getProtocoloByNumero(draftWithDates.protocoloInfo.numero);
@@ -296,7 +308,7 @@ const ViewDraft: React.FC = () => {
                   address: personalInfo.address,
                   
                   // Gerar o texto de qualificação completo para uso direto
-                  qualificacaoCompleta: protocolo.conteudo,
+                  qualificacaoCompleta: protocolo.conteudo || qualificacaoTexto,
                   herdeiro1: personalInfo.name // Assumir que o primeiro herdeiro é a pessoa do protocolo
                 };
                 
@@ -368,7 +380,7 @@ const ViewDraft: React.FC = () => {
   // Para rascunhos novos, usar também os dados do documento gerado no cadastro se disponíveis
   const extractedDataToPass = {
     ...draft.extractedData,
-    // Adicionar dados da sessão se existirem
+    // Adicionar dados da sessão se existirem e garantir prioridade para qualificacaoCompleta
     ...(sessionStorage.getItem('documentoGeradoTexto') ? 
       { qualificacaoCompleta: sessionStorage.getItem('documentoGeradoTexto') } : {})
   };

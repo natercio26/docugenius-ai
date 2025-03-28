@@ -78,7 +78,7 @@ const DocumentoGerado: React.FC = () => {
     
     qualificacao += `natural de ${formData.naturalidade}-${formData.uf}, nascido(a) aos ${formatarDataPorExtenso(formData.dataNascimento)}, filho(a) de ${formData.filiacao}, profissão ${formData.profissao}, estado civil ${formData.estadoCivil}, portador(a) da Cédula de Identidade nº ${formData.rg}-${formData.orgaoExpedidor} e inscrito(a) no CPF/MF sob o nº ${formData.cpf}, endereço eletrônico: ${formData.email}, residente e domiciliado(a) na ${formData.endereco};`;
     
-    // Armazenar a qualificação no sessionStorage para uso na minuta de inventário
+    // Armazenar a qualificação no sessionStorage com uma chave específica
     sessionStorage.setItem('documentoGeradoTexto', qualificacao);
     console.log("Qualificação completa armazenada:", qualificacao);
     
@@ -106,8 +106,9 @@ const DocumentoGerado: React.FC = () => {
 
   // Função para gerar protocolo
   const gerarProtocolo = () => {
-    // Armazenar a qualificação no sessionStorage antes de navegar
-    gerarQualificacaoCompleta();
+    // Gerar e armazenar o texto de qualificação antes de navegar
+    const textoQualificacao = gerarQualificacaoCompleta();
+    console.log("Texto de qualificação gerado antes de navegar:", textoQualificacao);
     navigate('/cadastro/protocolo', { state: { formData } });
   };
 
