@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
@@ -62,6 +61,7 @@ const formSchema = z.object({
   rgConjuge: z.string().min(5, { message: 'Informe o RG' }),
   orgaoExpedidorConjuge: z.string().min(2, { message: 'Informe o órgão expedidor' }),
   cpfConjuge: z.string().min(11, { message: 'Informe o CPF' }).max(14),
+  emailConjuge: z.string().email({ message: 'Informe um e-mail válido' }),
   
   // Marriage information
   dataCasamento: z.date({ required_error: 'Informe a data de casamento' }),
@@ -133,6 +133,7 @@ const CadastroCasado: React.FC = () => {
       rgConjuge: '',
       orgaoExpedidorConjuge: '',
       cpfConjuge: '',
+      emailConjuge: '',
       regimeBens: '',
     },
   });
@@ -155,6 +156,7 @@ const CadastroCasado: React.FC = () => {
             rg: data.rgConjuge,
             orgaoExpedidor: data.orgaoExpedidorConjuge,
             cpf: data.cpfConjuge,
+            email: data.emailConjuge,
           },
           dataCasamento: data.dataCasamento,
           regimeBens: data.regimeBens
@@ -555,6 +557,20 @@ const CadastroCasado: React.FC = () => {
                         <FormLabel>CPF</FormLabel>
                         <FormControl>
                           <Input placeholder="000.000.000-00" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="emailConjuge"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>E-mail</FormLabel>
+                        <FormControl>
+                          <Input type="email" placeholder="seu@email.com" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
