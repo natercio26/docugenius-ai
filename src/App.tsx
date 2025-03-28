@@ -5,6 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import * as React from "react";
+import { ProtocoloProvider } from "./contexts/ProtocoloContext";
 import Index from "./pages/Index";
 import Upload from "./pages/Upload";
 import ViewDraft from "./pages/ViewDraft";
@@ -22,25 +23,27 @@ const App: React.FC = () => {
   return (
     <React.StrictMode>
       <QueryClientProvider client={queryClient}>
-        <BrowserRouter>
-          <TooltipProvider>
-            <Toaster />
-            <Sonner />
-            <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/upload" element={<Upload />} />
-              <Route path="/view/:id" element={<ViewDraft />} />
-              <Route path="/edit/:id" element={<ViewDraft />} />
-              <Route path="/config" element={<ModelConfig />} />
-              <Route path="/cadastro" element={<Cadastro />} />
-              <Route path="/cadastro/solteiro" element={<CadastroSolteiro />} />
-              <Route path="/cadastro/revisar" element={<RevisaoDados />} />
-              <Route path="/cadastro/documento" element={<DocumentoGerado />} />
-              <Route path="/cadastro/protocolo" element={<ProtocoloGerado />} />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </TooltipProvider>
-        </BrowserRouter>
+        <ProtocoloProvider>
+          <BrowserRouter>
+            <TooltipProvider>
+              <Toaster />
+              <Sonner />
+              <Routes>
+                <Route path="/" element={<Index />} />
+                <Route path="/upload" element={<Upload />} />
+                <Route path="/view/:id" element={<ViewDraft />} />
+                <Route path="/edit/:id" element={<ViewDraft />} />
+                <Route path="/config" element={<ModelConfig />} />
+                <Route path="/cadastro" element={<Cadastro />} />
+                <Route path="/cadastro/solteiro" element={<CadastroSolteiro />} />
+                <Route path="/cadastro/revisar" element={<RevisaoDados />} />
+                <Route path="/cadastro/documento" element={<DocumentoGerado />} />
+                <Route path="/cadastro/protocolo" element={<ProtocoloGerado />} />
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </TooltipProvider>
+          </BrowserRouter>
+        </ProtocoloProvider>
       </QueryClientProvider>
     </React.StrictMode>
   );

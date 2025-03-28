@@ -72,10 +72,6 @@ const DocumentoGerado: React.FC = () => {
   // Função para gerar protocolo
   const gerarProtocolo = () => {
     navigate('/cadastro/protocolo', { state: { formData } });
-    toast({
-      title: "Protocolo gerado",
-      description: "Seu documento recebeu um número de protocolo."
-    });
   };
 
   // Função para voltar à página de revisão

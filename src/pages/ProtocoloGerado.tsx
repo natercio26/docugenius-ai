@@ -10,6 +10,7 @@ import Navbar from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
+import { useProtocolo } from "@/contexts/ProtocoloContext";
 
 interface FormData {
   nome: string;
@@ -30,24 +31,12 @@ const ProtocoloGerado: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [protocolo, setProtocolo] = useState<string>("");
+  const protocolo = useProtocolo();
+  const [protocoloNumero, setProtocoloNumero] = useState<string>("");
   
   // Recuperar os dados do estado da navegação
   const formData = location.state?.formData as FormData;
   
-  // Gerar número de protocolo aleatório
-  useEffect(() => {
-    const gerarProtocolo = () => {
-      const randomPart = Math.random().toString(36).substring(2, 10).toUpperCase();
-      const protocoloFormatado = `C-${randomPart}`;
-      setProtocolo(protocoloFormatado);
-    };
-    
-    if (!protocolo) {
-      gerarProtocolo();
-    }
-  }, [protocolo]);
-
   // Se não houver dados, redirecionar para o formulário
   useEffect(() => {
     if (!formData) {
@@ -57,12 +46,48 @@ const ProtocoloGerado: React.FC = () => {
         variant: "destructive"
       });
       navigate('/cadastro/solteiro');
+      return;
     }
-  }, [formData, navigate, toast]);
+    
+    // Gerar protocolo na primeira renderização apenas se não tiver protocolo
+    if (!protocoloNumero) {
+      try {
+        // Preparar dados para o protocolo
+        const documentoTexto = getDocumentoTexto(formData);
+        
+        // Salvar o novo protocolo
+        const novoProtocolo = protocolo.saveNewProtocolo({
+          nome: formData.nome,
+          cpf: formData.cpf,
+          conteudo: documentoTexto
+        });
+        
+        // Atualizar o estado com o número do protocolo gerado
+        setProtocoloNumero(novoProtocolo.numero);
+        
+        toast({
+          title: "Protocolo gerado",
+          description: "Seu documento recebeu um número de protocolo."
+        });
+      } catch (error) {
+        console.error("Erro ao gerar protocolo:", error);
+        toast({
+          title: "Erro ao gerar protocolo",
+          description: "Não foi possível gerar o protocolo para este documento.",
+          variant: "destructive"
+        });
+      }
+    }
+  }, [formData, navigate, toast, protocolo, protocoloNumero]);
 
   // Função para formatar a data por extenso
   const formatarDataPorExtenso = (data: Date) => {
     return format(data, "dd 'de' MMMM 'de' yyyy", { locale: ptBR });
+  };
+  
+  // Função para obter o texto completo do documento
+  const getDocumentoTexto = (data: FormData): string => {
+    return `${data.nome}, brasileiro, nascido na cidade de ${data.naturalidade}-${data.uf}, aos ${formatarDataPorExtenso(data.dataNascimento)}, filho de ${data.filiacao}, profissão ${data.profissao}, estado civil ${data.estadoCivil}, o qual declara não conviver em regime de união estável, portador da Cédula de Identidade nº ${data.rg}-${data.orgaoExpedidor} e inscrito no CPF/MF sob o nº ${data.cpf}, endereço eletrônico: ${data.email}, residente e domiciliado na ${data.endereco};`;
   };
 
   // Função para copiar o texto para a área de transferência
@@ -100,7 +125,7 @@ const ProtocoloGerado: React.FC = () => {
       // Adicionar número de protocolo
       doc.setFontSize(14);
       doc.setFont("helvetica", "bold");
-      doc.text(`Protocolo: ${protocolo}`, 20, 20);
+      doc.text(`Protocolo: ${protocoloNumero}`, 20, 20);
       doc.setFont("helvetica", "normal");
       doc.setFontSize(12);
       
@@ -118,7 +143,7 @@ const ProtocoloGerado: React.FC = () => {
       });
       
       // Nome do arquivo baseado no número de protocolo
-      const nomeArquivo = `documento_${protocolo.replace(/-/g, '_').toLowerCase()}.pdf`;
+      const nomeArquivo = `documento_${protocoloNumero.replace(/-/g, '_').toLowerCase()}.pdf`;
       
       // Salvar o PDF
       doc.save(nomeArquivo);
@@ -156,7 +181,7 @@ const ProtocoloGerado: React.FC = () => {
           <CardContent className="py-6">
             <div className="mb-6 bg-blue-50 p-4 rounded-md border border-blue-100">
               <h3 className="text-lg font-medium mb-2 text-blue-800">Protocolo de Registro</h3>
-              <p className="text-2xl font-mono font-bold">{protocolo}</p>
+              <p className="text-2xl font-mono font-bold">{protocoloNumero}</p>
               <p className="text-sm text-blue-600 mt-2">Este protocolo identifica unicamente seu documento no sistema.</p>
             </div>
             

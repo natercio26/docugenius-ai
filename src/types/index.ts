@@ -74,3 +74,11 @@ export interface RegistrationData {
     rg: string;
   };
 }
+
+export interface ProtocoloData {
+  numero: string;
+  dataGeracao: Date;
+  nome: string;
+  cpf: string;
+  conteudo: string;
+}
