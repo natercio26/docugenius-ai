@@ -7,6 +7,8 @@ import BasicDetailsSection from './BasicDetailsSection';
 import PersonalDetailsSection from './PersonalDetailsSection';
 import SpouseDetailsSection from './SpouseDetailsSection';
 import TextContentSection from './TextContentSection';
+import MarriedDetailsView from './MarriedDetailsView';
+import SingleDetailsView from './SingleDetailsView';
 
 interface ModalContentProps {
   protocolo: ProtocoloData;
@@ -17,6 +19,8 @@ const ModalContent: React.FC<ModalContentProps> = ({
   protocolo, 
   onClose 
 }) => {
+  const isCasado = protocolo.registrationData?.type === 'casado';
+  
   return (
     <>
       <ScrollArea className="max-h-[70vh]">
@@ -29,16 +33,11 @@ const ModalContent: React.FC<ModalContentProps> = ({
           />
           
           {protocolo.registrationData && (
-            <PersonalDetailsSection 
-              registrationData={protocolo.registrationData} 
-            />
-          )}
-
-          {protocolo.registrationData?.type === 'casado' && 
-           protocolo.registrationData.spouseInfo && (
-            <SpouseDetailsSection 
-              spouseInfo={protocolo.registrationData.spouseInfo} 
-            />
+            isCasado ? (
+              <MarriedDetailsView registrationData={protocolo.registrationData} />
+            ) : (
+              <SingleDetailsView registrationData={protocolo.registrationData} />
+            )
           )}
 
           {protocolo.textoQualificacao && (
