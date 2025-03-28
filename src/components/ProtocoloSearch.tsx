@@ -259,13 +259,13 @@ const ProtocoloSearch: React.FC<ProtocoloSearchProps> = ({ documentType = 'Inven
           extractedData['nome'] = personalInfo.name;
           extractedData['cpf'] = personalInfo.cpf;
           extractedData['rg'] = personalInfo.rg;
-          extractedData['orgaoExpedidor'] = personalInfo.rgIssuer || 'SSP';
+          extractedData['orgaoExpedidor'] = personalInfo.issuer || 'SSP';
           extractedData['endereco'] = personalInfo.address;
           extractedData['profissao'] = personalInfo.profession || '';
           extractedData['estadoCivil'] = personalInfo.civilStatus || '';
           extractedData['nacionalidade'] = personalInfo.nationality || 'brasileiro(a)';
-          extractedData['naturalidade'] = personalInfo.birthplace || 'Brasília';
-          extractedData['uf'] = personalInfo.birthplaceState || 'DF';
+          extractedData['naturalidade'] = personalInfo.naturality || 'Brasília';
+          extractedData['uf'] = personalInfo.uf || 'DF';
           extractedData['email'] = personalInfo.email || '';
           
           // Additional fields if available
@@ -274,7 +274,7 @@ const ProtocoloSearch: React.FC<ProtocoloSearchProps> = ({ documentType = 'Inven
             extractedData['dataNascimento'] = formatarDataPorExtenso(birthDate);
           }
           
-          extractedData['filiacao'] = personalInfo.parents || '';
+          extractedData['filiacao'] = personalInfo.filiation || '';
           
           // For inventory document type, map to specific heir fields
           if (documentType === 'Inventário') {
@@ -295,8 +295,8 @@ const ProtocoloSearch: React.FC<ProtocoloSearchProps> = ({ documentType = 'Inven
               heirQualification += `, brasileiro(a)`;
             }
             
-            if (personalInfo.birthplace && personalInfo.birthplaceState) {
-              heirQualification += `, natural de ${personalInfo.birthplace}-${personalInfo.birthplaceState}`;
+            if (personalInfo.naturality && personalInfo.uf) {
+              heirQualification += `, natural de ${personalInfo.naturality}-${personalInfo.uf}`;
             }
             
             if (personalInfo.birthDate) {
@@ -304,8 +304,8 @@ const ProtocoloSearch: React.FC<ProtocoloSearchProps> = ({ documentType = 'Inven
               heirQualification += `, nascido(a) aos ${formatarDataPorExtenso(birthDate)}`;
             }
             
-            if (personalInfo.parents) {
-              heirQualification += `, filho(a) de ${personalInfo.parents}`;
+            if (personalInfo.filiation) {
+              heirQualification += `, filho(a) de ${personalInfo.filiation}`;
             }
             
             if (personalInfo.profession) {
@@ -317,7 +317,7 @@ const ProtocoloSearch: React.FC<ProtocoloSearchProps> = ({ documentType = 'Inven
             }
             
             if (personalInfo.rg) {
-              const rgIssuer = personalInfo.rgIssuer || 'SSP';
+              const rgIssuer = personalInfo.issuer || 'SSP';
               heirQualification += `, portador(a) da Cédula de Identidade nº ${personalInfo.rg}-${rgIssuer}`;
             }
             
@@ -362,8 +362,8 @@ const ProtocoloSearch: React.FC<ProtocoloSearchProps> = ({ documentType = 'Inven
               spouseQualification += `, brasileiro(a)`;
             }
             
-            if (spouseInfo.birthplace && spouseInfo.birthplaceState) {
-              spouseQualification += `, natural de ${spouseInfo.birthplace}-${spouseInfo.birthplaceState}`;
+            if (spouseInfo.naturality && spouseInfo.uf) {
+              spouseQualification += `, natural de ${spouseInfo.naturality}-${spouseInfo.uf}`;
             }
             
             if (spouseInfo.birthDate) {
@@ -371,8 +371,8 @@ const ProtocoloSearch: React.FC<ProtocoloSearchProps> = ({ documentType = 'Inven
               spouseQualification += `, nascido(a) aos ${formatarDataPorExtenso(birthDate)}`;
             }
             
-            if (spouseInfo.parents) {
-              spouseQualification += `, filho(a) de ${spouseInfo.parents}`;
+            if (spouseInfo.filiation) {
+              spouseQualification += `, filho(a) de ${spouseInfo.filiation}`;
             }
             
             if (spouseInfo.profession) {
@@ -384,7 +384,7 @@ const ProtocoloSearch: React.FC<ProtocoloSearchProps> = ({ documentType = 'Inven
             spouseQualification += `, estado civil viúvo(a)`;
             
             if (spouseInfo.rg) {
-              const rgIssuer = spouseInfo.rgIssuer || 'SSP';
+              const rgIssuer = spouseInfo.issuer || 'SSP';
               spouseQualification += `, portador(a) da cédula de identidade RG nº ${spouseInfo.rg}-${rgIssuer}`;
             }
             

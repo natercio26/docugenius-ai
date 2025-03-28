@@ -73,17 +73,21 @@ export interface RegistrationData {
     profession?: string;
     civilStatus?: string;
     issuer?: string;
-    nationality?: string;  // Adicionando esta propriedade
+    nationality?: string;
   };
   spouseInfo?: {
     name: string;
     birthDate: string;
     cpf: string;
     rg: string;
-    address?: string;     // Adicionando esta propriedade
-    profession?: string;  // Adicionando esta propriedade
-    civilStatus?: string; // Adicionando esta propriedade
-    nationality?: string; // Adicionando esta propriedade
+    address?: string;
+    profession?: string;
+    civilStatus?: string;
+    nationality?: string;
+    naturality?: string;
+    uf?: string;
+    filiation?: string;
+    issuer?: string;
   };
 }
 
