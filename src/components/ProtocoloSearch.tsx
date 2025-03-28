@@ -25,6 +25,9 @@ const ProtocoloSearch: React.FC<ProtocoloSearchProps> = ({ documentType = 'Inven
     setLoading(true);
     
     try {
+      // Clear any existing draft from session storage first
+      sessionStorage.removeItem('generatedDraft');
+      
       const protocoloData = getProtocoloByNumero(protocolo);
       
       if (!protocoloData) {

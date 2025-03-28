@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Navbar from '@/components/Navbar';
@@ -35,6 +36,9 @@ const Upload: React.FC = () => {
   };
 
   const handleUploadComplete = (files: File[], extractedData: Record<string, string> = {}) => {
+    // Clear any existing draft from session storage first
+    sessionStorage.removeItem('generatedDraft');
+    
     // Simulate processing
     setStatus('uploading');
     
