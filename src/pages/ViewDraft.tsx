@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Navbar from '@/components/Navbar';
@@ -38,7 +37,7 @@ As partes convencionam que, a partir desta data, são transferidos ao OUTORGADO 
 
 As partes responsabilizam-se por todas as declarações feitas neste instrumento, ficando cientes de que, se comprovada a falsidade de qualquer delas, será considerado crime de falsidade ideológica, nos termos do art. 299 do Código Penal.
 
-Foram-me apresentadas e ficam arquivadas neste Tabelionato as certidões exigidas por lei, a saber: Certidão Negativa de Débitos Relativos aos Tributos Federais e à Dívida Ativa da União; Certidão Negativa de Débitos Tributários Estaduais; Certidão Negativa de Débitos Tributários Municipais; Certidão Negativa de Débitos Condominiais; e Certidão Negativa de Ônus Reais, Ações Reais e Pessoais Reipersecutórias extraída da matrícula do imóvel.
+Foram-me apresentadas e ficam arquivadas neste Tabelionato as certidões exigidas por lei, a saber: Certidão Negativa de Débitos Relativos aos Tributos Federais e à Dívida Ativa da União; Certidão Negativa de D��bitos Tributários Estaduais; Certidão Negativa de Débitos Tributários Municipais; Certidão Negativa de Débitos Condominiais; e Certidão Negativa de Ônus Reais, Ações Reais e Pessoais Reipersecutórias extraída da matrícula do imóvel.
 
 Declaram as partes, sob responsabilidade civil e criminal, que o preço atribuído ao imóvel nesta escritura é real e efetivamente pago, não havendo qualquer simulação ou dissimulação.
 
@@ -310,82 +309,6 @@ interface ExtendedDraft extends Draft {
   extractedData?: Record<string, string>;
 }
 
-const defaultNewDrafts: Record<DraftType, ExtendedDraft> = {
-  'Escritura de Compra e Venda': {
-    id: 'new',
-    title: 'Escritura de Compra e Venda - Apartamento',
-    type: 'Escritura de Compra e Venda',
-    content: sampleContent,
-    createdAt: new Date(),
-    updatedAt: new Date()
-  },
-  'Inventário': {
-    id: 'new',
-    title: 'Inventário - Processo de Sucessão',
-    type: 'Inventário',
-    content: inventarioSampleContent,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    extractedData: sampleExtractedData
-  },
-  'Doação': {
-    id: 'new',
-    title: 'Escritura de Doação',
-    type: 'Doação',
-    content: "Conteúdo da escritura de doação...",
-    createdAt: new Date(),
-    updatedAt: new Date()
-  },
-  'União Estável': {
-    id: 'new',
-    title: 'Contrato de União Estável',
-    type: 'União Estável',
-    content: "Conteúdo do contrato de união estável...",
-    createdAt: new Date(),
-    updatedAt: new Date()
-  },
-  'Procuração': {
-    id: 'new',
-    title: 'Procuração Pública',
-    type: 'Procuração',
-    content: "Conteúdo da procuração pública...",
-    createdAt: new Date(),
-    updatedAt: new Date()
-  },
-  'Testamento': {
-    id: 'new',
-    title: 'Testamento Público',
-    type: 'Testamento',
-    content: "Conteúdo do testamento público...",
-    createdAt: new Date(),
-    updatedAt: new Date()
-  },
-  'Contrato de Aluguel': {
-    id: 'new',
-    title: 'Contrato de Locação Residencial',
-    type: 'Contrato de Aluguel',
-    content: "Conteúdo do contrato de locação...",
-    createdAt: new Date(),
-    updatedAt: new Date()
-  },
-  'Contrato Social': {
-    id: 'new',
-    title: 'Contrato Social - Sociedade Limitada',
-    type: 'Contrato Social',
-    content: "Conteúdo do contrato social...",
-    createdAt: new Date(),
-    updatedAt: new Date()
-  },
-  'Outro': {
-    id: 'new',
-    title: 'Documento Jurídico',
-    type: 'Outro',
-    content: "Conteúdo do documento jurídico...",
-    createdAt: new Date(),
-    updatedAt: new Date()
-  }
-};
-
 const ViewDraft: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -407,7 +330,7 @@ const ViewDraft: React.FC = () => {
             parsedDraft.updatedAt = new Date(parsedDraft.updatedAt);
           }
           
-          if (parsedDraft.type === 'Inventário') {
+          if (parsedDraft.type === 'Inventário' as DraftType) {
             parsedDraft.extractedData = sampleExtractedData;
           }
           
@@ -417,21 +340,22 @@ const ViewDraft: React.FC = () => {
           const defaultType: DraftType = 'Escritura de Compra e Venda';
           const defaultDraft = {...defaultNewDrafts[defaultType]};
           
-          if (defaultType === 'Inventário') {
-            defaultDraft.extractedData = sampleExtractedData;
+          if (defaultType === 'Inventário' as DraftType) {
+            (defaultDraft as ExtendedDraft).extractedData = sampleExtractedData;
           }
           
-          setDraft(defaultDraft);
+          setDraft(defaultDraft as ExtendedDraft);
         }
       } else {
-        const defaultDraft = {...defaultNewDrafts['Inventário']};
+        const defaultDraft = {...defaultNewDrafts['Inventário']} as ExtendedDraft;
+        defaultDraft.extractedData = sampleExtractedData;
         setDraft(defaultDraft);
       }
     } else {
       const foundDraft = mockDrafts.find(d => d.id === id);
       
       if (foundDraft) {
-        if (foundDraft.type === 'Inventário') {
+        if (foundDraft.type === 'Inventário' as DraftType) {
           const extendedDraft: ExtendedDraft = {
             ...foundDraft, 
             extractedData: sampleExtractedData
