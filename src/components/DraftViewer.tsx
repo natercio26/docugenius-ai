@@ -61,6 +61,49 @@ const DraftViewer: React.FC<DraftViewerProps> = ({ draft, extractedData }) => {
       content = content.replace(placeholderRegex, (match, placeholder) => {
         const placeholderKey = placeholder.trim();
         
+        if (placeholderKey === 'qualificacao_do(a)(s)_herdeiro(a)(s)') {
+          if (localData.nome && localData.rg && localData.cpf) {
+            let qualification = `${localData.nome}, `;
+            
+            if (localData.nacionalidade) {
+              qualification += `${localData.nacionalidade}, `;
+            } else {
+              qualification += 'brasileiro(a), ';
+            }
+            
+            if (localData.estadoCivil) {
+              qualification += `${localData.estadoCivil}, `;
+            }
+            
+            if (localData.profissao) {
+              qualification += `${localData.profissao}, `;
+            }
+            
+            qualification += `portador(a) da cédula de identidade RG nº ${localData.rg}`;
+            if (localData.orgaoExpedidor) {
+              qualification += `-${localData.orgaoExpedidor}`;
+            }
+            
+            qualification += ` e inscrito(a) no CPF sob o nº ${localData.cpf}`;
+            
+            if (localData.email) {
+              qualification += `, endereço eletrônico ${localData.email}`;
+            }
+            
+            if (localData.endereco) {
+              qualification += `, residente e domiciliado(a) na ${localData.endereco}`;
+            }
+            
+            return qualification;
+          }
+          
+          if (localData.herdeiro1) {
+            return localData.herdeiro1;
+          }
+          
+          return match;
+        }
+        
         const exactMappings: Record<string, string> = {
           'nome_do_"de_cujus"': 'falecido',
           'nome_do_autor_da_heranca': 'falecido',

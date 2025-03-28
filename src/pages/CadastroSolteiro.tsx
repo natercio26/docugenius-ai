@@ -36,7 +36,6 @@ import {
 } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 
-// Updated schema with more flexible RG validation
 const formSchema = z.object({
   nome: z.string().min(3, "Nome deve ter pelo menos 3 caracteres"),
   naturalidade: z.string().min(2, "Informe sua naturalidade"),
@@ -52,6 +51,7 @@ const formSchema = z.object({
   cpf: z.string().regex(/^\d{3}\.\d{3}\.\d{3}-\d{2}$/, "CPF inválido (formato: 000.000.000-00)"),
   email: z.string().email("E-mail inválido"),
   endereco: z.string().min(5, "Endereço deve ter pelo menos 5 caracteres"),
+  nacionalidade: z.string().optional(),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -61,7 +61,6 @@ const CadastroSolteiro: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   
-  // Estados brasileiros
   const estados = [
     { sigla: "AC", nome: "Acre" },
     { sigla: "AL", nome: "Alagoas" },
@@ -91,8 +90,7 @@ const CadastroSolteiro: React.FC = () => {
     { sigla: "SE", nome: "Sergipe" },
     { sigla: "TO", nome: "Tocantins" }
   ];
-  
-  // Estados civis
+
   const estadosCivis = [
     "Solteiro(a)",
     "Divorciado(a)",
@@ -100,7 +98,12 @@ const CadastroSolteiro: React.FC = () => {
     "Separado(a) judicialmente"
   ];
 
-  // Se houver dados no estado da navegação, usar como valores iniciais
+  const nacionalidades = [
+    "Brasileiro(a)",
+    "Estrangeiro(a)",
+    "Naturalizado(a)"
+  ];
+
   const savedFormData = location.state?.formData;
 
   const form = useForm<FormValues>({
@@ -117,6 +120,7 @@ const CadastroSolteiro: React.FC = () => {
       cpf: "",
       email: "",
       endereco: "",
+      nacionalidade: "Brasileiro(a)",
     },
   });
 
@@ -129,7 +133,6 @@ const CadastroSolteiro: React.FC = () => {
     navigate('/cadastro/revisar', { state: { formData: data } });
   };
 
-  // Funções de formatação de input
   const formatCPF = (e: React.ChangeEvent<HTMLInputElement>) => {
     let value = e.target.value.replace(/\D/g, '');
     if (value.length <= 11) {
@@ -155,7 +158,6 @@ const CadastroSolteiro: React.FC = () => {
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* Nome Completo */}
                   <FormField
                     control={form.control}
                     name="nome"
@@ -170,7 +172,34 @@ const CadastroSolteiro: React.FC = () => {
                     )}
                   />
 
-                  {/* Naturalidade */}
+                  <FormField
+                    control={form.control}
+                    name="nacionalidade"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Nacionalidade</FormLabel>
+                        <Select 
+                          onValueChange={field.onChange} 
+                          defaultValue={field.value || "Brasileiro(a)"}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Selecione" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {nacionalidades.map((nacionalidade) => (
+                              <SelectItem key={nacionalidade} value={nacionalidade}>
+                                {nacionalidade}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
                   <FormField
                     control={form.control}
                     name="naturalidade"
@@ -185,7 +214,6 @@ const CadastroSolteiro: React.FC = () => {
                     )}
                   />
 
-                  {/* UF */}
                   <FormField
                     control={form.control}
                     name="uf"
@@ -214,7 +242,6 @@ const CadastroSolteiro: React.FC = () => {
                     )}
                   />
 
-                  {/* Data de Nascimento */}
                   <FormField
                     control={form.control}
                     name="dataNascimento"
@@ -259,7 +286,6 @@ const CadastroSolteiro: React.FC = () => {
                     )}
                   />
 
-                  {/* Filiação */}
                   <FormField
                     control={form.control}
                     name="filiacao"
@@ -274,7 +300,6 @@ const CadastroSolteiro: React.FC = () => {
                     )}
                   />
 
-                  {/* Profissão */}
                   <FormField
                     control={form.control}
                     name="profissao"
@@ -289,7 +314,6 @@ const CadastroSolteiro: React.FC = () => {
                     )}
                   />
 
-                  {/* Estado Civil */}
                   <FormField
                     control={form.control}
                     name="estadoCivil"
@@ -318,7 +342,6 @@ const CadastroSolteiro: React.FC = () => {
                     )}
                   />
 
-                  {/* RG */}
                   <FormField
                     control={form.control}
                     name="rg"
@@ -336,7 +359,6 @@ const CadastroSolteiro: React.FC = () => {
                     )}
                   />
 
-                  {/* Órgão Expedidor */}
                   <FormField
                     control={form.control}
                     name="orgaoExpedidor"
@@ -351,7 +373,6 @@ const CadastroSolteiro: React.FC = () => {
                     )}
                   />
 
-                  {/* CPF */}
                   <FormField
                     control={form.control}
                     name="cpf"
@@ -373,7 +394,6 @@ const CadastroSolteiro: React.FC = () => {
                     )}
                   />
 
-                  {/* E-mail */}
                   <FormField
                     control={form.control}
                     name="email"
@@ -388,7 +408,6 @@ const CadastroSolteiro: React.FC = () => {
                     )}
                   />
 
-                  {/* Endereço */}
                   <FormField
                     control={form.control}
                     name="endereco"

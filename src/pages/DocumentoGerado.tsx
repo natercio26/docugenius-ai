@@ -23,6 +23,7 @@ interface FormData {
   cpf: string;
   email: string;
   endereco: string;
+  nacionalidade?: string;
 }
 
 const DocumentoGerado: React.FC = () => {
@@ -48,6 +49,15 @@ const DocumentoGerado: React.FC = () => {
   // Função para formatar a data por extenso
   const formatarDataPorExtenso = (data: Date) => {
     return format(data, "dd 'de' MMMM 'de' yyyy", { locale: ptBR });
+  };
+
+  // Função para gerar a qualificação completa da pessoa
+  const gerarQualificacaoCompleta = () => {
+    if (!formData) return "";
+    
+    let qualificacao = `${formData.nome}, brasileiro(a), natural de ${formData.naturalidade}-${formData.uf}, nascido(a) aos ${formatarDataPorExtenso(formData.dataNascimento)}, filho(a) de ${formData.filiacao}, profissão ${formData.profissao}, estado civil ${formData.estadoCivil}, portador(a) da Cédula de Identidade nº ${formData.rg}-${formData.orgaoExpedidor} e inscrito(a) no CPF/MF sob o nº ${formData.cpf}, endereço eletrônico: ${formData.email}, residente e domiciliado(a) na ${formData.endereco};`;
+    
+    return qualificacao;
   };
 
   // Função para copiar o texto para a área de transferência
@@ -92,7 +102,7 @@ const DocumentoGerado: React.FC = () => {
           <CardContent className="py-6">
             <div className="bg-white p-6 border rounded-md">
               <p id="documento-texto" className="text-justify leading-relaxed whitespace-pre-line">
-                {formData.nome}, brasileiro, nascido na cidade de {formData.naturalidade}-{formData.uf}, aos {formatarDataPorExtenso(formData.dataNascimento)}, filho de {formData.filiacao}, profissão {formData.profissao}, estado civil {formData.estadoCivil}, o qual declara não conviver em regime de união estável, portador da Cédula de Identidade nº {formData.rg}-{formData.orgaoExpedidor} e inscrito no CPF/MF sob o nº {formData.cpf}, endereço eletrônico: {formData.email}, residente e domiciliado na {formData.endereco};
+                {gerarQualificacaoCompleta()}
               </p>
             </div>
           </CardContent>
