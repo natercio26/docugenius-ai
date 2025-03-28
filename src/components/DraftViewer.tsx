@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Draft } from '@/types';
 import { Info, ChevronDown, ChevronUp, FileText, AlertTriangle, Edit, Eye, Trash2, Save } from 'lucide-react';
@@ -38,15 +39,22 @@ const DraftViewer: React.FC<DraftViewerProps> = ({ draft, extractedData }) => {
     if (draft.type === 'Inventário' && localData && Object.keys(localData).length > 0) {
       let content = draft.content;
       
-      // Replace placeholders with data
+      // Enhanced placeholder regex to catch all formats including quote marks and parentheses
       const placeholderRegex = /¿([^>]+)>/g;
+      
       content = content.replace(placeholderRegex, (match, placeholder) => {
         // Map placeholder to the corresponding field in localData
-        const mappings: Record<string, string> = {
+        const placeholderKey = placeholder.trim();
+        
+        // Comprehensive mapping table for all placeholders
+        const mappings: Record<string, string | Function> = {
+          // Basic mappings
           'nome_do_"de_cujus"': 'falecido',
           'nome_do_autor_da_heranca': 'falecido',
-          'qualificacao_do_autor_da_heranca': `${localData.profissao || ''}, ${localData.estadoCivil || ''}, ${localData.nacionalidade || ''}`,
+          'qualificacao_do_autor_da_heranca': () => `${localData.profissao || ''}, ${localData.estadoCivil || ''}, ${localData.nacionalidade || ''}`,
           'nome_do(a)_viuva(o)-meeira(o)': 'conjuge',
+          'nome_do(a)_viuvo(a)': 'conjuge',
+          'viuvo(a)-meeiro(a)': 'conjuge',
           'regime': 'regimeBens',
           'data_do_casamento': 'dataCasamento',
           'data_do_falecimento': 'dataFalecimento',
@@ -59,25 +67,97 @@ const DraftViewer: React.FC<DraftViewerProps> = ({ draft, extractedData }) => {
           'MATRICULA_Nº': 'matriculaImovel',
           'nº_do_cartorio': 'cartorioImovel',
           'monte_mor': 'valorTotalBens',
-          'nome_do(a)_viuvo(a)': 'conjuge',
           'valor_da_meacao': 'valorTotalMeacao',
           'incluir_o_nome_dos_herdeiros': 'nomesFilhos',
           'incluir_o_percentual': 'percentualHerdeiro',
           'incluir_valor_que_pertence_a_cada_herdeiro': 'valorPorHerdeiro',
           'nº_da_guia': 'numeroITCMD',
           'valor': 'valorITCMD',
-          'qualificacao_do(a)_viuvo(a)': `${localData.conjuge || ''}, portador(a) do RG ${localData.rgConjuge || ''} e CPF ${localData.cpfConjuge || ''}`,
-          'qualificacao_do(a)(s)_herdeiro(a)(s)': `${localData.herdeiro1 || ''}, portador(a) do RG ${localData.rg || ''} e CPF ${localData.cpf || ''}`,
+          'qualificacao_do(a)_viuvo(a)': () => `${localData.conjuge || ''}, portador(a) do RG ${localData.rgConjuge || ''} e CPF ${localData.cpfConjuge || ''}`,
+          'qualificacao_do(a)(s)_herdeiro(a)(s)': () => `${localData.herdeiro1 || ''}, portador(a) do RG ${localData.rg || ''} e CPF ${localData.cpf || ''}`,
           'nome_do_advogado': 'advogado',
           'rg_herdeiro1': 'rg',
           'cpf_herdeiro1': 'cpf',
+          
+          // Additional mapping for other fields
+          'nº_da_matricula_da_cert._obito': 'matriculaObito',
+          'oficio_do_cartorio': 'cartorioObito',
+          'nº_do_termo': 'numeroTermoObito',
+          'livro': 'livroObito',
+          'fls': 'folhasObito',
+          'cartorio': 'cartorioObito',
+          'data_de_expedicao': 'dataExpedicaoCertidao',
+          'nº__da_certidao': 'numeroCertidao',
+          'data_da_emissao': 'dataEmissaoCertidao',
+          'incluir_hora_de_emissao': 'horaEmissaoCertidao',
+          'validade': 'validadeCertidao',
+          'cnd_de_iptu': 'numeroCertidaoIPTU',
+          'inscricao_do_GDF': 'inscricaoGDF',
+          'item_do_imovel': 'itemImovel',
+          'data_de_pagamento': 'dataPagamentoITCMD',
+          'valor_tributavel': 'valorTributavelITCMD',
+          'codigo_hash': 'hashCNIB',
+          'resultado': 'resultadoCNIB',
+          'Data_lav1': 'dataLavratura',
+          'modo_de_aquisicao': 'modoAquisicaoImovel',
+          'REGISTRO_Nº': 'numeroRegistroImovel',
+          'VALOR_R$': 'valorImovel',
+          
+          // Vehicle information
+          'marca': 'veiculoMarca',
+          'cor': 'veiculoCor',
+          'categoria': 'veiculoCategoria',
+          'alcool/gasolina': 'veiculoCombustivel',
+          'placa': 'veiculoPlaca',
+          'chassi': 'veiculoChassi',
+          'ano': 'veiculoAno',
+          'modelo': 'veiculoModelo',
+          'renavam': 'veiculoRenavam',
+          
+          // Bank information
+          'numero': 'numeroConta',
+          'agencia': 'agenciaConta',
+          'nome_do_banco': 'bancoConta',
+          
+          // Additional templates for complex placeholders
+          'verificar_no_CCIR': 'dadosCCIR',
+          'nirf': 'numeroNIRF',
+          'quando_feito_por_procuracao': 'infoProcuracao',
+          'citar_demais_orgaos': 'outrosOrgaos',
         };
         
-        const fieldName = mappings[placeholder] || placeholder;
-        return localData[fieldName] || match;
+        // Try to get the value from mappings
+        const mappedField = mappings[placeholderKey];
+        
+        if (typeof mappedField === 'function') {
+          // If it's a function, execute it to get the composed value
+          return mappedField();
+        } else if (typeof mappedField === 'string') {
+          // If it's a direct mapping, get the value from localData
+          return localData[mappedField] || match;
+        }
+        
+        // If no direct mapping found, try to find a similar match
+        const simplifiedKey = placeholderKey
+          .replace(/[()]/g, '') // Remove parentheses
+          .replace(/["']/g, '') // Remove quotes
+          .replace(/[-_]/g, '') // Remove dashes and underscores
+          .toLowerCase();
+        
+        for (const [key, value] of Object.entries(localData)) {
+          // Check if the simplified key contains the data key
+          const simpleDataKey = key.toLowerCase();
+          if (simplifiedKey.includes(simpleDataKey)) {
+            return value;
+          }
+        }
+        
+        console.log(`Placeholder not mapped: ${placeholderKey}`);
+        return match; // Return original placeholder if no mapping found
       });
       
       setProcessedContent(content);
+      console.log("Content processed with replacements");
     } else {
       setProcessedContent(draft.content);
     }
