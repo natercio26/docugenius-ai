@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, Database, FileText, User, ArrowLeft } from 'lucide-react';
@@ -31,7 +30,7 @@ import { useProtocolo } from "@/contexts/ProtocoloContext";
 import { ProtocoloData } from "@/types";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { useMobile } from "@/hooks/use-mobile";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const ProtocolosDatabase: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -43,16 +42,14 @@ const ProtocolosDatabase: React.FC = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { getAllProtocolos, searchProtocolos } = useProtocolo();
-  const isMobile = useMobile();
+  const isMobile = useIsMobile();
 
-  // Load all protocolos on component mount
   useEffect(() => {
     const allProtocolos = getAllProtocolos();
     setProtocolos(allProtocolos);
     setFilteredProtocolos(allProtocolos);
   }, [getAllProtocolos]);
 
-  // Handle search input change
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const query = e.target.value;
     setSearchQuery(query);
@@ -65,33 +62,27 @@ const ProtocolosDatabase: React.FC = () => {
     }
   };
 
-  // Format date for display
   const formatDate = (date: Date): string => {
     return format(date, "dd/MM/yyyy", { locale: ptBR });
   };
 
-  // Open protocol details
   const viewProtocolDetails = (protocolo: ProtocoloData) => {
     setSelectedProtocolo(protocolo);
     setIsDetailsOpen(true);
   };
 
-  // Close details dialog/drawer
   const closeDetails = () => {
     setIsDetailsOpen(false);
   };
 
-  // Handle back button
   const handleBack = () => {
     navigate('/cadastro');
   };
 
-  // Format CPF for display
   const formatCpf = (cpf: string): string => {
     return cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
   };
 
-  // Render details dialog (desktop) or drawer (mobile)
   const renderDetailsModal = () => {
     if (!selectedProtocolo) return null;
 
