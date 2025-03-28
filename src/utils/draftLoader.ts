@@ -30,11 +30,22 @@ export const loadDraftData = (isNew: boolean): Draft | null => {
               }
               
               parsedDraft.extractedData.qualificacaoCompleta = protocolo.textoQualificacao;
+              parsedDraft.extractedData['qualificacao_do(a)(s)_herdeiro(a)(s)'] = protocolo.textoQualificacao;
               
               // Atualizar o draft no sessionStorage com os dados atualizados
               sessionStorage.setItem('generatedDraft', JSON.stringify(parsedDraft));
+              
+              // Store the qualification text separately too for additional backup
+              sessionStorage.setItem('documentoGeradoTexto', protocolo.textoQualificacao);
             }
           }
+        }
+        
+        // Check if content contains placeholder
+        if (parsedDraft.content?.includes("¿qualificacao_do(a)(s)_herdeiro(a)(s)>")) {
+          console.log("loadDraftData: Draft content contains qualification placeholder");
+        } else {
+          console.log("loadDraftData: Draft content does NOT contain qualification placeholder");
         }
         
         return parsedDraft;
@@ -51,22 +62,13 @@ export const loadDraftData = (isNew: boolean): Draft | null => {
 
 export const prepareDraftData = (draft: Draft): Record<string, string> | undefined => {
   try {
-    // Se já temos dados extraídos no draft, retorná-los
+    // Create a base object to collect all data
+    const allData: Record<string, string> = {};
+    
+    // Se já temos dados extraídos no draft, adicioná-los ao objeto base
     if (draft.extractedData) {
       console.log("Usando dados extraídos do draft:", draft.extractedData);
-      
-      // Se temos o protocolo, verificar se há texto de qualificação
-      if (draft.protocoloInfo?.numero) {
-        const protocolo = getProtocoloByNumero(draft.protocoloInfo.numero);
-        if (protocolo && protocolo.textoQualificacao) {
-          console.log("Texto de qualificação encontrado no protocolo:", protocolo.textoQualificacao);
-          
-          // Adicionar/atualizar o texto de qualificação nos dados extraídos
-          draft.extractedData.qualificacaoCompleta = protocolo.textoQualificacao;
-        }
-      }
-      
-      return draft.extractedData;
+      Object.assign(allData, draft.extractedData);
     }
     
     // Se temos informações de protocolo, buscar dados
@@ -81,14 +83,25 @@ export const prepareDraftData = (draft: Draft): Record<string, string> | undefin
         if (protocolo.textoQualificacao) {
           console.log("Texto de qualificação encontrado no protocolo:", protocolo.textoQualificacao);
           
-          // Criar extractedData com a qualificação
-          const extractedData: Record<string, string> = {
-            qualificacaoCompleta: protocolo.textoQualificacao
-          };
-          
-          return extractedData;
+          // Adicionar qualificação às duas chaves que podem ser usadas
+          allData.qualificacaoCompleta = protocolo.textoQualificacao;
+          allData['qualificacao_do(a)(s)_herdeiro(a)(s)'] = protocolo.textoQualificacao;
         }
       }
+    }
+    
+    // Verificar qualificação no sessionStorage como backup
+    const qualificacaoTexto = sessionStorage.getItem('documentoGeradoTexto');
+    if (qualificacaoTexto && !allData.qualificacaoCompleta) {
+      console.log("Texto de qualificação encontrado no sessionStorage:", qualificacaoTexto);
+      allData.qualificacaoCompleta = qualificacaoTexto;
+      allData['qualificacao_do(a)(s)_herdeiro(a)(s)'] = qualificacaoTexto;
+    }
+    
+    // Se temos dados, retorná-los
+    if (Object.keys(allData).length > 0) {
+      console.log("prepareDraftData: Returning combined data with keys:", Object.keys(allData));
+      return allData;
     }
     
     return undefined;

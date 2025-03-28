@@ -23,25 +23,18 @@ const DraftViewer: React.FC<DraftViewerProps> = ({ draft, extractedData }) => {
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const isNewDraft = location.pathname.includes('/view/new');
   
-  // Prevent scrolling
+  // Log draft data when component mounts
   useEffect(() => {
-    const preventScroll = (e: Event) => {
-      if (!e.isTrusted) {
-        e.preventDefault();
-        e.stopPropagation();
-      }
-    };
-
-    document.addEventListener('scroll', preventScroll, { passive: false });
-    
-    return () => {
-      document.removeEventListener('scroll', preventScroll);
-    };
-  }, []);
+    console.log("DraftViewer: Draft content contains qualificacao placeholder:", 
+      draft.content.includes("¿qualificacao_do(a)(s)_herdeiro(a)(s)>"));
+  }, [draft.content]);
   
   // Process extracted data into local data
   useEffect(() => {
     console.log("DraftViewer: Inicializando com protocolo:", draft.protocoloInfo);
+    
+    // Clear previous local data
+    setLocalData({});
     
     // Primeiro, verificar diretamente no protocolo se existir
     if (draft.protocoloInfo?.numero) {
@@ -117,9 +110,14 @@ const DraftViewer: React.FC<DraftViewerProps> = ({ draft, extractedData }) => {
       const mergedData = { ...localData };
       
       console.log("DraftViewer: Dados finais para substituição:", mergedData);
-      console.log("DraftViewer: Dados do protocolo na minuta:", draft.protocoloInfo);
+      console.log("DraftViewer: Qualificação no mergedData:", mergedData['qualificacao_do(a)(s)_herdeiro(a)(s)']);
       
       const processedText = replacePlaceholders(draft.content, mergedData, draft, extractedData);
+      console.log("DraftViewer: Content after replacement (preview):", 
+        processedText.substring(0, 100) + "..." + 
+        (processedText.includes("¿qualificacao_do(a)(s)_herdeiro(a)(s)>") ? 
+          " (placeholder still present!)" : " (placeholder replaced)"));
+      
       setProcessedContent(processedText);
     } else {
       setProcessedContent('');

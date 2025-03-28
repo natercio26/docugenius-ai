@@ -27,10 +27,16 @@ const ViewDraft: React.FC = () => {
   // Load draft data
   useEffect(() => {
     try {
+      // Force reload any draft data from sessionStorage
+      sessionStorage.removeItem('loadedDraft');
+      
       const loadedDraft = loadDraftData(isNew);
       
       if (loadedDraft) {
         console.log("ViewDraft: Loaded draft with protocol info:", loadedDraft.protocoloInfo);
+        console.log("ViewDraft: Draft content contains qualificacao placeholder:", 
+          loadedDraft.content?.includes("¿qualificacao_do(a)(s)_herdeiro(a)(s)>"));
+        
         setDraft(loadedDraft);
       } else if (isNew) {
         toast.error('Nenhum rascunho foi gerado');
@@ -40,6 +46,7 @@ const ViewDraft: React.FC = () => {
         navigate('/');
       }
     } catch (error) {
+      console.error("Error loading draft:", error);
       toast.error('Erro ao carregar o rascunho');
       navigate('/');
     }
@@ -60,6 +67,7 @@ const ViewDraft: React.FC = () => {
 
   // Prepare data for the draft viewer
   const extractedDataToPass = prepareDraftData(draft);
+  console.log("ViewDraft: Prepared data for draft viewer:", extractedDataToPass);
 
   return (
     <div className="min-h-screen bg-background">

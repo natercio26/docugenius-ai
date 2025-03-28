@@ -1,4 +1,3 @@
-
 import { Draft } from '@/types';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -262,7 +261,6 @@ export const getPlaceholderMappings = (): Record<string, string> => {
     'hora_da_emissao': 'horaEmissao',
     'nº': 'numeroModuloFiscal',
     'cidade]': 'cidade',
-    // Adicionar mapeamento direto para qualificação do herdeiro
     'qualificacao_do(a)(s)_herdeiro(a)(s)': 'qualificacaoCompleta'
   };
 };
@@ -270,73 +268,101 @@ export const getPlaceholderMappings = (): Record<string, string> => {
 export const replacePlaceholders = (content: string, localData: Record<string, string>, draft: Draft, extractedData?: Record<string, string>): string => {
   if (!content) return '';
   
+  console.log("replacePlaceholders: Content before replacement (first 100 chars):", content.substring(0, 100));
+  
+  if (content.includes('¿qualificacao_do(a)(s)_herdeiro(a)(s)>')) {
+    console.log("replacePlaceholders: Found qualificacao placeholder in content");
+  }
+  
   const placeholderRegex = /¿([^>]+)>/g;
   const exactMappings = getPlaceholderMappings();
   
-  return content.replace(placeholderRegex, (match, placeholder) => {
+  let resultContent = content;
+  
+  const qualificacaoPlaceholder = '¿qualificacao_do(a)(s)_herdeiro(a)(s)';
+  
+  if (resultContent.includes(qualificacaoPlaceholder)) {
+    console.log("Tentando substituir diretamente o placeholder de qualificação");
+    
+    let qualificacaoTexto = '';
+    
+    if (localData['qualificacao_do(a)(s)_herdeiro(a)(s)']) {
+      qualificacaoTexto = localData['qualificacao_do(a)(s)_herdeiro(a)(s)'];
+      console.log("Usando a qualificação diretamente do localData:", qualificacaoTexto);
+    }
+    else if (localData.qualificacaoCompleta) {
+      qualificacaoTexto = localData.qualificacaoCompleta;
+      console.log("Usando qualificação completa dos dados locais:", qualificacaoTexto);
+    }
+    else if (draft.protocoloInfo?.numero) {
+      const protocolo = getProtocoloByNumero(draft.protocoloInfo.numero);
+      if (protocolo && protocolo.textoQualificacao) {
+        qualificacaoTexto = protocolo.textoQualificacao;
+        console.log("Usando qualificação diretamente do protocolo:", qualificacaoTexto);
+      }
+    }
+    else if (extractedData && extractedData.qualificacaoCompleta) {
+      qualificacaoTexto = extractedData.qualificacaoCompleta;
+      console.log("Usando qualificação completa dos dados extraídos:", qualificacaoTexto);
+    }
+    else {
+      const storedQualification = sessionStorage.getItem('documentoGeradoTexto');
+      if (storedQualification && storedQualification.trim() !== '') {
+        qualificacaoTexto = storedQualification;
+        console.log("Usando qualificação do sessionStorage:", qualificacaoTexto);
+      }
+    }
+    
+    if (qualificacaoTexto) {
+      resultContent = resultContent.replace(qualificacaoPlaceholder, qualificacaoTexto);
+      console.log("replacePlaceholders: Substituted qualificacao placeholder with text directly");
+    } else {
+      console.log("replacePlaceholders: No qualification text found to substitute");
+    }
+  }
+  
+  resultContent = resultContent.replace(placeholderRegex, (match, placeholder) => {
     const trimmedPlaceholder = placeholder.trim();
     console.log(`Substituindo ${trimmedPlaceholder}`);
     
-    // Caso especial para qualificação do herdeiro
     if (trimmedPlaceholder === 'qualificacao_do(a)(s)_herdeiro(a)(s)') {
-      // Estratégia 1: Verificar diretamente no localData
-      if (localData['qualificacao_do(a)(s)_herdeiro(a)(s)']) {
-        console.log("Usando a qualificação diretamente do localData:", localData['qualificacao_do(a)(s)_herdeiro(a)(s)']);
-        return localData['qualificacao_do(a)(s)_herdeiro(a)(s)'];
-      }
+      let qualificacaoTexto = '';
       
-      // Estratégia 2: Verificar diretamente no protocolo
-      if (draft.protocoloInfo?.numero) {
+      if (localData['qualificacao_do(a)(s)_herdeiro(a)(s)']) {
+        qualificacaoTexto = localData['qualificacao_do(a)(s)_herdeiro(a)(s)'];
+        console.log("Usando a qualificação diretamente do localData:", qualificacaoTexto);
+      }
+      else if (localData.qualificacaoCompleta) {
+        qualificacaoTexto = localData.qualificacaoCompleta;
+        console.log("Usando qualificação completa dos dados locais:", qualificacaoTexto);
+      }
+      else if (draft.protocoloInfo?.numero) {
         const protocolo = getProtocoloByNumero(draft.protocoloInfo.numero);
         if (protocolo && protocolo.textoQualificacao) {
-          console.log("Usando qualificação diretamente do protocolo:", protocolo.textoQualificacao);
-          return protocolo.textoQualificacao;
+          qualificacaoTexto = protocolo.textoQualificacao;
+          console.log("Usando qualificação diretamente do protocolo:", qualificacaoTexto);
+        }
+      }
+      else if (extractedData && extractedData.qualificacaoCompleta) {
+        qualificacaoTexto = extractedData.qualificacaoCompleta;
+        console.log("Usando qualificação completa dos dados extraídos:", qualificacaoTexto);
+      }
+      else {
+        const storedQualification = sessionStorage.getItem('documentoGeradoTexto');
+        if (storedQualification && storedQualification.trim() !== '') {
+          qualificacaoTexto = storedQualification;
+          console.log("Usando qualificação do sessionStorage:", qualificacaoTexto);
         }
       }
       
-      // Estratégia 3: Verificar nos dados extraídos
-      if (extractedData && extractedData.qualificacaoCompleta) {
-        console.log("Usando qualificação completa dos dados extraídos:", extractedData.qualificacaoCompleta);
-        return extractedData.qualificacaoCompleta;
+      if (qualificacaoTexto) {
+        return qualificacaoTexto;
+      } else {
+        console.log("Não foi possível gerar a qualificação - mantendo placeholder original");
+        return match;
       }
-      
-      // Estratégia 4: Verificar nos dados locais
-      if (localData.qualificacaoCompleta) {
-        console.log("Usando qualificação completa dos dados locais:", localData.qualificacaoCompleta);
-        return localData.qualificacaoCompleta;
-      }
-      
-      // Estratégia 5: Verificar se há texto de qualificação no sessionStorage
-      const storedQualification = sessionStorage.getItem('documentoGeradoTexto');
-      if (storedQualification && storedQualification.trim() !== '') {
-        console.log("Usando qualificação do sessionStorage:", storedQualification);
-        return storedQualification;
-      }
-      
-      // Estratégia 6: Gerar a partir do protocolo
-      if (draft.protocoloInfo && draft.protocoloInfo.numero) {
-        const heirQualification = generateHeirQualification(draft.protocoloInfo);
-        if (heirQualification) {
-          console.log("Usando qualificação gerada do protocolo:", heirQualification);
-          return heirQualification;
-        }
-      }
-      
-      // Estratégia 7: Tentar gerar a partir dos dados locais
-      if (Object.keys(localData).length > 0) {
-        const heirQualification = generateQualificationFromLocalData(localData);
-        if (heirQualification) {
-          console.log("Usando qualificação gerada dos dados locais:", heirQualification);
-          return heirQualification;
-        }
-      }
-      
-      // Caso não encontre nenhuma qualificação válida
-      console.log("Não foi possível gerar a qualificação - mantendo placeholder original");
-      return match;
     }
     
-    // Verificar correspondências exatas nos dados
     if (localData[trimmedPlaceholder]) {
       console.log(`Match direto encontrado para ${trimmedPlaceholder}:`, localData[trimmedPlaceholder]);
       return localData[trimmedPlaceholder];
@@ -347,7 +373,6 @@ export const replacePlaceholders = (content: string, localData: Record<string, s
       return localData[exactMappings[trimmedPlaceholder]];
     }
     
-    // Verificar correspondências aproximadas
     for (const [key, value] of Object.entries(localData)) {
       const simplifiedPlaceholder = trimmedPlaceholder
         .replace(/[()]/g, '')
@@ -367,6 +392,10 @@ export const replacePlaceholders = (content: string, localData: Record<string, s
     console.log(`Nenhum match encontrado para ${trimmedPlaceholder}`);
     return match;
   });
+  
+  console.log("replacePlaceholders: Content after replacement (first 100 chars):", resultContent.substring(0, 100));
+  
+  return resultContent;
 };
 
 export const processLocalData = (extractedData?: Record<string, string>, draft?: Draft): Record<string, string> => {
