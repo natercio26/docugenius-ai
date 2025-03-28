@@ -255,13 +255,14 @@ export const replacePlaceholders = (content: string, localData: Record<string, s
   const exactMappings = getPlaceholderMappings();
   
   return content.replace(placeholderRegex, (match, placeholder) => {
+    // Caso especial para qualificação do herdeiro
     if (placeholder.trim() === 'qualificacao_do(a)(s)_herdeiro(a)(s)') {
       console.log("Substituindo qualificacao_do(a)(s)_herdeiro(a)(s)");
       
-      // Priorizar o texto de qualificação do sessionStorage
+      // Primeiro, verificar se há texto de qualificação no sessionStorage
       const storedQualification = sessionStorage.getItem('documentoGeradoTexto');
-      if (storedQualification) {
-        console.log("Usando qualificação completa do sessionStorage:", storedQualification);
+      if (storedQualification && storedQualification.trim() !== '') {
+        console.log("Usando qualificação do sessionStorage:", storedQualification);
         return storedQualification;
       }
       
@@ -284,6 +285,7 @@ export const replacePlaceholders = (content: string, localData: Record<string, s
       if (Object.keys(localData).length > 0) {
         const heirQualification = generateQualificationFromLocalData(localData);
         if (heirQualification) {
+          console.log("Usando qualificação gerada dos dados locais:", heirQualification);
           return heirQualification;
         }
       }

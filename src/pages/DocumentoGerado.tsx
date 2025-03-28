@@ -79,11 +79,21 @@ const DocumentoGerado: React.FC = () => {
     qualificacao += `natural de ${formData.naturalidade}-${formData.uf}, nascido(a) aos ${formatarDataPorExtenso(formData.dataNascimento)}, filho(a) de ${formData.filiacao}, profissão ${formData.profissao}, estado civil ${formData.estadoCivil}, portador(a) da Cédula de Identidade nº ${formData.rg}-${formData.orgaoExpedidor} e inscrito(a) no CPF/MF sob o nº ${formData.cpf}, endereço eletrônico: ${formData.email}, residente e domiciliado(a) na ${formData.endereco};`;
     
     // Armazenar a qualificação no sessionStorage com uma chave específica
-    sessionStorage.setItem('documentoGeradoTexto', qualificacao);
-    console.log("Qualificação completa armazenada:", qualificacao);
+    if (qualificacao && qualificacao.trim() !== '') {
+      sessionStorage.setItem('documentoGeradoTexto', qualificacao);
+      console.log("Qualificação completa armazenada:", qualificacao);
+    }
     
     return qualificacao;
   };
+
+  // Garantir que o texto seja gerado e armazenado no carregamento do componente
+  useEffect(() => {
+    if (formData) {
+      const qualificacaoTexto = gerarQualificacaoCompleta();
+      console.log("Texto de qualificação gerado no DocumentoGerado useEffect:", qualificacaoTexto);
+    }
+  }, [formData]);
 
   // Função para copiar o texto para a área de transferência
   const copiarTexto = () => {
@@ -119,6 +129,9 @@ const DocumentoGerado: React.FC = () => {
 
   if (!formData) return null;
 
+  // Garantir que a qualificação existe no texto
+  const textoQualificacao = gerarQualificacaoCompleta();
+
   return (
     <>
       <Navbar />
@@ -130,7 +143,7 @@ const DocumentoGerado: React.FC = () => {
           <CardContent className="py-6">
             <ScrollArea className="bg-white p-6 border rounded-md h-[50vh]">
               <p id="documento-texto" className="text-justify leading-relaxed whitespace-pre-line">
-                {gerarQualificacaoCompleta()}
+                {textoQualificacao}
               </p>
             </ScrollArea>
           </CardContent>

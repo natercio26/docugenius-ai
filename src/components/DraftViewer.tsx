@@ -37,10 +37,25 @@ const DraftViewer: React.FC<DraftViewerProps> = ({ draft, extractedData }) => {
   
   // Process extracted data into local data
   useEffect(() => {
+    // Verificar qualificação diretamente do sessionStorage
+    const qualificacaoTexto = sessionStorage.getItem('documentoGeradoTexto');
+    if (qualificacaoTexto) {
+      console.log("DraftViewer: Qualificação encontrada no sessionStorage:", qualificacaoTexto);
+    }
+    
     if (isNewDraft && !draft.protocoloInfo) {
-      setLocalData({});
+      // Para novos rascunhos sem protocolo, usar dados do sessionStorage
+      const initialData = qualificacaoTexto ? { qualificacaoCompleta: qualificacaoTexto } : {};
+      setLocalData(initialData);
     } else if (extractedData) {
+      // Para rascunhos com dados extraídos, processar normalmente
       const cleanedData = processLocalData(extractedData, draft);
+      
+      // Adicionar explicitamente a qualificação se disponível no sessionStorage
+      if (qualificacaoTexto) {
+        cleanedData.qualificacaoCompleta = qualificacaoTexto;
+      }
+      
       setLocalData(cleanedData);
     }
   }, [extractedData, draft.protocoloInfo, isNewDraft, draft]);
@@ -48,7 +63,27 @@ const DraftViewer: React.FC<DraftViewerProps> = ({ draft, extractedData }) => {
   // Process content with placeholders
   useEffect(() => {
     if (draft.content) {
-      const processedText = replacePlaceholders(draft.content, localData, draft, extractedData);
+      // Verificar qualificação no sessionStorage novamente antes de processar
+      const qualificacaoTexto = sessionStorage.getItem('documentoGeradoTexto');
+      if (qualificacaoTexto) {
+        console.log("DraftViewer (processing): Usando qualificação do sessionStorage:", qualificacaoTexto);
+        // Garantir que a qualificação esteja disponível nos dados locais
+        if (!localData.qualificacaoCompleta) {
+          setLocalData(prevData => ({
+            ...prevData,
+            qualificacaoCompleta: qualificacaoTexto
+          }));
+        }
+      }
+      
+      const mergedData = {
+        ...localData,
+        ...(extractedData || {}),
+        // Garantir que a qualificacaoCompleta tenha prioridade se existir
+        ...(qualificacaoTexto ? { qualificacaoCompleta: qualificacaoTexto } : {})
+      };
+      
+      const processedText = replacePlaceholders(draft.content, mergedData, draft, extractedData);
       setProcessedContent(processedText);
     } else {
       setProcessedContent('');
