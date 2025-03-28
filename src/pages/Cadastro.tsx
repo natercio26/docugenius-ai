@@ -1,100 +1,147 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Label } from "@/components/ui/label";
-import { useToast } from "@/hooks/use-toast";
-import { UserRound, Users } from "lucide-react";
-import Navbar from "@/components/Navbar";
+import { 
+  User, Users, Database, FileText, Clipboard, 
+  ArrowRight, ChevronRight 
+} from 'lucide-react';
 
-type RegistrationType = 'solteiro' | 'casado' | null;
+import Navbar from '@/components/Navbar';
+import { Button } from '@/components/ui/button';
+import { 
+  Card, 
+  CardContent, 
+  CardDescription, 
+  CardFooter, 
+  CardHeader, 
+  CardTitle 
+} from '@/components/ui/card';
 
 const Cadastro: React.FC = () => {
-  const [registrationType, setRegistrationType] = useState<RegistrationType>(null);
-  const { toast } = useToast();
   const navigate = useNavigate();
 
-  const handleContinue = () => {
-    if (!registrationType) {
-      toast({
-        title: "Seleção necessária",
-        description: "Por favor, selecione um tipo de cadastro para continuar.",
-        variant: "destructive"
-      });
-      return;
-    }
+  const handleCadastroSolteiro = () => {
+    navigate('/cadastro/solteiro');
+  };
 
-    toast({
-      title: "Cadastro iniciado",
-      description: `Você selecionou o cadastro de ${registrationType}.`,
-    });
-    
-    // Navegar para o formulário correspondente
-    if (registrationType === 'solteiro') {
-      navigate('/cadastro/solteiro');
-    } else if (registrationType === 'casado') {
-      // Futura implementação: Navegação para cadastro de casado
-      toast({
-        title: "Em desenvolvimento",
-        description: "O cadastro para casados está em desenvolvimento.",
-      });
-    }
+  const handleCadastroCasado = () => {
+    // Future implementation for married registration
+    // For now, redirect to single registration as placeholder
+    navigate('/cadastro/solteiro');
+  };
+  
+  const handleDatabaseAccess = () => {
+    navigate('/cadastro/database');
   };
 
   return (
     <>
       <Navbar />
-      <div className="container py-8 max-w-4xl mx-auto">
-        <h1 className="text-3xl font-bold mb-6">Cadastro</h1>
-        
-        <Card className="mb-8">
-          <CardHeader>
-            <CardTitle>Selecione o tipo de cadastro</CardTitle>
-            <CardDescription>
-              Escolha o tipo de cadastro de acordo com seu estado civil
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <RadioGroup
-              value={registrationType || ''}
-              onValueChange={(value) => setRegistrationType(value as RegistrationType)}
-              className="flex flex-col space-y-4 md:flex-row md:space-y-0 md:space-x-6"
-            >
-              <div className="flex items-start space-x-2">
-                <RadioGroupItem value="solteiro" id="solteiro" className="mt-1" />
-                <div className="grid gap-1.5">
-                  <Label htmlFor="solteiro" className="font-medium flex items-center gap-2">
-                    <UserRound className="h-5 w-5" />
-                    Solteiro(a)
-                  </Label>
-                  <p className="text-sm text-muted-foreground">
-                    Para pessoas solteiras, viúvas ou divorciadas.
-                  </p>
+      <div className="container max-w-5xl mx-auto py-12">
+        <div className="space-y-4 mb-8">
+          <h1 className="text-3xl font-semibold">Cadastro</h1>
+          <p className="text-muted-foreground">
+            Realize o cadastro de pessoas físicas para emissão de documentos.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <Card className="border-2 border-primary/20 shadow-md">
+            <CardHeader className="pb-3">
+              <div className="flex items-start gap-4">
+                <div className="bg-primary/10 p-3 rounded-lg">
+                  <User className="h-8 w-8 text-primary" />
+                </div>
+                <div>
+                  <CardTitle>Pessoa Solteira</CardTitle>
+                  <CardDescription>
+                    Cadastro de pessoa física solteira
+                  </CardDescription>
                 </div>
               </div>
-              
-              <div className="flex items-start space-x-2">
-                <RadioGroupItem value="casado" id="casado" className="mt-1" />
-                <div className="grid gap-1.5">
-                  <Label htmlFor="casado" className="font-medium flex items-center gap-2">
-                    <Users className="h-5 w-5" />
-                    Casado(a)
-                  </Label>
-                  <p className="text-sm text-muted-foreground">
-                    Para pessoas casadas ou em união estável.
-                  </p>
+            </CardHeader>
+            <CardContent className="text-sm text-muted-foreground">
+              <p>
+                Utilize este formulário para cadastrar uma pessoa física solteira
+                com todos os seus dados pessoais.
+              </p>
+            </CardContent>
+            <CardFooter>
+              <Button 
+                className="w-full gap-2" 
+                onClick={handleCadastroSolteiro}
+              >
+                Iniciar Cadastro
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </CardFooter>
+          </Card>
+
+          <Card className="border shadow-md opacity-90">
+            <CardHeader className="pb-3">
+              <div className="flex items-start gap-4">
+                <div className="bg-slate-100 p-3 rounded-lg">
+                  <Users className="h-8 w-8 text-slate-600" />
+                </div>
+                <div>
+                  <CardTitle>Pessoa Casada</CardTitle>
+                  <CardDescription>
+                    Cadastro de pessoa física casada
+                  </CardDescription>
                 </div>
               </div>
-            </RadioGroup>
-          </CardContent>
-          <CardFooter>
-            <Button onClick={handleContinue} className="w-full md:w-auto">
-              Continuar
-            </Button>
-          </CardFooter>
-        </Card>
+            </CardHeader>
+            <CardContent className="text-sm text-muted-foreground">
+              <p>
+                Utilize este formulário para cadastrar uma pessoa física casada,
+                incluindo os dados do cônjuge.
+              </p>
+            </CardContent>
+            <CardFooter>
+              <Button 
+                variant="outline" 
+                className="w-full gap-2" 
+                onClick={handleCadastroCasado}
+              >
+                Iniciar Cadastro
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </CardFooter>
+          </Card>
+          
+          <Card className="border shadow-md md:col-span-2">
+            <CardHeader className="pb-3">
+              <div className="flex items-start gap-4">
+                <div className="bg-blue-50 p-3 rounded-lg">
+                  <Database className="h-8 w-8 text-blue-600" />
+                </div>
+                <div>
+                  <CardTitle>Banco de Dados</CardTitle>
+                  <CardDescription>
+                    Acesse todos os cadastros realizados
+                  </CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="text-sm text-muted-foreground">
+              <p>
+                Consulte o banco de dados de pessoas cadastradas, 
+                pesquise por nome, CPF ou número de protocolo, 
+                e visualize todos os dados dos cadastros realizados.
+              </p>
+            </CardContent>
+            <CardFooter>
+              <Button 
+                variant="secondary" 
+                className="w-full gap-2" 
+                onClick={handleDatabaseAccess}
+              >
+                Acessar Banco de Dados
+                <ArrowRight className="h-4 w-4" />
+              </Button>
+            </CardFooter>
+          </Card>
+        </div>
       </div>
     </>
   );

@@ -15,6 +15,7 @@ import CadastroSolteiro from "./pages/CadastroSolteiro";
 import RevisaoDados from "./pages/RevisaoDados";
 import DocumentoGerado from "./pages/DocumentoGerado";
 import ProtocoloGerado from "./pages/ProtocoloGerado";
+import ProtocolosDatabase from "./pages/ProtocolosDatabase";
 import NotFound from "./pages/NotFound";
 
 const App: React.FC = () => {
@@ -39,6 +40,7 @@ const App: React.FC = () => {
                 <Route path="/cadastro/revisar" element={<RevisaoDados />} />
                 <Route path="/cadastro/documento" element={<DocumentoGerado />} />
                 <Route path="/cadastro/protocolo" element={<ProtocoloGerado />} />
+                <Route path="/cadastro/database" element={<ProtocolosDatabase />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </TooltipProvider>
