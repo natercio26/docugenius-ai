@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -30,6 +31,10 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
+
+// Define if we're using mock authentication in development
+const useMockAuth = process.env.NODE_ENV === 'development' && 
+  (!import.meta.env.VITE_SUPABASE_URL || !import.meta.env.VITE_SUPABASE_ANON_KEY);
 
 const formSchema = z.object({
   username: z.string().min(3, { message: 'Nome de usuário deve ter pelo menos 3 caracteres' }),
