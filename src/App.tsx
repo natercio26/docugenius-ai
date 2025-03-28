@@ -10,6 +10,7 @@ import Upload from "./pages/Upload";
 import ViewDraft from "./pages/ViewDraft";
 import ModelConfig from "./pages/ModelConfig";
 import Cadastro from "./pages/Cadastro";
+import CadastroSolteiro from "./pages/CadastroSolteiro";
 import NotFound from "./pages/NotFound";
 
 const App: React.FC = () => {
@@ -28,6 +29,7 @@ const App: React.FC = () => {
             <Route path="/edit/:id" element={<ViewDraft />} />
             <Route path="/config" element={<ModelConfig />} />
             <Route path="/cadastro" element={<Cadastro />} />
+            <Route path="/cadastro/solteiro" element={<CadastroSolteiro />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

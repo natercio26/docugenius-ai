@@ -60,6 +60,12 @@ export interface RegistrationData {
     address: string;
     email: string;
     phone: string;
+    naturality?: string;
+    uf?: string;
+    filiation?: string;
+    profession?: string;
+    civilStatus?: string;
+    issuer?: string;
   };
   spouseInfo?: {
     name: string;
