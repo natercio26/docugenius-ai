@@ -9,6 +9,7 @@ import DraftViewer from '@/components/DraftViewer';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Draft } from '@/types';
+import { getProtocoloByNumero } from '@/utils/protocoloStorage';
 
 // Template de minuta para inventário
 const INVENTARIO_TEMPLATE = `ESCRITURA PÚBLICA DE INVENTÁRIO E PARTILHA, na forma abaixo:
@@ -252,6 +253,14 @@ const ViewDraft: React.FC = () => {
           
           console.log("Carregando rascunho com dados:", draftWithDates);
           
+          // Se tiver protocoloInfo, verificar se há dados do protocolo no storage
+          if (draftWithDates.protocoloInfo && draftWithDates.protocoloInfo.numero) {
+            const protocolo = getProtocoloByNumero(draftWithDates.protocoloInfo.numero);
+            if (protocolo && protocolo.registrationData) {
+              console.log("Protocolo encontrado com dados de registro:", protocolo.registrationData);
+            }
+          }
+          
           setDraft(draftWithDates);
           setEditedTitle(draftWithDates.title);
         } catch (error) {
@@ -368,3 +377,4 @@ const ViewDraft: React.FC = () => {
 };
 
 export default ViewDraft;
+

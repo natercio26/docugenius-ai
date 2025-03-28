@@ -140,6 +140,7 @@ const DraftViewer: React.FC<DraftViewerProps> = ({ draft, extractedData }) => {
           if (draft.protocoloInfo && draft.protocoloInfo.numero) {
             const heirQualification = generateHeirQualification(draft.protocoloInfo);
             if (heirQualification) {
+              console.log("Using heir qualification from protocol for placeholder: qualificacao_do(a)(s)_herdeiro(a)(s)");
               return heirQualification;
             }
           }
@@ -153,30 +154,51 @@ const DraftViewer: React.FC<DraftViewerProps> = ({ draft, extractedData }) => {
             
             if (localData.nacionalidade) {
               heirQualification += `, ${localData.nacionalidade}`;
+            } else if (localData.naturality) {
+              heirQualification += `, ${localData.naturality}`;
+            } else {
+              heirQualification += `, brasileiro(a)`;
             }
             
             if (localData.naturalidade && localData.uf) {
               heirQualification += `, natural de ${localData.naturalidade}-${localData.uf}`;
+            } else if (localData.naturality && localData.uf) {
+              heirQualification += `, natural de ${localData.naturality}-${localData.uf}`;
             }
             
             if (localData.dataNascimento) {
               heirQualification += `, nascido(a) aos ${localData.dataNascimento}`;
+            } else if (localData.birthDate) {
+              try {
+                const birthDate = new Date(localData.birthDate);
+                heirQualification += `, nascido(a) aos ${formatarDataPorExtenso(birthDate)}`;
+              } catch (error) {
+                console.error('Error parsing birth date:', error);
+              }
             }
             
             if (localData.filiacao) {
               heirQualification += `, filho(a) de ${localData.filiacao}`;
+            } else if (localData.filiation) {
+              heirQualification += `, filho(a) de ${localData.filiation}`;
             }
             
             if (localData.profissao) {
               heirQualification += `, profissão ${localData.profissao}`;
+            } else if (localData.profession) {
+              heirQualification += `, profissão ${localData.profession}`;
             }
             
             if (localData.estadoCivil) {
               heirQualification += `, estado civil ${localData.estadoCivil}`;
+            } else if (localData.civilStatus) {
+              heirQualification += `, estado civil ${localData.civilStatus}`;
             }
             
             if (localData.rg && localData.orgaoExpedidor) {
               heirQualification += `, portador(a) da Cédula de Identidade nº ${localData.rg}-${localData.orgaoExpedidor}`;
+            } else if (localData.rg && localData.issuer) {
+              heirQualification += `, portador(a) da Cédula de Identidade nº ${localData.rg}-${localData.issuer}`;
             }
             
             if (localData.cpf) {
@@ -189,13 +211,15 @@ const DraftViewer: React.FC<DraftViewerProps> = ({ draft, extractedData }) => {
             
             if (localData.endereco) {
               heirQualification += `, residente e domiciliado(a) na ${localData.endereco}`;
+            } else if (localData.address) {
+              heirQualification += `, residente e domiciliado(a) na ${localData.address}`;
             }
             
             if (!heirQualification.endsWith(';') && !heirQualification.endsWith('.')) {
               heirQualification += ';';
             }
             
-            console.log("Qualificação completa do herdeiro gerada:", heirQualification);
+            console.log("Generated heir qualification from local data:", heirQualification);
             return heirQualification;
           }
           
