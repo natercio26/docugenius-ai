@@ -3,8 +3,20 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 
 // Define if we're using mock authentication in development
-const useMockAuth = process.env.NODE_ENV === 'development' && 
-  (!import.meta.env.VITE_SUPABASE_URL || !import.meta.env.VITE_SUPABASE_ANON_KEY);
+// Make sure this works consistently across environments
+const useMockAuth = (() => {
+  if (typeof process !== 'undefined' && process.env.NODE_ENV === 'development') {
+    return !import.meta.env.VITE_SUPABASE_URL || !import.meta.env.VITE_SUPABASE_ANON_KEY;
+  }
+  // In browser context, check if we have valid Supabase credentials
+  const inBrowser = typeof window !== 'undefined';
+  if (inBrowser) {
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+    const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+    return !supabaseUrl || !supabaseKey || supabaseUrl.includes('example.supabase.co');
+  }
+  return true; // Default to mock auth if we can't determine
+})();
 
 interface User {
   id: string;
@@ -41,6 +53,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [isAdmin, setIsAdmin] = useState<boolean>(false);
+  
+  useEffect(() => {
+    console.log('Auth provider initialized with mock auth:', useMockAuth);
+  }, []);
   
   // Function to create admin user
   const createAdminUser = async (): Promise<void> => {
@@ -136,11 +152,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           return;
         }
         
+        // Handle empty credentials in dev mode - accept anything
+        const effectiveUsername = username || 'demo';
+        
         // Regular user login (accept any credentials in dev mode)
         const mockUser = {
           id: 'mock-user-id',
           name: 'Regular User',
-          username: username || 'demo',
+          username: effectiveUsername,
           isAdmin: false
         };
         

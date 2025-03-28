@@ -31,9 +31,20 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 
-// Define if we're using mock authentication in development
-const useMockAuth = process.env.NODE_ENV === 'development' && 
-  (!import.meta.env.VITE_SUPABASE_URL || !import.meta.env.VITE_SUPABASE_ANON_KEY);
+// Define if we're using mock authentication in development - same logic as in AuthContext
+const useMockAuth = (() => {
+  if (typeof process !== 'undefined' && process.env.NODE_ENV === 'development') {
+    return !import.meta.env.VITE_SUPABASE_URL || !import.meta.env.VITE_SUPABASE_ANON_KEY;
+  }
+  // In browser context, check if we have valid Supabase credentials
+  const inBrowser = typeof window !== 'undefined';
+  if (inBrowser) {
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+    const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+    return !supabaseUrl || !supabaseKey || supabaseUrl.includes('example.supabase.co');
+  }
+  return true; // Default to mock auth if we can't determine
+})();
 
 const formSchema = z.object({
   username: z.string().min(1, { message: 'Nome de usuário é obrigatório' }),
@@ -49,6 +60,10 @@ const Login: React.FC = () => {
   const [isLoading, setIsLoading] = React.useState(false);
   const [isCreatingAdmin, setIsCreatingAdmin] = React.useState(false);
   const [loginError, setLoginError] = React.useState<string | null>(null);
+  
+  useEffect(() => {
+    console.log('Login component mounted with mock auth:', useMockAuth);
+  }, []);
   
   useEffect(() => {
     if (isAuthenticated) {
@@ -80,7 +95,22 @@ const Login: React.FC = () => {
       navigate('/');
     } catch (error) {
       console.error('Login error:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Verifique suas credenciais e tente novamente';
+      let errorMessage = 'Verifique suas credenciais e tente novamente';
+      
+      if (error instanceof Error) {
+        errorMessage = error.message;
+        
+        // Detect network errors more reliably
+        if (
+          error.message.includes('Failed to fetch') || 
+          error.message.includes('fetch') ||
+          error.message.includes('conexão') ||
+          error.message.includes('network')
+        ) {
+          errorMessage = 'Erro de conexão. Verifique sua rede ou tente novamente mais tarde.';
+          console.log('Detected network error, suggesting using dev mode if appropriate');
+        }
+      }
       
       setLoginError(errorMessage);
       
@@ -265,6 +295,7 @@ const Login: React.FC = () => {
             </form>
           </Form>
           
+          {/* Always show quick login buttons in development mode */}
           {useMockAuth && (
             <div className="flex flex-col gap-2 pt-2">
               <Button 
