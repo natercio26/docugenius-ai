@@ -4,12 +4,12 @@ import { ProtocoloData } from "@/types";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import BasicDetailsSection from './BasicDetailsSection';
-import PersonalDetailsSection from './PersonalDetailsSection';
-import SpouseDetailsSection from './SpouseDetailsSection';
 import TextContentSection from './TextContentSection';
 import MarriedDetailsView from './MarriedDetailsView';
 import SingleDetailsView from './SingleDetailsView';
-import { FileCog, Download } from 'lucide-react';
+import { FileCog, Download, Clock } from 'lucide-react';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 
 interface ModalContentProps {
   protocolo: ProtocoloData;
@@ -22,16 +22,26 @@ const ModalContent: React.FC<ModalContentProps> = ({
 }) => {
   const isCasado = protocolo.registrationData?.type === 'casado';
   
+  const formatDateTime = (date: Date): string => {
+    return format(date, "dd 'de' MMMM 'de' yyyy 'às' HH:mm", { locale: ptBR });
+  };
+  
   return (
     <>
       <ScrollArea className="max-h-[70vh]">
         <div className="space-y-6 p-4">
-          <BasicDetailsSection
-            nome={protocolo.nome}
-            cpf={protocolo.cpf}
-            dataGeracao={protocolo.dataGeracao}
-            numero={protocolo.numero}
-          />
+          <div className="flex items-center justify-between">
+            <BasicDetailsSection
+              nome={protocolo.nome}
+              cpf={protocolo.cpf}
+              dataGeracao={protocolo.dataGeracao}
+              numero={protocolo.numero}
+            />
+            <div className="hidden md:flex items-center text-sm text-muted-foreground">
+              <Clock className="h-4 w-4 mr-1" />
+              <span>Gerado em: {formatDateTime(protocolo.dataGeracao)}</span>
+            </div>
+          </div>
           
           {protocolo.registrationData && (
             isCasado ? (

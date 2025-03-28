@@ -26,6 +26,19 @@ export const ProtocoloProvider: React.FC<{ children: ReactNode }> = ({ children 
 
   // Save a new protocol and generate a number
   const saveNewProtocolo = (data: Omit<ProtocoloData, 'numero' | 'dataGeracao'>): ProtocoloData => {
+    // Check if a protocol with the same CPF already exists and was created recently (within the last minute)
+    const existingProtocolos = getProtocolos();
+    const recentlyCreated = existingProtocolos.find(protocolo => {
+      const isRecentlySaved = (new Date().getTime() - protocolo.dataGeracao.getTime()) < 60000; // 60 seconds
+      return protocolo.cpf === data.cpf && isRecentlySaved;
+    });
+
+    // If a recent protocol with the same CPF exists, return it instead of creating a new one
+    if (recentlyCreated) {
+      console.log(`Protocolo existente encontrado para CPF ${data.cpf}, usando número ${recentlyCreated.numero}`);
+      return recentlyCreated;
+    }
+    
     // Generate a unique protocol number
     const numero = generateUniqueProtocoloNumber();
     
@@ -38,6 +51,7 @@ export const ProtocoloProvider: React.FC<{ children: ReactNode }> = ({ children 
     
     // Save to storage
     saveProtocolo(newProtocolo);
+    console.log(`Novo protocolo ${numero} criado para CPF ${data.cpf}`);
     
     return newProtocolo;
   };

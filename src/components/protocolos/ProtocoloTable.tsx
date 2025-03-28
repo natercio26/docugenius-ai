@@ -23,8 +23,8 @@ const ProtocoloTable: React.FC<ProtocoloTableProps> = ({
   protocolos,
   onViewDetails
 }) => {
-  const formatDate = (date: Date): string => {
-    return format(date, "dd/MM/yyyy", { locale: ptBR });
+  const formatDateTime = (date: Date): string => {
+    return format(date, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR });
   };
 
   const formatCpf = (cpf: string): string => {
@@ -53,7 +53,7 @@ const ProtocoloTable: React.FC<ProtocoloTableProps> = ({
             <TableHead className="w-[180px]">Nº Protocolo</TableHead>
             <TableHead>Nome</TableHead>
             <TableHead>CPF</TableHead>
-            <TableHead className="hidden md:table-cell">Data Cadastro</TableHead>
+            <TableHead className="hidden md:table-cell">Data/Hora Cadastro</TableHead>
             <TableHead className="text-right">Ações</TableHead>
           </TableRow>
         </TableHeader>
@@ -63,7 +63,7 @@ const ProtocoloTable: React.FC<ProtocoloTableProps> = ({
               <TableCell className="font-mono">{protocolo.numero}</TableCell>
               <TableCell>{protocolo.nome}</TableCell>
               <TableCell>{formatCpf(protocolo.cpf)}</TableCell>
-              <TableCell className="hidden md:table-cell">{formatDate(protocolo.dataGeracao)}</TableCell>
+              <TableCell className="hidden md:table-cell">{formatDateTime(protocolo.dataGeracao)}</TableCell>
               <TableCell className="text-right">
                 <Button 
                   variant="outline" 
