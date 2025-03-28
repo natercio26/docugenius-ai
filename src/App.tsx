@@ -12,6 +12,7 @@ import ViewDraft from "./pages/ViewDraft";
 import ModelConfig from "./pages/ModelConfig";
 import Cadastro from "./pages/Cadastro";
 import CadastroSolteiro from "./pages/CadastroSolteiro";
+import CadastroCasado from "./pages/CadastroCasado";
 import RevisaoDados from "./pages/RevisaoDados";
 import DocumentoGerado from "./pages/DocumentoGerado";
 import ProtocoloGerado from "./pages/ProtocoloGerado";
@@ -37,6 +38,7 @@ const App: React.FC = () => {
                 <Route path="/config" element={<ModelConfig />} />
                 <Route path="/cadastro" element={<Cadastro />} />
                 <Route path="/cadastro/solteiro" element={<CadastroSolteiro />} />
+                <Route path="/cadastro/casado" element={<CadastroCasado />} />
                 <Route path="/cadastro/revisar" element={<RevisaoDados />} />
                 <Route path="/cadastro/documento" element={<DocumentoGerado />} />
                 <Route path="/cadastro/protocolo" element={<ProtocoloGerado />} />
