@@ -25,9 +25,7 @@ const Cadastro: React.FC = () => {
   };
 
   const handleCadastroCasado = () => {
-    // Future implementation for married registration
-    // For now, redirect to single registration as placeholder
-    navigate('/cadastro/solteiro');
+    navigate('/cadastro/casado');
   };
   
   const handleDatabaseAccess = () => {
