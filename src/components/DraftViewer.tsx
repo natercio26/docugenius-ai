@@ -42,66 +42,77 @@ const DraftViewer: React.FC<DraftViewerProps> = ({ draft, extractedData }) => {
       return;
     }
     
-    if (draft.type === 'Inventário' && localData && Object.keys(localData).length > 0) {
+    if (draft.type === 'Inventário' && extractedData && Object.keys(extractedData).length > 0) {
       let content = draft.content;
       
       const placeholderRegex = /¿([^>]+)>/g;
-      const sectionRegex = /§([^§]+)§/g;
-      
-      content = content.replace(sectionRegex, (match, placeholder) => {
-        const key = placeholder.toLowerCase();
-        
-        if (key === '2herdeiro' || key === '2filho') {
-          return localData['herdeiro1'] || match;
-        }
-        
-        return match;
-      });
       
       content = content.replace(placeholderRegex, (match, placeholder) => {
         const placeholderKey = placeholder.trim();
         
+        // Specific handling for heir qualification
         if (placeholderKey === 'qualificacao_do(a)(s)_herdeiro(a)(s)') {
-          if (localData.nome && localData.rg && localData.cpf) {
-            let qualification = `${localData.nome}, `;
-            
-            if (localData.nacionalidade) {
-              qualification += `${localData.nacionalidade}, `;
-            } else {
-              qualification += 'brasileiro(a), ';
-            }
-            
-            if (localData.estadoCivil) {
-              qualification += `${localData.estadoCivil}, `;
-            }
-            
-            if (localData.profissao) {
-              qualification += `${localData.profissao}, `;
-            }
-            
-            qualification += `portador(a) da cédula de identidade RG nº ${localData.rg}`;
-            if (localData.orgaoExpedidor) {
-              qualification += `-${localData.orgaoExpedidor}`;
-            }
-            
-            qualification += ` e inscrito(a) no CPF sob o nº ${localData.cpf}`;
-            
-            if (localData.email) {
-              qualification += `, endereço eletrônico ${localData.email}`;
-            }
-            
-            if (localData.endereco) {
-              qualification += `, residente e domiciliado(a) na ${localData.endereco}`;
-            }
-            
-            return qualification;
+          // Construct full qualification text from extractedData
+          let qualification = '';
+          
+          // Name
+          if (extractedData.nome) {
+            qualification += `${extractedData.nome}, `;
           }
           
-          if (localData.herdeiro1) {
-            return localData.herdeiro1;
+          // Nationality
+          if (extractedData.nacionalidade) {
+            qualification += `${extractedData.nacionalidade}, `;
+          } else {
+            qualification += 'brasileiro(a), ';
           }
           
-          return match;
+          // Natural origin
+          if (extractedData.naturalidade && extractedData.uf) {
+            qualification += `natural de ${extractedData.naturalidade}-${extractedData.uf}, `;
+          }
+          
+          // Birth date
+          if (extractedData.dataNascimento) {
+            qualification += `nascido(a) aos ${extractedData.dataNascimento}, `;
+          }
+          
+          // Filiation
+          if (extractedData.filiacao) {
+            qualification += `filho(a) de ${extractedData.filiacao}, `;
+          }
+          
+          // Profession
+          if (extractedData.profissao) {
+            qualification += `profissão ${extractedData.profissao}, `;
+          }
+          
+          // Civil Status
+          if (extractedData.estadoCivil) {
+            qualification += `estado civil ${extractedData.estadoCivil}, `;
+          }
+          
+          // Documents
+          if (extractedData.rg && extractedData.orgaoExpedidor) {
+            qualification += `portador(a) da Cédula de Identidade nº ${extractedData.rg}-${extractedData.orgaoExpedidor}, `;
+          }
+          
+          // CPF
+          if (extractedData.cpf) {
+            qualification += `inscrito(a) no CPF/MF sob o nº ${extractedData.cpf}, `;
+          }
+          
+          // Email
+          if (extractedData.email) {
+            qualification += `endereço eletrônico: ${extractedData.email}, `;
+          }
+          
+          // Address
+          if (extractedData.endereco) {
+            qualification += `residente e domiciliado(a) na ${extractedData.endereco};`;
+          }
+          
+          return qualification;
         }
         
         const exactMappings: Record<string, string> = {
@@ -231,8 +242,8 @@ const DraftViewer: React.FC<DraftViewerProps> = ({ draft, extractedData }) => {
     } else {
       setProcessedContent(draft.content);
     }
-  }, [draft.content, draft.type, localData, draft.protocoloInfo, isNewDraft]);
-  
+  }, [draft.content, draft.type, extractedData, draft.protocoloInfo, isNewDraft]);
+
   const toggleExtractedData = () => {
     setShowExtractedData(!showExtractedData);
   };
