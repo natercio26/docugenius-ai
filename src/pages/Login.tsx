@@ -96,6 +96,12 @@ const Login: React.FC = () => {
         title: "Usuário admin criado",
         description: "O usuário administrativo foi criado com sucesso",
       });
+      
+      // Auto-fill admin credentials for convenience
+      form.setValue('email', 'adminlicencedocumentum');
+      form.setValue('password', 'adminlicence');
+      form.setValue('isAdmin', true);
+      
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Erro ao criar usuário admin';
       toast({

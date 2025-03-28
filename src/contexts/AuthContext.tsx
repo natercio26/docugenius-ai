@@ -159,19 +159,35 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const login = async (email: string, password: string, isAdmin: boolean = false): Promise<void> => {
     if (useMockAuth) {
       // Simulate login for development
+      const isMockAdmin = email === 'adminlicencedocumentum';
+      
+      // If trying to login as admin but not using admin credentials
+      if (isAdmin && !isMockAdmin) {
+        throw new Error('Você não tem permissões de administrador');
+      }
+      
       setUser({
         id: mockAuthState.user.id,
         email: email,
         name: email.split('@')[0] || 'User',
-        isAdmin: isAdmin, // Use the isAdmin parameter
+        isAdmin: isMockAdmin && isAdmin, // Only set admin if correct credentials AND admin login selected
       });
       setIsAuthenticated(true);
       return;
     }
 
-    // Check if this is the admin login
-    if (email === 'adminlicencedocumentum' && isAdmin) {
-      const { error } = await supabase.auth.signInWithPassword({
+    // For real authentication
+    try {
+      // First, check if trying to login as admin
+      if (isAdmin) {
+        // Verify this is the correct admin account
+        if (email !== 'adminlicencedocumentum') {
+          throw new Error('Você não tem permissões de administrador');
+        }
+      }
+      
+      // Proceed with authentication
+      const { error, data } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
@@ -179,27 +195,21 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       if (error) {
         throw new Error(error.message);
       }
-    } else {
-      // Regular user login
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
       
-      if (error) {
-        throw new Error(error.message);
-      }
-      
-      // Check if the user is trying to log in as admin but isn't one
+      // If we're logging in as admin, verify the account has admin privileges
       if (isAdmin) {
         const { data: userData } = await supabase.auth.getUser();
-        const userIsAdmin = userData?.user?.user_metadata?.isAdmin;
+        const userIsAdmin = userData?.user?.user_metadata?.isAdmin || email === 'adminlicencedocumentum';
         
         if (!userIsAdmin) {
+          // If not admin, sign out and throw error
           await supabase.auth.signOut();
           throw new Error('Você não tem permissões de administrador');
         }
       }
+    } catch (error) {
+      // Re-throw any errors to be handled by the login component
+      throw error;
     }
   };
 
