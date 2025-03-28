@@ -9,6 +9,7 @@ import {
   generateHeirQualification
 } from '@/utils/placeholderReplacer';
 import { getProtocoloByNumero } from '@/utils/protocoloStorage';
+import { toast } from 'sonner';
 
 interface DraftViewerProps {
   draft: Draft;
@@ -49,6 +50,7 @@ const DraftViewer: React.FC<DraftViewerProps> = ({ draft, extractedData }) => {
       
       if (protocolo) {
         console.log("DraftViewer: Protocolo encontrado:", protocolo.numero);
+        toast.success(`Protocolo ${protocolo.numero} carregado com sucesso`);
         
         // Verificar se o protocolo tem texto de qualificação
         if (protocolo.textoQualificacao) {
@@ -74,6 +76,9 @@ const DraftViewer: React.FC<DraftViewerProps> = ({ draft, extractedData }) => {
             return;
           }
         }
+      } else {
+        console.log("DraftViewer: Protocolo não encontrado:", draft.protocoloInfo.numero);
+        toast.error(`Protocolo ${draft.protocoloInfo.numero} não encontrado`);
       }
     }
     
