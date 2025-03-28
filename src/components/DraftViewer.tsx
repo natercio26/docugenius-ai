@@ -14,6 +14,16 @@ interface DraftViewerProps {
   extractedData?: Record<string, string>;
 }
 
+const cleanupDataValue = (value: string): string => {
+  if (!value) return '';
+  return value.trim();
+};
+
+const isInvalidData = (value: string): boolean => {
+  const invalidValues = ['N/A', 'NA', 'undefined', 'null', '-'];
+  return invalidValues.includes(value) || value === '';
+};
+
 const DraftViewer: React.FC<DraftViewerProps> = ({ draft, extractedData }) => {
   const [showExtractedData, setShowExtractedData] = useState(true);
   const [isDataComplete, setIsDataComplete] = useState(true);
@@ -93,7 +103,7 @@ const DraftViewer: React.FC<DraftViewerProps> = ({ draft, extractedData }) => {
     }
     
     if (personalInfo.filiation) {
-      heirQualification += `, filho(a) de ${personalInfo.filiation}`;
+      heirQualification += `, filho(a) de ${personalInfo.filiacao}`;
     }
     
     if (personalInfo.profession) {
@@ -139,20 +149,17 @@ const DraftViewer: React.FC<DraftViewerProps> = ({ draft, extractedData }) => {
         if (placeholder.trim() === 'qualificacao_do(a)(s)_herdeiro(a)(s)') {
           console.log("Substituindo qualificacao_do(a)(s)_herdeiro(a)(s)");
           
-          // 1. Primeira prioridade: usar a qualificação direta do documento gerado em sessionStorage
           const storedQualification = sessionStorage.getItem('documentoGeradoTexto');
           if (storedQualification) {
             console.log("Usando qualificação completa do sessionStorage:", storedQualification);
             return storedQualification;
           }
           
-          // 2. Segunda prioridade: usar a qualificação dos dados extraídos
           if (extractedData && extractedData.qualificacaoCompleta) {
             console.log("Usando qualificação completa dos dados extraídos:", extractedData.qualificacaoCompleta);
             return extractedData.qualificacaoCompleta;
           }
           
-          // 3. Terceira prioridade: usar os dados do protocolo
           if (draft.protocoloInfo && draft.protocoloInfo.numero) {
             const heirQualification = generateHeirQualification(draft.protocoloInfo);
             if (heirQualification) {
@@ -161,7 +168,6 @@ const DraftViewer: React.FC<DraftViewerProps> = ({ draft, extractedData }) => {
             }
           }
           
-          // 4. Quarta prioridade: construir a partir dos dados extraídos
           if (Object.keys(localData).length > 0) {
             let heirQualification = '';
             
@@ -240,7 +246,6 @@ const DraftViewer: React.FC<DraftViewerProps> = ({ draft, extractedData }) => {
             return heirQualification;
           }
           
-          // 5. Se não conseguir resolver, manter o placeholder original
           console.log("Não foi possível gerar a qualificação - mantendo placeholder original");
           return match;
         }
@@ -352,5 +357,17 @@ const DraftViewer: React.FC<DraftViewerProps> = ({ draft, extractedData }) => {
     }
   }, [draft.content, draft.protocoloInfo, localData, isNewDraft, extractedData]);
 
-  // ... rest of the component remains unchanged
+  return (
+    <div className="bg-white border rounded-md shadow-sm overflow-hidden">
+      <div className="p-4">
+        <ScrollArea className="h-[60vh] w-full" ref={scrollAreaRef}>
+          <div className="whitespace-pre-line p-4">
+            {processedContent}
+          </div>
+        </ScrollArea>
+      </div>
+    </div>
+  );
 };
+
+export default DraftViewer;

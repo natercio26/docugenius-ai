@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -208,7 +209,7 @@ const ViewDraft: React.FC = () => {
   const navigate = useNavigate();
   const isNew = id === 'new';
 
-  // Prevenir rolagem automática da página - aplica diretamente no document
+  // Prevenir rolagem automática da página
   useEffect(() => {
     const preventScroll = (e: Event) => {
       // Prevenir a rolagem automática apenas se não for iniciada pelo usuário
@@ -250,18 +251,17 @@ const ViewDraft: React.FC = () => {
             } : undefined
           };
           
-          console.log("Carregando rascunho com dados:", draftWithDates);
-          
-          // Verificar se existe texto de qualificação no sessionStorage
+          // VERIFICAR TEXTO DE QUALIFICAÇÃO NO SESSIONSTORAGE - PRIORIDADE ALTA!
           const qualificacaoTexto = sessionStorage.getItem('documentoGeradoTexto');
           if (qualificacaoTexto) {
             console.log("Texto de qualificação encontrado no sessionStorage:", qualificacaoTexto);
             
-            // Adicionar ao extractedData do rascunho
+            // Adicionar ao extractedData do rascunho com prioridade máxima
             if (!draftWithDates.extractedData) {
               draftWithDates.extractedData = {};
             }
             
+            // Garantir que a qualificação completa seja armazenada no extractedData
             draftWithDates.extractedData.qualificacaoCompleta = qualificacaoTexto;
           }
           
@@ -307,8 +307,8 @@ const ViewDraft: React.FC = () => {
                   issuer: personalInfo.issuer,
                   address: personalInfo.address,
                   
-                  // Gerar o texto de qualificação completo para uso direto
-                  qualificacaoCompleta: protocolo.conteudo || qualificacaoTexto,
+                  // Não sobrescrever a qualificação completa se já estiver definida
+                  qualificacaoCompleta: draftWithDates.extractedData.qualificacaoCompleta || protocolo.conteudo || qualificacaoTexto,
                   herdeiro1: personalInfo.name // Assumir que o primeiro herdeiro é a pessoa do protocolo
                 };
                 
@@ -317,6 +317,7 @@ const ViewDraft: React.FC = () => {
             }
           }
           
+          console.log("Carregando rascunho com dados:", draftWithDates);
           setDraft(draftWithDates);
           setEditedTitle(draftWithDates.title);
         } catch (error) {
@@ -377,13 +378,20 @@ const ViewDraft: React.FC = () => {
     );
   }
 
-  // Para rascunhos novos, usar também os dados do documento gerado no cadastro se disponíveis
+  // Para rascunhos novos, verificar e recuperar explicitamente a qualificação completa do sessionStorage
+  const qualificacaoTexto = sessionStorage.getItem('documentoGeradoTexto');
   const extractedDataToPass = {
     ...draft.extractedData,
-    // Adicionar dados da sessão se existirem e garantir prioridade para qualificacaoCompleta
-    ...(sessionStorage.getItem('documentoGeradoTexto') ? 
-      { qualificacaoCompleta: sessionStorage.getItem('documentoGeradoTexto') } : {})
+    // Adicionar qualificacaoCompleta com prioridade máxima se existir no sessionStorage
+    ...(qualificacaoTexto ? { qualificacaoCompleta: qualificacaoTexto } : {})
   };
+
+  // Adicionar log explícito para depuração
+  if (qualificacaoTexto) {
+    console.log("ViewDraft: Usando qualificação do sessionStorage:", qualificacaoTexto);
+  } else if (draft.extractedData?.qualificacaoCompleta) {
+    console.log("ViewDraft: Usando qualificação dos extractedData:", draft.extractedData.qualificacaoCompleta);
+  }
 
   return (
     <div className="min-h-screen bg-background">
