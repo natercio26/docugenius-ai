@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Draft } from '@/types';
 import { Info, ChevronDown, ChevronUp, FileText, AlertTriangle, Edit, Eye, Trash2, Save } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Button } from "@/components/ui/button";
 import { useToast } from '@/hooks/use-toast';
 import { useLocation } from 'react-router-dom';
 import { ScrollArea } from './ui/scroll-area';
@@ -23,6 +23,21 @@ const DraftViewer: React.FC<DraftViewerProps> = ({ draft, extractedData }) => {
   const isNewDraft = location.pathname.includes('/view/new');
   
   useEffect(() => {
+    const preventScroll = (e: Event) => {
+      if (!e.isTrusted) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+    };
+
+    document.addEventListener('scroll', preventScroll, { passive: false });
+    
+    return () => {
+      document.removeEventListener('scroll', preventScroll);
+    };
+  }, []);
+  
+  useEffect(() => {
     if (isNewDraft && !draft.protocoloInfo) {
       setLocalData({});
     } else if (extractedData) {
@@ -39,85 +54,69 @@ const DraftViewer: React.FC<DraftViewerProps> = ({ draft, extractedData }) => {
   }, [extractedData, draft.protocoloInfo, isNewDraft]);
 
   useEffect(() => {
-    if (isNewDraft && !draft.protocoloInfo) {
-      setProcessedContent(draft.content);
-      return;
-    }
-    
-    if (draft.type === 'Inventário' && extractedData && Object.keys(extractedData).length > 0) {
+    if (draft.content) {
       let content = draft.content;
       
       const placeholderRegex = /¿([^>]+)>/g;
       
       content = content.replace(placeholderRegex, (match, placeholder) => {
-        const placeholderKey = placeholder.trim();
-        
-        if (placeholderKey === 'qualificacao_do(a)(s)_herdeiro(a)(s)') {
-          if (!localData || Object.keys(localData).length === 0) {
-            console.log("Dados locais não encontrados para qualificação do herdeiro");
-            return match;
+        if (placeholder.trim() === 'qualificacao_do(a)(s)_herdeiro(a)(s)') {
+          if (draft.protocoloInfo && Object.keys(localData).length > 0) {
+            let heirQualification = '';
+            
+            if (localData.nome) {
+              heirQualification += `${localData.nome}`;
+            }
+            
+            if (localData.nacionalidade) {
+              heirQualification += `, ${localData.nacionalidade}`;
+            }
+            
+            if (localData.naturalidade && localData.uf) {
+              heirQualification += `, natural de ${localData.naturalidade}-${localData.uf}`;
+            }
+            
+            if (localData.dataNascimento) {
+              heirQualification += `, nascido(a) aos ${localData.dataNascimento}`;
+            }
+            
+            if (localData.filiacao) {
+              heirQualification += `, filho(a) de ${localData.filiacao}`;
+            }
+            
+            if (localData.profissao) {
+              heirQualification += `, profissão ${localData.profissao}`;
+            }
+            
+            if (localData.estadoCivil) {
+              heirQualification += `, estado civil ${localData.estadoCivil}`;
+            }
+            
+            if (localData.rg && localData.orgaoExpedidor) {
+              heirQualification += `, portador(a) da Cédula de Identidade nº ${localData.rg}-${localData.orgaoExpedidor}`;
+            }
+            
+            if (localData.cpf) {
+              heirQualification += ` e inscrito(a) no CPF/MF sob o nº ${localData.cpf}`;
+            }
+            
+            if (localData.email) {
+              heirQualification += `, endereço eletrônico: ${localData.email}`;
+            }
+            
+            if (localData.endereco) {
+              heirQualification += `, residente e domiciliado(a) na ${localData.endereco}`;
+            }
+            
+            if (!heirQualification.endsWith(';') && !heirQualification.endsWith('.')) {
+              heirQualification += ';';
+            }
+            
+            console.log("Qualificação completa do herdeiro gerada:", heirQualification);
+            return heirQualification;
           }
           
-          console.log("Construindo qualificação completa do herdeiro com dados:", localData);
-          
-          let qualification = '';
-          
-          if (localData.nome) {
-            qualification += `${localData.nome}`;
-          } else if (localData.herdeiro1) {
-            qualification += `${localData.herdeiro1}`;
-          } else if (localData.falecido) {
-            qualification += `${localData.falecido}`;
-          }
-          
-          if (localData.nacionalidade) {
-            qualification += `, ${localData.nacionalidade}`;
-          } else {
-            qualification += ', brasileiro(a)';
-          }
-          
-          if (localData.naturalidade && localData.uf) {
-            qualification += `, natural de ${localData.naturalidade}-${localData.uf}`;
-          }
-          
-          if (localData.dataNascimento) {
-            qualification += `, nascido(a) aos ${localData.dataNascimento}`;
-          }
-          
-          if (localData.filiacao) {
-            qualification += `, filho(a) de ${localData.filiacao}`;
-          }
-          
-          if (localData.profissao) {
-            qualification += `, profissão ${localData.profissao}`;
-          }
-          
-          if (localData.estadoCivil) {
-            qualification += `, estado civil ${localData.estadoCivil}`;
-          }
-          
-          if (localData.rg && localData.orgaoExpedidor) {
-            qualification += `, portador(a) da Cédula de Identidade nº ${localData.rg}-${localData.orgaoExpedidor}`;
-          }
-          
-          if (localData.cpf) {
-            qualification += `, inscrito(a) no CPF/MF sob o nº ${localData.cpf}`;
-          }
-          
-          if (localData.email) {
-            qualification += `, endereço eletrônico: ${localData.email}`;
-          }
-          
-          if (localData.endereco) {
-            qualification += `, residente e domiciliado(a) na ${localData.endereco}`;
-          }
-          
-          if (!qualification.endsWith(';') && !qualification.endsWith('.')) {
-            qualification += ';';
-          }
-          
-          console.log("Qualificação completa construída:", qualification);
-          return qualification;
+          return match;
         }
         
         const exactMappings: Record<string, string> = {
@@ -129,12 +128,12 @@ const DraftViewer: React.FC<DraftViewerProps> = ({ draft, extractedData }) => {
           'regime': 'regimeBens',
           'data_do_casamento': 'dataCasamento',
           'data_do_falecimento': 'dataFalecimento',
-          'data_do_falecimento_autor_heranca': 'dataFalecimento',
           'nome_do_hospital': 'hospitalFalecimento',
           'cidade': 'cidadeFalecimento',
           'quantidade_de_filhos': 'numeroFilhos',
           'nome_dos_filhos': 'nomesFilhos',
           'nome_do_inventariante': 'inventariante',
+          'nome_do_advogado': 'advogado',
           'DESCRICAO_DO(S)_BEM(NS)': 'descricaoAdicionalImovel',
           'MATRICULA_Nº': 'matriculaImovel',
           'nº_do_cartorio': 'cartorioImovel',
@@ -199,28 +198,12 @@ const DraftViewer: React.FC<DraftViewerProps> = ({ draft, extractedData }) => {
           'cidade]': 'cidade',
         };
         
-        if (exactMappings[placeholderKey] && localData[exactMappings[placeholderKey]]) {
-          return localData[exactMappings[placeholderKey]];
-        }
-        
-        if (placeholderKey === 'qualificacao_do_autor_da_heranca') {
-          return `${localData.profissao || ''}, ${localData.estadoCivil || ''}, ${localData.nacionalidade || ''}`;
-        }
-        
-        if (placeholderKey === 'qualificacao_do(a)_viuvo(a)') {
-          return `${localData.conjuge || ''}, portador(a) do RG ${localData.rgConjuge || ''} e CPF ${localData.cpfConjuge || ''}`;
-        }
-        
-        if (placeholderKey === 'nome_do_advogado') {
-          return localData.advogado || match;
-        }
-        
-        if (placeholderKey === 'verificar_no_CCIR') {
-          return localData.dadosCCIR || match;
+        if (exactMappings[placeholder.trim()] && localData[exactMappings[placeholder.trim()]]) {
+          return localData[exactMappings[placeholder.trim()]];
         }
         
         for (const [key, value] of Object.entries(localData)) {
-          const simplifiedPlaceholder = placeholderKey
+          const simplifiedPlaceholder = placeholder
             .replace(/[()]/g, '')
             .replace(/["']/g, '')
             .replace(/[-_]/g, '')
@@ -234,31 +217,14 @@ const DraftViewer: React.FC<DraftViewerProps> = ({ draft, extractedData }) => {
           }
         }
         
-        console.log(`Placeholder não mapeado: ${placeholderKey}`);
         return match;
       });
       
       setProcessedContent(content);
-      console.log("Conteúdo processado com substituições");
     } else {
-      setProcessedContent(draft.content);
+      setProcessedContent('');
     }
-  }, [draft.content, draft.type, extractedData, draft.protocoloInfo, isNewDraft]);
-
-  useEffect(() => {
-    const preventScroll = (e: Event) => {
-      if (!e.isTrusted) {
-        e.preventDefault();
-        e.stopPropagation();
-      }
-    };
-
-    document.addEventListener('scroll', preventScroll, { passive: false });
-    
-    return () => {
-      document.removeEventListener('scroll', preventScroll);
-    };
-  }, []);
+  }, [draft.content, draft.protocoloInfo, localData, isNewDraft]);
 
   const toggleExtractedData = () => {
     setShowExtractedData(!showExtractedData);
@@ -701,7 +667,7 @@ const DraftViewer: React.FC<DraftViewerProps> = ({ draft, extractedData }) => {
         </div>
       )}
       
-      <ScrollArea className="legal-text prose prose-legal" ref={scrollAreaRef}>
+      <ScrollArea className="legal-text prose prose-legal h-[50vh]" ref={scrollAreaRef}>
         {containsHtml ? (
           <div dangerouslySetInnerHTML={{ __html: processedContent }} />
         ) : (

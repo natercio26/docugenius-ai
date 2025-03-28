@@ -208,7 +208,7 @@ const ViewDraft: React.FC = () => {
   const navigate = useNavigate();
   const isNew = id === 'new';
 
-  // Prevenir rolagem automática da página
+  // Prevenir rolagem automática da página - aplica diretamente no document
   useEffect(() => {
     const preventScroll = (e: Event) => {
       // Prevenir a rolagem automática apenas se não for iniciada pelo usuário
@@ -218,6 +218,7 @@ const ViewDraft: React.FC = () => {
       }
     };
 
+    // Aplicar em todo o documento para garantir que a rolagem não aconteça
     document.addEventListener('scroll', preventScroll, { passive: false });
     
     return () => {
@@ -248,6 +249,9 @@ const ViewDraft: React.FC = () => {
               dataGeracao: new Date(parsedDraft.protocoloInfo.dataGeracao)
             } : undefined
           };
+          
+          console.log("Carregando rascunho com dados:", draftWithDates);
+          
           setDraft(draftWithDates);
           setEditedTitle(draftWithDates.title);
         } catch (error) {

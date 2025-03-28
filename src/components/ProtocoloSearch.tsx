@@ -6,6 +6,8 @@ import { Input } from '@/components/ui/input';
 import { getProtocoloByNumero } from '@/utils/protocoloStorage';
 import { toast } from 'sonner';
 import { DraftType, RegistrationData } from '@/types';
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
 // Template para Inventário
 const INVENTARIO_TEMPLATE = `ESCRITURA PÚBLICA DE INVENTÁRIO E PARTILHA, na forma abaixo:
@@ -90,8 +92,8 @@ VEÍCULO marca ¿marca> , cor ¿cor> , categoria ¿categoria> , combustível
 ¿alcool/gasolina> , placa ¿placa> , chassi nº ¿chassi> , ano ¿ano> , modelo
 ¿modelo> , renavam ¿renavam> , para o qual as partes atribuem o valor de
 ¿valor> , avaliado para fins fiscais no valor de ¿VALOR_R$> ;
-SALDO EM CONTA Saldo em Conta ¿corrente_ou_poupanca> nº ¿numero>
-, Agência nº ¿agencia> , junto ao Banco ¿nome_do_banco> , no valor de
+SALDO EM CONTA Saldo em Conta ¿corrente_ou_poupanca> nº ¿numero> ,
+Agência nº ¿agencia> , junto ao Banco ¿nome_do_banco> , no valor de
 ¿valor> e acréscimos ou deduções se houver;
 ===QUANTIDADE=== cotas de Capital Social da Empresa ===NOME===,
 inscrita no CNPJ sob o nº ======, correspondente a ===PERCENTUAL===
@@ -206,6 +208,11 @@ const ProtocoloSearch: React.FC<ProtocoloSearchProps> = ({ documentType = 'Inven
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
+  // Função para formatar a data por extenso
+  const formatarDataPorExtenso = (data: Date) => {
+    return format(data, "dd 'de' MMMM 'de' yyyy", { locale: ptBR });
+  };
+
   const handleSearch = () => {
     if (!protocolo.trim()) {
       toast.error('Por favor, insira um número de protocolo válido');
@@ -246,15 +253,28 @@ const ProtocoloSearch: React.FC<ProtocoloSearchProps> = ({ documentType = 'Inven
       if (registrationData) {
         const { personalInfo, spouseInfo } = registrationData;
         
-        // Map personal info
+        // Map personal info for complete text replacement
         if (personalInfo) {
+          // Basic personal information
           extractedData['nome'] = personalInfo.name;
           extractedData['cpf'] = personalInfo.cpf;
           extractedData['rg'] = personalInfo.rg;
+          extractedData['orgaoExpedidor'] = personalInfo.rgIssuer || 'SSP';
           extractedData['endereco'] = personalInfo.address;
           extractedData['profissao'] = personalInfo.profession || '';
           extractedData['estadoCivil'] = personalInfo.civilStatus || '';
-          extractedData['nacionalidade'] = 'brasileiro(a)';
+          extractedData['nacionalidade'] = personalInfo.nationality || 'brasileiro(a)';
+          extractedData['naturalidade'] = personalInfo.birthplace || 'Brasília';
+          extractedData['uf'] = personalInfo.birthplaceState || 'DF';
+          extractedData['email'] = personalInfo.email || '';
+          
+          // Additional fields if available
+          if (personalInfo.birthDate) {
+            const birthDate = new Date(personalInfo.birthDate);
+            extractedData['dataNascimento'] = formatarDataPorExtenso(birthDate);
+          }
+          
+          extractedData['filiacao'] = personalInfo.parents || '';
           
           // For inventory document type, map to specific heir fields
           if (documentType === 'Inventário') {
@@ -266,7 +286,58 @@ const ProtocoloSearch: React.FC<ProtocoloSearchProps> = ({ documentType = 'Inven
             extractedData['estadoCivilHerdeiro1'] = personalInfo.civilStatus || '';
             
             // Criar a qualificação completa do herdeiro para o placeholder específico
-            const heirQualification = `${personalInfo.name}, ${personalInfo.nationality || 'brasileiro(a)'}, ${personalInfo.civilStatus || 'solteiro(a)'}, ${personalInfo.profession || 'profissão não informada'}, portador(a) da cédula de identidade RG nº ${personalInfo.rg}, inscrito(a) no CPF/MF sob nº ${personalInfo.cpf}, residente e domiciliado(a) em ${personalInfo.address}`;
+            // Este é o principal texto que será usado para substituir ¿qualificacao_do(a)(s)_herdeiro(a)(s)>
+            let heirQualification = `${personalInfo.name}`;
+            
+            if (personalInfo.nationality) {
+              heirQualification += `, ${personalInfo.nationality}`;
+            } else {
+              heirQualification += `, brasileiro(a)`;
+            }
+            
+            if (personalInfo.birthplace && personalInfo.birthplaceState) {
+              heirQualification += `, natural de ${personalInfo.birthplace}-${personalInfo.birthplaceState}`;
+            }
+            
+            if (personalInfo.birthDate) {
+              const birthDate = new Date(personalInfo.birthDate);
+              heirQualification += `, nascido(a) aos ${formatarDataPorExtenso(birthDate)}`;
+            }
+            
+            if (personalInfo.parents) {
+              heirQualification += `, filho(a) de ${personalInfo.parents}`;
+            }
+            
+            if (personalInfo.profession) {
+              heirQualification += `, profissão ${personalInfo.profession}`;
+            }
+            
+            if (personalInfo.civilStatus) {
+              heirQualification += `, estado civil ${personalInfo.civilStatus}`;
+            }
+            
+            if (personalInfo.rg) {
+              const rgIssuer = personalInfo.rgIssuer || 'SSP';
+              heirQualification += `, portador(a) da Cédula de Identidade nº ${personalInfo.rg}-${rgIssuer}`;
+            }
+            
+            if (personalInfo.cpf) {
+              heirQualification += ` e inscrito(a) no CPF/MF sob o nº ${personalInfo.cpf}`;
+            }
+            
+            if (personalInfo.email) {
+              heirQualification += `, endereço eletrônico: ${personalInfo.email}`;
+            }
+            
+            if (personalInfo.address) {
+              heirQualification += `, residente e domiciliado(a) na ${personalInfo.address}`;
+            }
+            
+            if (!heirQualification.endsWith(';') && !heirQualification.endsWith('.')) {
+              heirQualification += ';';
+            }
+            
+            // Armazenar a qualificação completa para substituir o placeholder específico
             extractedData['qualificacao_do(a)(s)_herdeiro(a)(s)'] = heirQualification;
           }
         }
@@ -283,7 +354,52 @@ const ProtocoloSearch: React.FC<ProtocoloSearchProps> = ({ documentType = 'Inven
             extractedData['nome_do(a)_viuva(o)-meeira(o)'] = spouseInfo.name;
             
             // Criar a qualificação completa do cônjuge
-            const spouseQualification = `${spouseInfo.name}, ${spouseInfo.nationality || 'brasileiro(a)'}, ${spouseInfo.civilStatus || 'viúvo(a)'}, ${spouseInfo.profession || 'profissão não informada'}, portador(a) da cédula de identidade RG nº ${spouseInfo.rg}, inscrito(a) no CPF/MF sob nº ${spouseInfo.cpf}, residente e domiciliado(a) em ${spouseInfo.address || 'endereço não informado'}`;
+            let spouseQualification = `${spouseInfo.name}`;
+            
+            if (spouseInfo.nationality) {
+              spouseQualification += `, ${spouseInfo.nationality}`;
+            } else {
+              spouseQualification += `, brasileiro(a)`;
+            }
+            
+            if (spouseInfo.birthplace && spouseInfo.birthplaceState) {
+              spouseQualification += `, natural de ${spouseInfo.birthplace}-${spouseInfo.birthplaceState}`;
+            }
+            
+            if (spouseInfo.birthDate) {
+              const birthDate = new Date(spouseInfo.birthDate);
+              spouseQualification += `, nascido(a) aos ${formatarDataPorExtenso(birthDate)}`;
+            }
+            
+            if (spouseInfo.parents) {
+              spouseQualification += `, filho(a) de ${spouseInfo.parents}`;
+            }
+            
+            if (spouseInfo.profession) {
+              spouseQualification += `, profissão ${spouseInfo.profession}`;
+            } else {
+              spouseQualification += `, profissão não informada`;
+            }
+            
+            spouseQualification += `, estado civil viúvo(a)`;
+            
+            if (spouseInfo.rg) {
+              const rgIssuer = spouseInfo.rgIssuer || 'SSP';
+              spouseQualification += `, portador(a) da cédula de identidade RG nº ${spouseInfo.rg}-${rgIssuer}`;
+            }
+            
+            if (spouseInfo.cpf) {
+              spouseQualification += ` e inscrito(a) no CPF/MF sob nº ${spouseInfo.cpf}`;
+            }
+            
+            if (spouseInfo.address) {
+              spouseQualification += `, residente e domiciliado(a) em ${spouseInfo.address}`;
+            }
+            
+            if (!spouseQualification.endsWith(';') && !spouseQualification.endsWith('.')) {
+              spouseQualification += ';';
+            }
+            
             extractedData['qualificacao_do(a)_viuvo(a)'] = spouseQualification;
           }
         }
