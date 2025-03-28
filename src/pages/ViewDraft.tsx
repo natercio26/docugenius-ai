@@ -253,11 +253,55 @@ const ViewDraft: React.FC = () => {
           
           console.log("Carregando rascunho com dados:", draftWithDates);
           
-          // Se tiver protocoloInfo, verificar se há dados do protocolo no storage
+          // Se tiver protocoloInfo, verificar e carregar os dados completos do protocolo do storage
           if (draftWithDates.protocoloInfo && draftWithDates.protocoloInfo.numero) {
             const protocolo = getProtocoloByNumero(draftWithDates.protocoloInfo.numero);
             if (protocolo && protocolo.registrationData) {
               console.log("Protocolo encontrado com dados de registro:", protocolo.registrationData);
+              
+              // Adicionar os dados de registro completos para uso na qualificação
+              if (!draftWithDates.extractedData) {
+                draftWithDates.extractedData = {};
+              }
+              
+              // Mapear dados do registro para o formato esperado pelos placeholders
+              if (protocolo.registrationData.personalInfo) {
+                const personalInfo = protocolo.registrationData.personalInfo;
+                
+                // Mapear os dados principais para o formato de extractedData
+                draftWithDates.extractedData = {
+                  ...draftWithDates.extractedData,
+                  nome: personalInfo.name,
+                  nacionalidade: personalInfo.nationality || "brasileiro(a)",
+                  naturalidade: personalInfo.naturality,
+                  uf: personalInfo.uf,
+                  dataNascimento: personalInfo.birthDate,
+                  filiacao: personalInfo.filiation,
+                  profissao: personalInfo.profession,
+                  estadoCivil: personalInfo.civilStatus,
+                  rg: personalInfo.rg,
+                  orgaoExpedidor: personalInfo.issuer,
+                  cpf: personalInfo.cpf,
+                  email: personalInfo.email,
+                  endereco: personalInfo.address,
+                  // Adicionar versões alternativas com nomes em inglês para compatibilidade
+                  name: personalInfo.name,
+                  nationality: personalInfo.nationality,
+                  naturality: personalInfo.naturality,
+                  birthDate: personalInfo.birthDate,
+                  filiation: personalInfo.filiation,
+                  profession: personalInfo.profession,
+                  civilStatus: personalInfo.civilStatus,
+                  issuer: personalInfo.issuer,
+                  address: personalInfo.address,
+                  
+                  // Gerar o texto de qualificação completo para uso direto
+                  qualificacaoCompleta: protocolo.conteudo,
+                  herdeiro1: personalInfo.name // Assumir que o primeiro herdeiro é a pessoa do protocolo
+                };
+                
+                console.log("Dados extraídos mapeados do protocolo:", draftWithDates.extractedData);
+              }
             }
           }
           
@@ -321,8 +365,13 @@ const ViewDraft: React.FC = () => {
     );
   }
 
-  // Para rascunhos novos, só mostrar dados que foram extraídos especificamente para este draft
-  const extractedDataToPass = draft.extractedData || {};
+  // Para rascunhos novos, usar também os dados do documento gerado no cadastro se disponíveis
+  const extractedDataToPass = {
+    ...draft.extractedData,
+    // Adicionar dados da sessão se existirem
+    ...(sessionStorage.getItem('documentoGeradoTexto') ? 
+      { qualificacaoCompleta: sessionStorage.getItem('documentoGeradoTexto') } : {})
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -377,4 +426,3 @@ const ViewDraft: React.FC = () => {
 };
 
 export default ViewDraft;
-

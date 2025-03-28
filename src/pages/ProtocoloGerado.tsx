@@ -57,6 +57,10 @@ const ProtocoloGerado: React.FC = () => {
         // Preparar dados para o protocolo
         const documentoTexto = getDocumentoTexto(formData);
         
+        // Salvar o texto completo da qualificação no sessionStorage
+        sessionStorage.setItem('documentoGeradoTexto', documentoTexto);
+        console.log("Qualificação completa armazenada do protocolo:", documentoTexto);
+        
         // Converter formData para o formato de RegistrationData
         const registrationData: RegistrationData = {
           type: 'solteiro',

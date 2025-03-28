@@ -137,14 +137,24 @@ const DraftViewer: React.FC<DraftViewerProps> = ({ draft, extractedData }) => {
       
       content = content.replace(placeholderRegex, (match, placeholder) => {
         if (placeholder.trim() === 'qualificacao_do(a)(s)_herdeiro(a)(s)') {
+          console.log("Substituindo qualificacao_do(a)(s)_herdeiro(a)(s)");
+          
+          // 1. Primeira prioridade: usar a qualificação direta do documento gerado
+          if (extractedData && extractedData.qualificacaoCompleta) {
+            console.log("Usando qualificação completa dos dados extraídos:", extractedData.qualificacaoCompleta);
+            return extractedData.qualificacaoCompleta;
+          }
+          
+          // 2. Segunda prioridade: usar os dados do protocolo
           if (draft.protocoloInfo && draft.protocoloInfo.numero) {
             const heirQualification = generateHeirQualification(draft.protocoloInfo);
             if (heirQualification) {
-              console.log("Using heir qualification from protocol for placeholder: qualificacao_do(a)(s)_herdeiro(a)(s)");
+              console.log("Usando qualificação do protocolo:", heirQualification);
               return heirQualification;
             }
           }
           
+          // 3. Terceira prioridade: construir a partir dos dados extraídos
           if (Object.keys(localData).length > 0) {
             let heirQualification = '';
             
@@ -223,6 +233,8 @@ const DraftViewer: React.FC<DraftViewerProps> = ({ draft, extractedData }) => {
             return heirQualification;
           }
           
+          // 4. Se não conseguir resolver, manter o placeholder original
+          console.log("Não foi possível gerar a qualificação - mantendo placeholder original");
           return match;
         }
         
@@ -331,7 +343,7 @@ const DraftViewer: React.FC<DraftViewerProps> = ({ draft, extractedData }) => {
     } else {
       setProcessedContent('');
     }
-  }, [draft.content, draft.protocoloInfo, localData, isNewDraft]);
+  }, [draft.content, draft.protocoloInfo, localData, isNewDraft, extractedData]);
 
   const toggleExtractedData = () => {
     setShowExtractedData(!showExtractedData);
@@ -614,7 +626,7 @@ const DraftViewer: React.FC<DraftViewerProps> = ({ draft, extractedData }) => {
         groups["Nomeação do Inventariante"][key] = value;
       } else if (key === 'advogado' || key.includes('oab') || key.includes('OAB')) {
         groups["Advogado"][key] = value;
-      } else if (key.includes('imovel') || key.includes('Imovel') || key.includes('apartamento') || 
+      } else if (key.includes('imovel') || key.includes('Imóvel') || key.includes('apartamento') || 
                 key.includes('Apartamento') || key.includes('veículo') || key.includes('veiculo') ||
                 key.includes('blocoApartamento') || key.includes('quadra') || key.includes('bloco') ||
                 key.includes('matriculaImovel') || key.includes('cartorioImovel') ||

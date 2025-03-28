@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -36,7 +36,7 @@ const DocumentoGerado: React.FC = () => {
   const formData = location.state?.formData as FormData;
   
   // Se não houver dados, redirecionar para o formulário
-  React.useEffect(() => {
+  useEffect(() => {
     if (!formData) {
       toast({
         title: "Dados não encontrados",
@@ -78,6 +78,10 @@ const DocumentoGerado: React.FC = () => {
     
     qualificacao += `natural de ${formData.naturalidade}-${formData.uf}, nascido(a) aos ${formatarDataPorExtenso(formData.dataNascimento)}, filho(a) de ${formData.filiacao}, profissão ${formData.profissao}, estado civil ${formData.estadoCivil}, portador(a) da Cédula de Identidade nº ${formData.rg}-${formData.orgaoExpedidor} e inscrito(a) no CPF/MF sob o nº ${formData.cpf}, endereço eletrônico: ${formData.email}, residente e domiciliado(a) na ${formData.endereco};`;
     
+    // Armazenar a qualificação no sessionStorage para uso na minuta de inventário
+    sessionStorage.setItem('documentoGeradoTexto', qualificacao);
+    console.log("Qualificação completa armazenada:", qualificacao);
+    
     return qualificacao;
   };
 
@@ -102,6 +106,8 @@ const DocumentoGerado: React.FC = () => {
 
   // Função para gerar protocolo
   const gerarProtocolo = () => {
+    // Armazenar a qualificação no sessionStorage antes de navegar
+    gerarQualificacaoCompleta();
     navigate('/cadastro/protocolo', { state: { formData } });
   };
 
