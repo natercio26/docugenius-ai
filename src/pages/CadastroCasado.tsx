@@ -99,10 +99,14 @@ const estados = [
 ];
 
 const regimesBens = [
-  { value: 'comunhao_universal', label: 'Comunhão Universal de Bens' },
   { value: 'comunhao_parcial', label: 'Comunhão Parcial de Bens' },
-  { value: 'separacao_total', label: 'Separação Total de Bens' },
+  { value: 'comunhao_universal', label: 'Comunhão Universal de Bens' },
+  { value: 'separacao_bens', label: 'Separação de Bens' },
+  { value: 'comunhao_bens', label: 'Comunhão de Bens' },
+  { value: 'separacao_consensual', label: 'Separação Consensual de Bens' },
   { value: 'participacao_final', label: 'Participação Final nos Aquestos' },
+  { value: 'separacao_obrigatoria', label: 'Separação de bens obrig. conforme art.1641' },
+  { value: 'informacao_nao_disponivel', label: 'Informação não disponível' },
 ];
 
 const CadastroCasado: React.FC = () => {
