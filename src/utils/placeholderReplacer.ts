@@ -19,10 +19,16 @@ export const formatarDataPorExtenso = (data: Date) => {
 };
 
 export const generateHeirQualification = (protocoloInfo?: Draft['protocoloInfo']) => {
-  if (!protocoloInfo?.numero) return '';
+  if (!protocoloInfo?.numero) {
+    console.log("Sem número de protocolo fornecido");
+    return '';
+  }
   
   const protocolo = getProtocoloByNumero(protocoloInfo.numero);
-  if (!protocolo || !protocolo.registrationData) return '';
+  if (!protocolo || !protocolo.registrationData) {
+    console.log(`Protocolo ${protocoloInfo.numero} não encontrado ou sem dados de registro`);
+    return '';
+  }
   
   const { personalInfo } = protocolo.registrationData;
   let heirQualification = '';
@@ -255,24 +261,31 @@ export const replacePlaceholders = (content: string, localData: Record<string, s
   const exactMappings = getPlaceholderMappings();
   
   return content.replace(placeholderRegex, (match, placeholder) => {
+    const trimmedPlaceholder = placeholder.trim();
+    console.log(`Substituindo ${trimmedPlaceholder}`);
+    
     // Caso especial para qualificação do herdeiro
-    if (placeholder.trim() === 'qualificacao_do(a)(s)_herdeiro(a)(s)') {
-      console.log("Substituindo qualificacao_do(a)(s)_herdeiro(a)(s)");
-      
-      // Primeiro, verificar se há texto de qualificação no sessionStorage
+    if (trimmedPlaceholder === 'qualificacao_do(a)(s)_herdeiro(a)(s)') {
+      // Estratégia 1: Verificar se há texto de qualificação no sessionStorage
       const storedQualification = sessionStorage.getItem('documentoGeradoTexto');
       if (storedQualification && storedQualification.trim() !== '') {
         console.log("Usando qualificação do sessionStorage:", storedQualification);
         return storedQualification;
       }
       
-      // Verificar nos dados extraídos
+      // Estratégia 2: Verificar nos dados extraídos
+      if (localData.qualificacaoCompleta) {
+        console.log("Usando qualificação completa dos dados locais:", localData.qualificacaoCompleta);
+        return localData.qualificacaoCompleta;
+      }
+      
+      // Estratégia 3: Verificar se há qualificação nos dados extraídos
       if (extractedData && extractedData.qualificacaoCompleta) {
         console.log("Usando qualificação completa dos dados extraídos:", extractedData.qualificacaoCompleta);
         return extractedData.qualificacaoCompleta;
       }
       
-      // Gerar a partir do protocolo
+      // Estratégia 4: Gerar a partir do protocolo
       if (draft.protocoloInfo && draft.protocoloInfo.numero) {
         const heirQualification = generateHeirQualification(draft.protocoloInfo);
         if (heirQualification) {
@@ -281,7 +294,7 @@ export const replacePlaceholders = (content: string, localData: Record<string, s
         }
       }
       
-      // Gerar a partir dos dados locais
+      // Estratégia 5: Tentar gerar a partir dos dados locais
       if (Object.keys(localData).length > 0) {
         const heirQualification = generateQualificationFromLocalData(localData);
         if (heirQualification) {
@@ -290,18 +303,19 @@ export const replacePlaceholders = (content: string, localData: Record<string, s
         }
       }
       
+      // Caso não encontre nenhuma qualificação válida
       console.log("Não foi possível gerar a qualificação - mantendo placeholder original");
       return match;
     }
     
     // Verificar correspondências exatas nos dados
-    if (exactMappings[placeholder.trim()] && localData[exactMappings[placeholder.trim()]]) {
-      return localData[exactMappings[placeholder.trim()]];
+    if (exactMappings[trimmedPlaceholder] && localData[exactMappings[trimmedPlaceholder]]) {
+      return localData[exactMappings[trimmedPlaceholder]];
     }
     
     // Verificar correspondências aproximadas
     for (const [key, value] of Object.entries(localData)) {
-      const simplifiedPlaceholder = placeholder
+      const simplifiedPlaceholder = trimmedPlaceholder
         .replace(/[()]/g, '')
         .replace(/["']/g, '')
         .replace(/[-_]/g, '')
