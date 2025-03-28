@@ -9,6 +9,7 @@ import SpouseDetailsSection from './SpouseDetailsSection';
 import TextContentSection from './TextContentSection';
 import MarriedDetailsView from './MarriedDetailsView';
 import SingleDetailsView from './SingleDetailsView';
+import { FileCog, Download } from 'lucide-react';
 
 interface ModalContentProps {
   protocolo: ProtocoloData;

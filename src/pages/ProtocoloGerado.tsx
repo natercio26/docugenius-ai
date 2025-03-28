@@ -109,9 +109,29 @@ const ProtocoloGerado: React.FC = () => {
     return format(data, "dd/MM/yyyy");
   };
   
+  const formatPropertyRegime = (regime: string): string => {
+    if (!regime) return "comunhão parcial de bens";
+    
+    const regimeMap: Record<string, string> = {
+      "comunhao_parcial": "comunhão parcial de bens",
+      "comunhao_universal": "comunhão universal de bens",
+      "separacao_total": "separação total de bens",
+      "separacao_obrigatoria": "separação obrigatória de bens",
+      "participacao_final_aquestos": "participação final nos aquestos",
+    };
+    
+    if (regime.includes(" ")) {
+      return regime.toLowerCase();
+    }
+    
+    return regimeMap[regime] || regime.replace("_", " ").toLowerCase();
+  };
+  
   const getDocumentoTexto = (data: FormData): string => {
     if (data.estadoCivil === "Casado(a)" && data.nomeConjuge) {
-      return `${data.nome}, ${data.nacionalidade || "brasileiro"}, nascido na cidade de ${data.naturalidade}-${data.uf}, aos ${formatarData(data.dataNascimento)}, filho de ${data.filiacao}, profissão ${data.profissao}, portador da Cédula de Identidade nº ${data.rg}-${data.orgaoExpedidor} e inscrito no CPF/MF sob o nº ${data.cpf}, endereço eletrônico: ${data.email}, casado, desde ${formatarData(data.dataCasamento!)}, sob o regime da ${data.regimeBens || "comunhão parcial de bens"}, na vigência da Lei nº 6.515/77, com ${data.nomeConjuge}, ${data.nacionalidade || "brasileira"}, nascida na cidade de ${data.naturalidadeConjuge}-${data.ufConjuge}, aos ${formatarData(data.dataNascimentoConjuge!)}, filha de ${data.filiacaoConjuge}, profissão ${data.profissaoConjuge}, portadora da Cédula de Identidade nº ${data.rgConjuge}-${data.orgaoExpedidorConjuge} e inscrita no CPF/MF sob o nº ${data.cpfConjuge}, endereço eletrônico: ${data.emailConjuge}, residentes e domiciliados na ${data.endereco};`;
+      const propertyRegime = formatPropertyRegime(data.regimeBens || "");
+      
+      return `${data.nome}, ${data.nacionalidade || "brasileiro"}, nascido na cidade de ${data.naturalidade}-${data.uf}, aos ${formatarData(data.dataNascimento)}, filho de ${data.filiacao}, profissão ${data.profissao}, portador da Cédula de Identidade nº ${data.rg}-${data.orgaoExpedidor} e inscrito no CPF/MF sob o nº ${data.cpf}, endereço eletrônico: ${data.email}, casado, desde ${formatarData(data.dataCasamento!)}, sob o regime da ${propertyRegime}, na vigência da Lei nº 6.515/77, com ${data.nomeConjuge}, ${data.nacionalidade || "brasileira"}, nascida na cidade de ${data.naturalidadeConjuge}-${data.ufConjuge}, aos ${formatarData(data.dataNascimentoConjuge!)}, filha de ${data.filiacaoConjuge}, profissão ${data.profissaoConjuge}, portadora da Cédula de Identidade nº ${data.rgConjuge}-${data.orgaoExpedidorConjuge} e inscrita no CPF/MF sob o nº ${data.cpfConjuge}, endereço eletrônico: ${data.emailConjuge}, residentes e domiciliados na ${data.endereco};`;
     } else {
       return `${data.nome}, ${data.nacionalidade ? data.nacionalidade : "brasileiro(a)"}, natural de ${data.naturalidade}-${data.uf}, nascido(a) aos ${formatarDataPorExtenso(data.dataNascimento)}, filho(a) de ${data.filiacao}, profissão ${data.profissao}, estado civil ${data.estadoCivil}, portador(a) da Cédula de Identidade nº ${data.rg}-${data.orgaoExpedidor} e inscrito(a) no CPF/MF sob o nº ${data.cpf}, endereço eletrônico: ${data.email}, residente e domiciliado(a) na ${data.endereco};`;
     }

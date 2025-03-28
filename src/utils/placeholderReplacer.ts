@@ -23,6 +23,24 @@ export const formatarData = (data: Date | string) => {
   return format(dateObj, "dd/MM/yyyy");
 };
 
+const formatPropertyRegime = (regime: string): string => {
+  if (!regime) return "comunhão parcial de bens";
+  
+  const regimeMap: Record<string, string> = {
+    "comunhao_parcial": "comunhão parcial de bens",
+    "comunhao_universal": "comunhão universal de bens",
+    "separacao_total": "separação total de bens",
+    "separacao_obrigatoria": "separação obrigatória de bens",
+    "participacao_final_aquestos": "participação final nos aquestos",
+  };
+  
+  if (regime.includes(" ")) {
+    return regime.toLowerCase();
+  }
+  
+  return regimeMap[regime] || regime.replace("_", " ").toLowerCase();
+};
+
 export const generateHeirQualification = (protocoloInfo?: Draft['protocoloInfo']) => {
   if (!protocoloInfo?.numero) {
     console.log("Sem número de protocolo fornecido");
@@ -48,7 +66,7 @@ export const generateHeirQualification = (protocoloInfo?: Draft['protocoloInfo']
   const { personalInfo, spouseInfo, type } = protocolo.registrationData;
   
   if (type === 'casado' && spouseInfo && personalInfo.civilStatus === "Casado(a)") {
-    let heirQualification = `${personalInfo.name}, ${personalInfo.nationality || "brasileiro"}, nascido na cidade de ${personalInfo.naturality}-${personalInfo.uf}, aos ${formatarData(personalInfo.birthDate)}, filho de ${personalInfo.filiation}, profissão ${personalInfo.profession}, portador da Cédula de Identidade nº ${personalInfo.rg}-${personalInfo.issuer} e inscrito no CPF/MF sob o nº ${personalInfo.cpf}, endereço eletrônico: ${personalInfo.email}, casado, desde ${spouseInfo.marriageDate ? formatarData(spouseInfo.marriageDate) : ""}, sob o regime da ${spouseInfo.propertyRegime || "comunhão parcial de bens"}, na vigência da Lei nº 6.515/77, com ${spouseInfo.name}, ${personalInfo.nationality || "brasileira"}, nascida na cidade de ${spouseInfo.naturality}-${spouseInfo.uf}, aos ${formatarData(spouseInfo.birthDate)}, filha de ${spouseInfo.filiation}, profissão ${spouseInfo.profession}, portadora da Cédula de Identidade nº ${spouseInfo.rg}-${spouseInfo.issuer} e inscrita no CPF/MF sob o nº ${spouseInfo.cpf}, endereço eletrônico: ${spouseInfo.email || ""}, residentes e domiciliados na ${personalInfo.address};`;
+    let heirQualification = `${personalInfo.name}, ${personalInfo.nationality || "brasileiro"}, nascido na cidade de ${personalInfo.naturality}-${personalInfo.uf}, aos ${formatarData(personalInfo.birthDate)}, filho de ${personalInfo.filiation}, profissão ${personalInfo.profession}, portador da Cédula de Identidade nº ${personalInfo.rg}-${personalInfo.issuer} e inscrito no CPF/MF sob o nº ${personalInfo.cpf}, endereço eletrônico: ${personalInfo.email}, casado, desde ${spouseInfo.marriageDate ? formatarData(spouseInfo.marriageDate) : ""}, sob o regime da ${formatPropertyRegime(spouseInfo.propertyRegime || "")}, na vigência da Lei nº 6.515/77, com ${spouseInfo.name}, ${personalInfo.nationality || "brasileira"}, nascida na cidade de ${spouseInfo.naturality}-${spouseInfo.uf}, aos ${formatarData(spouseInfo.birthDate)}, filha de ${spouseInfo.filiation}, profissão ${spouseInfo.profession}, portadora da Cédula de Identidade nº ${spouseInfo.rg}-${spouseInfo.issuer} e inscrita no CPF/MF sob o nº ${spouseInfo.cpf}, endereço eletrônico: ${spouseInfo.email || ""}, residentes e domiciliados na ${personalInfo.address};`;
     
     console.log("Generated married heir qualification from protocol:", heirQualification);
     return heirQualification;
@@ -124,7 +142,9 @@ export const generateQualificationFromLocalData = (localData: Record<string, str
                   (localData.nomeConjuge && localData.nomeConjuge.trim() !== '');
   
   if (isCasado) {
-    let heirQualification = `${localData.nome || localData.name}, ${localData.nacionalidade || localData.nationality || "brasileiro"}, nascido na cidade de ${localData.naturalidade || localData.naturality}-${localData.uf}, aos ${localData.dataNascimento ? formatarData(localData.dataNascimento) : (localData.birthDate ? formatarData(localData.birthDate) : "")}, filho de ${localData.filiacao || localData.filiation}, profissão ${localData.profissao || localData.profession}, portador da Cédula de Identidade nº ${localData.rg}-${localData.orgaoExpedidor || localData.issuer} e inscrito no CPF/MF sob o nº ${localData.cpf}, endereço eletrônico: ${localData.email}, casado, desde ${localData.dataCasamento ? formatarData(localData.dataCasamento) : (localData.marriageDate ? formatarData(localData.marriageDate) : "")}, sob o regime da ${localData.regimeBens || localData.propertyRegime || "comunhão parcial de bens"}, na vigência da Lei nº 6.515/77, com ${localData.nomeConjuge || localData.spouseName}, ${localData.nacionalidadeConjuge || localData.spouseNationality || "brasileira"}, nascida na cidade de ${localData.naturalidadeConjuge || localData.spouseNaturality}-${localData.ufConjuge || localData.spouseUf}, aos ${localData.dataNascimentoConjuge ? formatarData(localData.dataNascimentoConjuge) : (localData.spouseBirthDate ? formatarData(localData.spouseBirthDate) : "")}, filha de ${localData.filiacaoConjuge || localData.spouseFiliation}, profissão ${localData.profissaoConjuge || localData.spouseProfession}, portadora da Cédula de Identidade nº ${localData.rgConjuge || localData.spouseRg}-${localData.orgaoExpedidorConjuge || localData.spouseIssuer} e inscrita no CPF/MF sob o nº ${localData.cpfConjuge || localData.spouseCpf}, endereço eletrônico: ${localData.emailConjuge || localData.spouseEmail}, residentes e domiciliados na ${localData.endereco || localData.address};`;
+    const propertyRegime = formatPropertyRegime(localData.regimeBens || localData.propertyRegime || "comunhao_parcial");
+    
+    let heirQualification = `${localData.nome || localData.name}, ${localData.nacionalidade || localData.nationality || "brasileiro"}, nascido na cidade de ${localData.naturalidade || localData.naturality}-${localData.uf}, aos ${localData.dataNascimento ? formatarData(localData.dataNascimento) : (localData.birthDate ? formatarData(localData.birthDate) : "")}, filho de ${localData.filiacao || localData.filiation}, profissão ${localData.profissao || localData.profession}, portador da Cédula de Identidade nº ${localData.rg}-${localData.orgaoExpedidor || localData.issuer} e inscrito no CPF/MF sob o nº ${localData.cpf}, endereço eletrônico: ${localData.email}, casado, desde ${localData.dataCasamento ? formatarData(localData.dataCasamento) : (localData.marriageDate ? formatarData(localData.marriageDate) : "")}, sob o regime da ${propertyRegime}, na vigência da Lei nº 6.515/77, com ${localData.nomeConjuge || localData.spouseName}, ${localData.nacionalidadeConjuge || localData.spouseNationality || "brasileira"}, nascida na cidade de ${localData.naturalidadeConjuge || localData.spouseNaturality}-${localData.ufConjuge || localData.spouseUf}, aos ${localData.dataNascimentoConjuge ? formatarData(localData.dataNascimentoConjuge) : (localData.spouseBirthDate ? formatarData(localData.spouseBirthDate) : "")}, filha de ${localData.filiacaoConjuge || localData.spouseFiliation}, profissão ${localData.profissaoConjuge || localData.spouseProfession}, portadora da Cédula de Identidade nº ${localData.rgConjuge || localData.spouseRg}-${localData.orgaoExpedidorConjuge || localData.spouseIssuer} e inscrita no CPF/MF sob o nº ${localData.cpfConjuge || localData.spouseCpf}, endereço eletrônico: ${localData.emailConjuge || localData.spouseEmail}, residentes e domiciliados na ${localData.endereco || localData.address};`;
     
     console.log("Generated married heir qualification from local data:", heirQualification);
     return heirQualification;

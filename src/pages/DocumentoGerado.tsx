@@ -1,4 +1,3 @@
-
 import React, { useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { format } from "date-fns";
@@ -45,10 +44,8 @@ const DocumentoGerado: React.FC = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   
-  // Recuperar os dados do estado da navegação
   const formData = location.state?.formData as FormData;
   
-  // Se não houver dados, redirecionar para o formulário
   useEffect(() => {
     if (!formData) {
       toast({
@@ -57,7 +54,6 @@ const DocumentoGerado: React.FC = () => {
         variant: "destructive"
       });
       
-      // Redirecionar para o formulário apropriado com base no estado civil
       if (formData?.estadoCivil === "Casado(a)") {
         navigate('/cadastro/casado');
       } else {
@@ -65,9 +61,7 @@ const DocumentoGerado: React.FC = () => {
       }
     }
     
-    // Prevenir rolagem automática da página
     const preventScroll = (e: Event) => {
-      // Prevenir a rolagem automática apenas se não for iniciada pelo usuário
       if (!e.isTrusted) {
         e.preventDefault();
         e.stopPropagation();
@@ -81,33 +75,47 @@ const DocumentoGerado: React.FC = () => {
     };
   }, [formData, navigate, toast]);
 
-  // Função para formatar a data por extenso
   const formatarDataPorExtenso = (data: Date) => {
     if (!data) return "";
     return format(data, "dd 'de' MMMM 'de' yyyy", { locale: ptBR });
   };
   
-  // Função para formatar data no formato dd/mm/yyyy
   const formatarData = (data: Date) => {
     if (!data) return "";
     return format(data, "dd/MM/yyyy");
   };
 
-  // Função para gerar a qualificação completa da pessoa
+  const formatPropertyRegime = (regime: string): string => {
+    if (!regime) return "comunhão parcial de bens";
+    
+    const regimeMap: Record<string, string> = {
+      "comunhao_parcial": "comunhão parcial de bens",
+      "comunhao_universal": "comunhão universal de bens",
+      "separacao_total": "separação total de bens",
+      "separacao_obrigatoria": "separação obrigatória de bens",
+      "participacao_final_aquestos": "participação final nos aquestos",
+    };
+    
+    if (regime.includes(" ")) {
+      return regime.toLowerCase();
+    }
+    
+    return regimeMap[regime] || regime.replace("_", " ").toLowerCase();
+  };
+
   const gerarQualificacaoCompleta = () => {
     if (!formData) return "";
     
     let qualificacao = "";
     
-    // Para pessoas casadas, usar o modelo específico
     if (formData.estadoCivil === "Casado(a)" && formData.nomeConjuge) {
-      qualificacao = `${formData.nome}, ${formData.nacionalidade || "brasileiro"}, nascido na cidade de ${formData.naturalidade}-${formData.uf}, aos ${formatarData(formData.dataNascimento)}, filho de ${formData.filiacao}, profissão ${formData.profissao}, portador da Cédula de Identidade nº ${formData.rg}-${formData.orgaoExpedidor} e inscrito no CPF/MF sob o nº ${formData.cpf}, endereço eletrônico: ${formData.email}, casado, desde ${formatarData(formData.dataCasamento!)}, sob o regime da ${formData.regimeBens || "comunhão parcial de bens"}, na vigência da Lei nº 6.515/77, com ${formData.nomeConjuge}, ${formData.nacionalidade || "brasileira"}, nascida na cidade de ${formData.naturalidadeConjuge}-${formData.ufConjuge}, aos ${formatarData(formData.dataNascimentoConjuge!)}, filha de ${formData.filiacaoConjuge}, profissão ${formData.profissaoConjuge}, portadora da Cédula de Identidade nº ${formData.rgConjuge}-${formData.orgaoExpedidorConjuge} e inscrita no CPF/MF sob o nº ${formData.cpfConjuge}, endereço eletrônico: ${formData.emailConjuge}, residentes e domiciliados na ${formData.endereco};`;
+      const propertyRegime = formatPropertyRegime(formData.regimeBens || "");
+      
+      qualificacao = `${formData.nome}, ${formData.nacionalidade || "brasileiro"}, nascido na cidade de ${formData.naturalidade}-${formData.uf}, aos ${formatarData(formData.dataNascimento)}, filho de ${formData.filiacao}, profissão ${formData.profissao}, portador da Cédula de Identidade nº ${formData.rg}-${formData.orgaoExpedidor} e inscrito no CPF/MF sob o nº ${formData.cpf}, endereço eletrônico: ${formData.email}, casado, desde ${formatarData(formData.dataCasamento!)}, sob o regime da ${propertyRegime}, na vigência da Lei nº 6.515/77, com ${formData.nomeConjuge}, ${formData.nacionalidade || "brasileira"}, nascida na cidade de ${formData.naturalidadeConjuge}-${formData.ufConjuge}, aos ${formatarData(formData.dataNascimentoConjuge!)}, filha de ${formData.filiacaoConjuge}, profissão ${formData.profissaoConjuge}, portadora da Cédula de Identidade nº ${formData.rgConjuge}-${formData.orgaoExpedidorConjuge} e inscrita no CPF/MF sob o nº ${formData.cpfConjuge}, endereço eletrônico: ${formData.emailConjuge}, residentes e domiciliados na ${formData.endereco};`;
     } else {
-      // Para pessoa solteira, manter o formato original
       qualificacao = `${formData.nome}, ${formData.nacionalidade ? formData.nacionalidade : "brasileiro(a)"}, natural de ${formData.naturalidade}-${formData.uf}, nascido(a) aos ${formatarDataPorExtenso(formData.dataNascimento)}, filho(a) de ${formData.filiacao}, profissão ${formData.profissao}, estado civil ${formData.estadoCivil}, portador(a) da Cédula de Identidade nº ${formData.rg}-${formData.orgaoExpedidor} e inscrito(a) no CPF/MF sob o nº ${formData.cpf}, endereço eletrônico: ${formData.email}, residente e domiciliado(a) na ${formData.endereco};`;
     }
     
-    // Armazenar a qualificação no sessionStorage com uma chave específica
     if (qualificacao && qualificacao.trim() !== '') {
       sessionStorage.setItem('documentoGeradoTexto', qualificacao);
       console.log("Qualificação completa armazenada:", qualificacao);
@@ -116,7 +124,6 @@ const DocumentoGerado: React.FC = () => {
     return qualificacao;
   };
 
-  // Garantir que o texto seja gerado e armazenado no carregamento do componente
   useEffect(() => {
     if (formData) {
       const qualificacaoTexto = gerarQualificacaoCompleta();
@@ -124,7 +131,6 @@ const DocumentoGerado: React.FC = () => {
     }
   }, [formData]);
 
-  // Função para copiar o texto para a área de transferência
   const copiarTexto = () => {
     const texto = document.getElementById('documento-texto')?.innerText;
     if (texto) {
@@ -143,22 +149,18 @@ const DocumentoGerado: React.FC = () => {
     }
   };
 
-  // Função para gerar protocolo
   const gerarProtocolo = () => {
-    // Gerar e armazenar o texto de qualificação antes de navegar
     const textoQualificacao = gerarQualificacaoCompleta();
     console.log("Texto de qualificação gerado antes de navegar:", textoQualificacao);
     navigate('/cadastro/protocolo', { state: { formData } });
   };
 
-  // Função para voltar à página de revisão
   const voltarParaRevisao = () => {
     navigate('/cadastro/revisar', { state: { formData } });
   };
 
   if (!formData) return null;
 
-  // Garantir que a qualificação existe no texto
   const textoQualificacao = gerarQualificacaoCompleta();
 
   return (
