@@ -95,9 +95,8 @@ const ViewDraft: React.FC = () => {
     );
   }
 
-  // Para rascunhos novos, não mostrar dados extraídos de documentos anteriores
-  const shouldShowExtractedData = !isNew || (draft.protocoloInfo && draft.extractedData && Object.keys(draft.extractedData).length > 0);
-  const extractedDataToPass = shouldShowExtractedData ? draft.extractedData : {};
+  // Para rascunhos novos, só mostrar dados que foram extraídos especificamente para este draft
+  const extractedDataToPass = draft.extractedData || {};
 
   return (
     <div className="min-h-screen bg-background">

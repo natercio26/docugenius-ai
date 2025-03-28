@@ -1,3 +1,4 @@
+
 import { DraftType } from '@/types';
 import { identifyPartiesAndRoles } from './partyIdentifier';
 import * as Tesseract from 'tesseract.js';
@@ -695,3 +696,5 @@ function fillMissingFields(extractedData: { [key: string]: any }): void {
   if (!extractedData['hospitalFalecimento']) {
     extractedData['hospitalFalecimento'] = 'Hospital local';
   }
+}
+
