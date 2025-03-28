@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from "react-hook-form";
@@ -37,7 +36,7 @@ import {
 } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 
-// Schema de validação do formulário
+// Updated schema with more flexible RG validation
 const formSchema = z.object({
   nome: z.string().min(3, "Nome deve ter pelo menos 3 caracteres"),
   naturalidade: z.string().min(2, "Informe sua naturalidade"),
@@ -48,7 +47,7 @@ const formSchema = z.object({
   filiacao: z.string().min(3, "Informe a filiação"),
   profissao: z.string().min(2, "Informe sua profissão"),
   estadoCivil: z.string().min(2, "Informe seu estado civil"),
-  rg: z.string().regex(/^\d{2}\.\d{3}\.\d{3}-\d{1}$/, "RG inválido (formato: 00.000.000-0)"),
+  rg: z.string().min(1, "Informe o número do documento de identidade"),
   orgaoExpedidor: z.string().min(2, "Informe o órgão expedidor"),
   cpf: z.string().regex(/^\d{3}\.\d{3}\.\d{3}-\d{2}$/, "CPF inválido (formato: 000.000.000-00)"),
   email: z.string().email("E-mail inválido"),
@@ -334,15 +333,11 @@ const CadastroSolteiro: React.FC = () => {
                     name="rg"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Identidade (RG)</FormLabel>
+                        <FormLabel>Documento de Identidade</FormLabel>
                         <FormControl>
                           <Input 
-                            placeholder="00.000.000-0" 
+                            placeholder="Número do documento" 
                             {...field} 
-                            onChange={(e) => {
-                              formatRG(e);
-                              field.onChange(e);
-                            }}
                           />
                         </FormControl>
                         <FormMessage />
