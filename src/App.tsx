@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import * as React from "react";
 import { ProtocoloProvider } from "./contexts/ProtocoloContext";
 import { AuthProvider } from "./contexts/AuthContext";
+import { useAuth } from "./contexts/AuthContext";
 import Index from "./pages/Index";
 import Upload from "./pages/Upload";
 import ViewDraft from "./pages/ViewDraft";
@@ -20,7 +21,6 @@ import ProtocoloGerado from "./pages/ProtocoloGerado";
 import ProtocolosDatabase from "./pages/ProtocolosDatabase";
 import NotFound from "./pages/NotFound";
 import Login from "./pages/Login";
-import { useAuth } from "./contexts/AuthContext";
 
 // Protected route component
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
