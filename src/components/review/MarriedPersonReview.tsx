@@ -2,8 +2,9 @@
 import React from 'react';
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Mail } from "lucide-react";
+import { Mail, Calendar } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
+import { Badge } from "@/components/ui/badge";
 import ReviewField from './ReviewField';
 import { FormData } from './types';
 
@@ -15,6 +16,20 @@ const MarriedPersonReview: React.FC<MarriedPersonReviewProps> = ({ formData }) =
   const formatDate = (date: Date) => {
     if (!date) return "Não informado";
     return format(date, "dd 'de' MMMM 'de' yyyy", { locale: ptBR });
+  };
+
+  const renderPropertyRegime = () => {
+    if (!formData.regimeBens) return null;
+    
+    const regimeMap: Record<string, string> = {
+      "comunhao_parcial": "Comunhão Parcial de Bens",
+      "comunhao_universal": "Comunhão Universal de Bens",
+      "separacao_total": "Separação Total de Bens",
+      "separacao_obrigatoria": "Separação Obrigatória de Bens",
+      "participacao_final_aquestos": "Participação Final nos Aquestos",
+    };
+    
+    return regimeMap[formData.regimeBens] || formData.regimeBens;
   };
 
   return (
@@ -66,7 +81,30 @@ const MarriedPersonReview: React.FC<MarriedPersonReviewProps> = ({ formData }) =
       
       <Separator />
       
-      <ReviewField label="Endereço" value={formData.endereco} />
+      <div className="space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <ReviewField label="Endereço" value={formData.endereco} />
+          
+          {formData.dataCasamento && (
+            <div className="flex items-center gap-2">
+              <Calendar className="h-4 w-4 text-muted-foreground" />
+              <div>
+                <p className="text-sm text-gray-500">Data do Casamento</p>
+                <p className="font-medium">{formatDate(formData.dataCasamento)}</p>
+              </div>
+            </div>
+          )}
+        </div>
+        
+        {formData.regimeBens && (
+          <div>
+            <p className="text-sm text-gray-500">Regime de Bens</p>
+            <Badge variant="outline" className="mt-1">
+              {renderPropertyRegime()}
+            </Badge>
+          </div>
+        )}
+      </div>
     </div>
   );
 };

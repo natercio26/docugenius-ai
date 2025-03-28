@@ -37,9 +37,11 @@ const ReviewHeader: React.FC<ReviewHeaderProps> = ({ formData, isCasado }) => {
       <CardTitle className="text-2xl font-serif">Revisão de Dados</CardTitle>
       {isCasado && (
         <div className="flex flex-col sm:flex-row sm:justify-between gap-2 mt-2">
-          <Badge variant="outline" className="w-fit">
-            {renderPropertyRegime() || "Comunhão Parcial de Bens"}
-          </Badge>
+          {formData.regimeBens && (
+            <Badge variant="outline" className="w-fit">
+              {renderPropertyRegime() || "Comunhão Parcial de Bens"}
+            </Badge>
+          )}
           {formData.dataCasamento && (
             <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
               <Calendar className="h-4 w-4" />
