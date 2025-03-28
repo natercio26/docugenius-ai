@@ -1,4 +1,3 @@
-
 import { Draft } from '@/types';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -25,8 +24,19 @@ export const generateHeirQualification = (protocoloInfo?: Draft['protocoloInfo']
   }
   
   const protocolo = getProtocoloByNumero(protocoloInfo.numero);
-  if (!protocolo || !protocolo.registrationData) {
-    console.log(`Protocolo ${protocoloInfo.numero} não encontrado ou sem dados de registro`);
+  if (!protocolo) {
+    console.log(`Protocolo ${protocoloInfo.numero} não encontrado`);
+    return '';
+  }
+  
+  // Verificar primeiro se o protocolo tem um texto de qualificação pronto
+  if (protocolo.textoQualificacao) {
+    console.log("Usando texto de qualificação do protocolo:", protocolo.textoQualificacao);
+    return protocolo.textoQualificacao;
+  }
+  
+  if (!protocolo.registrationData) {
+    console.log(`Protocolo ${protocoloInfo.numero} sem dados de registro`);
     return '';
   }
   
@@ -266,35 +276,44 @@ export const replacePlaceholders = (content: string, localData: Record<string, s
     
     // Caso especial para qualificação do herdeiro
     if (trimmedPlaceholder === 'qualificacao_do(a)(s)_herdeiro(a)(s)') {
-      // Estratégia 1: Verificar se há texto de qualificação no sessionStorage
+      // Estratégia 1: Verificar diretamente no protocolo
+      if (draft.protocoloInfo?.numero) {
+        const protocolo = getProtocoloByNumero(draft.protocoloInfo.numero);
+        if (protocolo && protocolo.textoQualificacao) {
+          console.log("Usando qualificação diretamente do protocolo:", protocolo.textoQualificacao);
+          return protocolo.textoQualificacao;
+        }
+      }
+      
+      // Estratégia 2: Verificar nos dados extraídos
+      if (extractedData && extractedData.qualificacaoCompleta) {
+        console.log("Usando qualificação completa dos dados extraídos:", extractedData.qualificacaoCompleta);
+        return extractedData.qualificacaoCompleta;
+      }
+      
+      // Estratégia 3: Verificar nos dados locais
+      if (localData.qualificacaoCompleta) {
+        console.log("Usando qualificação completa dos dados locais:", localData.qualificacaoCompleta);
+        return localData.qualificacaoCompleta;
+      }
+      
+      // Estratégia 4: Verificar se há texto de qualificação no sessionStorage
       const storedQualification = sessionStorage.getItem('documentoGeradoTexto');
       if (storedQualification && storedQualification.trim() !== '') {
         console.log("Usando qualificação do sessionStorage:", storedQualification);
         return storedQualification;
       }
       
-      // Estratégia 2: Verificar nos dados extraídos
-      if (localData.qualificacaoCompleta) {
-        console.log("Usando qualificação completa dos dados locais:", localData.qualificacaoCompleta);
-        return localData.qualificacaoCompleta;
-      }
-      
-      // Estratégia 3: Verificar se há qualificação nos dados extraídos
-      if (extractedData && extractedData.qualificacaoCompleta) {
-        console.log("Usando qualificação completa dos dados extraídos:", extractedData.qualificacaoCompleta);
-        return extractedData.qualificacaoCompleta;
-      }
-      
-      // Estratégia 4: Gerar a partir do protocolo
+      // Estratégia 5: Gerar a partir do protocolo
       if (draft.protocoloInfo && draft.protocoloInfo.numero) {
         const heirQualification = generateHeirQualification(draft.protocoloInfo);
         if (heirQualification) {
-          console.log("Usando qualificação do protocolo:", heirQualification);
+          console.log("Usando qualificação gerada do protocolo:", heirQualification);
           return heirQualification;
         }
       }
       
-      // Estratégia 5: Tentar gerar a partir dos dados locais
+      // Estratégia 6: Tentar gerar a partir dos dados locais
       if (Object.keys(localData).length > 0) {
         const heirQualification = generateQualificationFromLocalData(localData);
         if (heirQualification) {

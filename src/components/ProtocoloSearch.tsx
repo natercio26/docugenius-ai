@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -338,7 +337,14 @@ const ProtocoloSearch: React.FC<ProtocoloSearchProps> = ({ documentType = 'Inven
             }
             
             // Armazenar a qualificação completa para substituir o placeholder específico
-            extractedData['qualificacao_do(a)(s)_herdeiro(a)(s)'] = heirQualification;
+            extractedData['qualificacaoCompleta'] = heirQualification;
+            
+            // Verificar se o protocolo já tem textoQualificacao
+            if (!protocoloData.textoQualificacao) {
+              // Atualizar o protocolo com o texto de qualificação (isso seria ideal se pudéssemos salvar de volta)
+              console.log("Qualificação gerada para o protocolo:", heirQualification);
+              // Aqui seria ideal salvar o texto de volta no protocolo
+            }
           }
         }
         
@@ -445,13 +451,19 @@ const ProtocoloSearch: React.FC<ProtocoloSearchProps> = ({ documentType = 'Inven
           numero: protocoloData.numero,
           dataGeracao: protocoloData.dataGeracao,
           nome: protocoloData.nome,
-          cpf: protocoloData.cpf
+          cpf: protocoloData.cpf,
+          textoQualificacao: extractedData['qualificacaoCompleta'] || protocoloData.textoQualificacao
         },
         extractedData: extractedData
       };
       
       // Store draft in session storage
       sessionStorage.setItem('generatedDraft', JSON.stringify(newDraft));
+      
+      // Also store the qualification text in session storage as a backup
+      if (extractedData['qualificacaoCompleta']) {
+        sessionStorage.setItem('documentoGeradoTexto', extractedData['qualificacaoCompleta']);
+      }
       
       toast.success('Protocolo encontrado! Redirecionando para a minuta...');
       

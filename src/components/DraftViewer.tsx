@@ -40,61 +40,68 @@ const DraftViewer: React.FC<DraftViewerProps> = ({ draft, extractedData }) => {
   
   // Process extracted data into local data
   useEffect(() => {
-    // Verificar qualificação no sessionStorage
-    const qualificacaoTexto = sessionStorage.getItem('documentoGeradoTexto');
-    if (qualificacaoTexto) {
-      console.log("DraftViewer: Qualificação encontrada no sessionStorage:", qualificacaoTexto);
-    }
+    console.log("DraftViewer: Inicializando com protocolo:", draft.protocoloInfo);
     
-    // Verificar se existe protocolo
+    // Primeiro, verificar diretamente no protocolo se existir
     if (draft.protocoloInfo?.numero) {
-      console.log("DraftViewer: Protocolo encontrado:", draft.protocoloInfo.numero);
+      console.log("DraftViewer: Verificando protocolo número:", draft.protocoloInfo.numero);
       const protocolo = getProtocoloByNumero(draft.protocoloInfo.numero);
+      
       if (protocolo) {
-        console.log("DraftViewer: Dados do protocolo carregados com sucesso");
+        console.log("DraftViewer: Protocolo encontrado:", protocolo.numero);
         
-        // Se temos o protocolo, podemos usar os dados dele para gerar a qualificação
-        const qualificacao = generateHeirQualification(draft.protocoloInfo);
-        if (qualificacao) {
-          console.log("DraftViewer: Qualificação gerada a partir do protocolo:", qualificacao);
-          const initialData = { qualificacaoCompleta: qualificacao };
-          setLocalData(initialData);
+        // Verificar se o protocolo tem texto de qualificação
+        if (protocolo.textoQualificacao) {
+          console.log("DraftViewer: Texto de qualificação encontrado no protocolo:", protocolo.textoQualificacao);
+          
+          // Criar dados locais com a qualificação
+          const protocoloData = {
+            qualificacaoCompleta: protocolo.textoQualificacao
+          };
+          
+          setLocalData(protocoloData);
           return;
+        }
+        
+        // Se não tem texto pronto, mas tem dados de registro, tentar gerar
+        if (draft.protocoloInfo) {
+          const qualificacao = generateHeirQualification(draft.protocoloInfo);
+          if (qualificacao) {
+            console.log("DraftViewer: Qualificação gerada a partir do protocolo:", qualificacao);
+            
+            const initialData = { qualificacaoCompleta: qualificacao };
+            setLocalData(initialData);
+            return;
+          }
         }
       }
     }
     
-    if (isNewDraft) {
-      // Para novos rascunhos, usar dados do sessionStorage
-      const initialData = qualificacaoTexto ? { qualificacaoCompleta: qualificacaoTexto } : {};
-      console.log("DraftViewer: Definindo dados locais do sessionStorage:", initialData);
-      setLocalData(initialData);
-    } else if (extractedData) {
-      // Para rascunhos com dados extraídos, processar normalmente
+    // Verificar qualificação no sessionStorage se não encontrou no protocolo
+    const qualificacaoTexto = sessionStorage.getItem('documentoGeradoTexto');
+    if (qualificacaoTexto) {
+      console.log("DraftViewer: Qualificação encontrada no sessionStorage:", qualificacaoTexto);
+      const storageData = { qualificacaoCompleta: qualificacaoTexto };
+      setLocalData(storageData);
+      return;
+    }
+    
+    // Se chegou aqui e temos dados extraídos, processar normalmente
+    if (extractedData) {
       const cleanedData = processLocalData(extractedData, draft);
-      
-      // Adicionar explicitamente a qualificação se disponível no sessionStorage
-      if (qualificacaoTexto) {
-        cleanedData.qualificacaoCompleta = qualificacaoTexto;
-      }
-      
       console.log("DraftViewer: Definindo dados locais processados:", cleanedData);
       setLocalData(cleanedData);
+    } else {
+      console.log("DraftViewer: Sem dados extraídos disponíveis");
+      setLocalData({});
     }
-  }, [extractedData, draft.protocoloInfo, isNewDraft, draft]);
+  }, [draft.protocoloInfo, extractedData, draft]);
 
   // Process content with placeholders
   useEffect(() => {
     if (draft.content) {
-      // Garantir que temos a qualificação antes de processar
-      const qualificacaoTexto = sessionStorage.getItem('documentoGeradoTexto');
-      
-      // Verificar em todas as fontes possíveis de dados
-      const mergedData = {
-        ...localData,
-        ...(extractedData || {}),
-        ...(qualificacaoTexto ? { qualificacaoCompleta: qualificacaoTexto } : {})
-      };
+      // Obter todas as possíveis fontes de dados
+      const mergedData = { ...localData };
       
       console.log("DraftViewer: Dados finais para substituição:", mergedData);
       console.log("DraftViewer: Dados do protocolo na minuta:", draft.protocoloInfo);
@@ -104,7 +111,7 @@ const DraftViewer: React.FC<DraftViewerProps> = ({ draft, extractedData }) => {
     } else {
       setProcessedContent('');
     }
-  }, [draft.content, draft.protocoloInfo, localData, isNewDraft, extractedData, draft]);
+  }, [draft.content, draft.protocoloInfo, localData, extractedData, draft]);
 
   return (
     <div className="bg-white border rounded-md shadow-sm overflow-hidden">
