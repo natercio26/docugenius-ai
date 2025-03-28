@@ -95,6 +95,10 @@ const ViewDraft: React.FC = () => {
     );
   }
 
+  // Para rascunhos novos, não mostrar dados extraídos de documentos anteriores
+  const shouldShowExtractedData = !isNew || (draft.protocoloInfo && draft.extractedData && Object.keys(draft.extractedData).length > 0);
+  const extractedDataToPass = shouldShowExtractedData ? draft.extractedData : {};
+
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
@@ -139,7 +143,7 @@ const ViewDraft: React.FC = () => {
           
           <DraftViewer 
             draft={draft} 
-            extractedData={isNew && !draft.protocoloInfo ? {} : draft.extractedData} 
+            extractedData={extractedDataToPass} 
           />
         </div>
       </main>
