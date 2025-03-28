@@ -1,11 +1,12 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Navbar from '@/components/Navbar';
 import DraftViewer from '@/components/DraftViewer';
 import { Draft, DraftType } from '@/types';
-import { Download, Edit, Check } from 'lucide-react';
+import { Download, Edit, Check, FileText } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 
 const sampleContent = `ESCRITURA PÚBLICA DE COMPRA E VENDA
 
@@ -383,6 +384,12 @@ const mockDrafts: Draft[] = [
 
 interface ExtendedDraft extends Draft {
   extractedData?: Record<string, string>;
+  protocoloInfo?: {
+    numero: string;
+    nome: string;
+    cpf: string;
+    dataGeracao: Date;
+  };
 }
 
 const ViewDraft: React.FC = () => {
@@ -404,6 +411,10 @@ const ViewDraft: React.FC = () => {
           
           if (typeof parsedDraft.updatedAt === 'string') {
             parsedDraft.updatedAt = new Date(parsedDraft.updatedAt);
+          }
+          
+          if (parsedDraft.protocoloInfo && typeof parsedDraft.protocoloInfo.dataGeracao === 'string') {
+            parsedDraft.protocoloInfo.dataGeracao = new Date(parsedDraft.protocoloInfo.dataGeracao);
           }
           
           if (parsedDraft.type === 'Inventário') {
@@ -515,6 +526,24 @@ const ViewDraft: React.FC = () => {
             </button>
           </div>
         </div>
+        
+        {draft.protocoloInfo && (
+          <div className="max-w-4xl mx-auto mb-6 p-4 bg-blue-50 border border-blue-100 rounded-md animate-fade-in">
+            <div className="flex items-start gap-3">
+              <FileText className="h-5 w-5 text-blue-600 mt-0.5" />
+              <div>
+                <h2 className="text-lg font-medium text-blue-800">Protocolo associado</h2>
+                <p className="text-sm text-blue-600">
+                  Esta minuta foi gerada a partir do protocolo <span className="font-mono font-bold">{draft.protocoloInfo.numero}</span>
+                </p>
+                <div className="mt-1 text-xs text-blue-500">
+                  <p>Nome: {draft.protocoloInfo.nome} • CPF: {draft.protocoloInfo.cpf}</p>
+                  <p>Data de geração: {format(new Date(draft.protocoloInfo.dataGeracao), 'dd/MM/yyyy', { locale: ptBR })}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
         
         <div className="animate-scale-in" style={{ animationDelay: '100ms' }}>
           <DraftViewer 

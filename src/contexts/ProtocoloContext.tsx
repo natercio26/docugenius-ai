@@ -13,6 +13,7 @@ interface ProtocoloContextType {
   saveNewProtocolo: (protocolo: Omit<ProtocoloData, 'numero' | 'dataGeracao'>) => ProtocoloData;
   getProtocoloByNumber: (numero: string) => ProtocoloData | undefined;
   generateProtocoloNumber: () => string;
+  searchProtocolos: (query: string) => ProtocoloData[];
 }
 
 const ProtocoloContext = createContext<ProtocoloContextType | undefined>(undefined);
@@ -51,11 +52,26 @@ export const ProtocoloProvider: React.FC<{ children: ReactNode }> = ({ children 
     return generateUniqueProtocoloNumber();
   };
 
+  // Search for protocols by number or content
+  const searchProtocolos = (query: string): ProtocoloData[] => {
+    if (!query || query.trim() === '') return [];
+    
+    const protocolos = getProtocolos();
+    const lowerQuery = query.toLowerCase();
+    
+    return protocolos.filter(protocolo => 
+      protocolo.numero.toLowerCase().includes(lowerQuery) ||
+      protocolo.nome.toLowerCase().includes(lowerQuery) ||
+      protocolo.cpf.includes(lowerQuery)
+    );
+  };
+
   const value = {
     getAllProtocolos,
     saveNewProtocolo,
     getProtocoloByNumber,
-    generateProtocoloNumber
+    generateProtocoloNumber,
+    searchProtocolos
   };
 
   return (

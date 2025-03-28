@@ -17,6 +17,12 @@ export interface Draft {
   content: string;
   createdAt: Date;
   updatedAt: Date;
+  protocoloInfo?: {
+    numero: string;
+    dataGeracao: Date;
+    nome: string;
+    cpf: string;
+  };
 }
 
 export type UploadStatus = 
