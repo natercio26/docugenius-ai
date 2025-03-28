@@ -3,7 +3,7 @@ import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { ArrowLeft, Check } from "lucide-react";
+import { ArrowLeft, Check, Calendar, Mail } from "lucide-react";
 
 import Navbar from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
@@ -104,14 +104,17 @@ const RevisaoDados: React.FC = () => {
         <Card className="shadow-md">
           <CardHeader className="bg-slate-50 border-b">
             <CardTitle className="text-2xl font-serif">Revisão de Dados</CardTitle>
-            {isCasado && formData.dataCasamento && (
+            {isCasado && (
               <div className="flex flex-col sm:flex-row sm:justify-between gap-2 mt-2">
                 <Badge variant="outline" className="w-fit">
                   {renderPropertyRegime() || "Comunhão Parcial de Bens"}
                 </Badge>
-                <span className="text-sm text-muted-foreground">
-                  Data do casamento: {formatDate(formData.dataCasamento)}
-                </span>
+                {formData.dataCasamento && (
+                  <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                    <Calendar className="h-4 w-4" />
+                    <span>Data do casamento: {formatDate(formData.dataCasamento)}</span>
+                  </div>
+                )}
               </div>
             )}
           </CardHeader>
@@ -170,9 +173,12 @@ const RevisaoDados: React.FC = () => {
                           <p className="font-medium">{formData.cpf}</p>
                         </div>
                         
-                        <div>
-                          <p className="text-sm text-gray-500">E-mail</p>
-                          <p className="font-medium">{formData.email}</p>
+                        <div className="flex items-center gap-1.5">
+                          <Mail className="h-4 w-4 text-muted-foreground" />
+                          <div>
+                            <p className="text-sm text-gray-500">E-mail</p>
+                            <p className="font-medium">{formData.email}</p>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -219,9 +225,12 @@ const RevisaoDados: React.FC = () => {
                           <p className="font-medium">{formData.cpfConjuge}</p>
                         </div>
                         
-                        <div>
-                          <p className="text-sm text-gray-500">E-mail</p>
-                          <p className="font-medium">{formData.emailConjuge}</p>
+                        <div className="flex items-center gap-1.5">
+                          <Mail className="h-4 w-4 text-muted-foreground" />
+                          <div>
+                            <p className="text-sm text-gray-500">E-mail</p>
+                            <p className="font-medium">{formData.emailConjuge}</p>
+                          </div>
                         </div>
                       </div>
                     </div>
