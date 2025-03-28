@@ -1,11 +1,11 @@
-
-import React from 'react';
+import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 import { Eye, EyeOff, Lock, User } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
 
 import {
   Card,
@@ -26,10 +26,17 @@ import {
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 const formSchema = z.object({
   email: z.string().email({ message: 'Digite um e-mail válido' }),
   password: z.string().min(6, { message: 'A senha deve ter pelo menos 6 caracteres' }),
+});
+
+const registerFormSchema = z.object({
+  email: z.string().email({ message: 'Digite um e-mail válido' }),
+  password: z.string().min(6, { message: 'A senha deve ter pelo menos 6 caracteres' }),
+  name: z.string().min(2, { message: 'O nome deve ter pelo menos 2 caracteres' }),
 });
 
 const Login: React.FC = () => {
@@ -37,6 +44,8 @@ const Login: React.FC = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = React.useState(false);
+  const [isLoading, setIsLoading] = React.useState(false);
+  const [showRegisterDialog, setShowRegisterDialog] = useState(false);
   
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -46,7 +55,17 @@ const Login: React.FC = () => {
     },
   });
 
+  const registerForm = useForm<z.infer<typeof registerFormSchema>>({
+    resolver: zodResolver(registerFormSchema),
+    defaultValues: {
+      email: '',
+      password: '',
+      name: '',
+    },
+  });
+
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
+    setIsLoading(true);
     try {
       await login(values.email, values.password);
       toast({
@@ -55,11 +74,46 @@ const Login: React.FC = () => {
       });
       navigate('/');
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Verifique suas credenciais e tente novamente';
       toast({
         variant: "destructive",
         title: "Erro ao fazer login",
-        description: "Verifique suas credenciais e tente novamente",
+        description: errorMessage,
       });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const onRegisterSubmit = async (values: z.infer<typeof registerFormSchema>) => {
+    setIsLoading(true);
+    try {
+      const { error } = await supabase.auth.signUp({
+        email: values.email,
+        password: values.password,
+        options: {
+          data: {
+            name: values.name,
+          },
+        },
+      });
+
+      if (error) throw new Error(error.message);
+
+      toast({
+        title: "Registro realizado com sucesso",
+        description: "Verifique seu e-mail para confirmar o cadastro",
+      });
+      setShowRegisterDialog(false);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Erro ao registrar usuário';
+      toast({
+        variant: "destructive",
+        title: "Erro ao registrar",
+        description: errorMessage,
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -131,20 +185,97 @@ const Login: React.FC = () => {
                   </FormItem>
                 )}
               />
-              <Button type="submit" className="w-full">
-                Entrar
+              <Button type="submit" className="w-full" disabled={isLoading}>
+                {isLoading ? (
+                  <>
+                    <span className="animate-spin mr-2">⏳</span>
+                    Entrando...
+                  </>
+                ) : (
+                  "Entrar"
+                )}
               </Button>
             </form>
           </Form>
         </CardContent>
         <CardFooter className="flex-col space-y-2">
           <div className="text-sm text-muted-foreground text-center">
-            <p className="mt-2">
-              Usuário demonstrativo: admin@exemplo.com / senha123
+            <p>
+              Não tem uma conta?{" "}
+              <Button 
+                variant="link" 
+                className="p-0 h-auto" 
+                onClick={() => setShowRegisterDialog(true)}
+              >
+                Registre-se
+              </Button>
             </p>
           </div>
         </CardFooter>
       </Card>
+
+      {/* Registration Dialog */}
+      <Dialog open={showRegisterDialog} onOpenChange={setShowRegisterDialog}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Criar conta</DialogTitle>
+            <DialogDescription>
+              Preencha os dados abaixo para criar sua conta.
+            </DialogDescription>
+          </DialogHeader>
+          <Form {...registerForm}>
+            <form onSubmit={registerForm.handleSubmit(onRegisterSubmit)} className="space-y-4">
+              <FormField
+                control={registerForm.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Nome</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Seu nome" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={registerForm.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Email</FormLabel>
+                    <FormControl>
+                      <Input placeholder="seu@email.com" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={registerForm.control}
+                name="password"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Senha</FormLabel>
+                    <FormControl>
+                      <Input type="password" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={() => setShowRegisterDialog(false)}>
+                  Cancelar
+                </Button>
+                <Button type="submit" disabled={isLoading}>
+                  {isLoading ? "Registrando..." : "Registrar"}
+                </Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

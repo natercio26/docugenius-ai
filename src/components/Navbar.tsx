@@ -11,13 +11,21 @@ const Navbar: React.FC = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const handleLogout = () => {
-    logout();
-    toast({
-      title: "Logout realizado",
-      description: "Você saiu do sistema com sucesso",
-    });
-    navigate('/login');
+  const handleLogout = async () => {
+    try {
+      await logout();
+      toast({
+        title: "Logout realizado",
+        description: "Você saiu do sistema com sucesso",
+      });
+      navigate('/login');
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Erro ao fazer logout",
+        description: "Ocorreu um erro ao tentar sair do sistema"
+      });
+    }
   };
   
   return (
