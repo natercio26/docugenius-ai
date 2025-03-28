@@ -45,6 +45,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const createAdminUser = async (): Promise<void> => {
     if (useMockAuth) {
       console.log('Mock admin user created successfully in development mode');
+      
+      // Store mock admin in localStorage for persistence
+      const mockAdmin = {
+        id: 'mock-admin-id',
+        name: 'Admin User',
+        username: 'adminlicencedocumentum',
+        isAdmin: true
+      };
+      
+      localStorage.setItem('mockAdminUser', JSON.stringify(mockAdmin));
+      
       return;
     }
 
@@ -100,23 +111,47 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (useMockAuth) {
       // Mock authentication for development
       console.log('Using mock authentication in development mode');
+      
+      // Check for admin login with correct credentials
+      if (isAdminLogin && username === 'adminlicencedocumentum' && password === 'adminlicence') {
+        const mockAdminUser = {
+          id: 'mock-admin-id',
+          name: 'Admin User',
+          username: 'adminlicencedocumentum',
+          isAdmin: true
+        };
+        
+        setUser(mockAdminUser);
+        setIsAuthenticated(true);
+        setIsAdmin(true);
+        
+        // Store in localStorage for persistence
+        localStorage.setItem('mockUser', JSON.stringify(mockAdminUser));
+        localStorage.setItem('mockIsAuthenticated', 'true');
+        localStorage.setItem('mockIsAdmin', 'true');
+        
+        console.log('Mock admin login successful:', mockAdminUser);
+        return;
+      }
+      
+      // Regular user login (accept any credentials in dev mode)
       const mockUser = {
-        id: 'mock-id',
-        name: isAdminLogin ? 'Admin User' : 'Regular User',
-        username: username,
-        isAdmin: isAdminLogin && username === 'adminlicencedocumentum'
+        id: 'mock-user-id',
+        name: 'Regular User',
+        username: username || 'demo',
+        isAdmin: false
       };
       
       setUser(mockUser);
       setIsAuthenticated(true);
-      setIsAdmin(isAdminLogin && username === 'adminlicencedocumentum');
+      setIsAdmin(false);
       
       // Store in localStorage for persistence
       localStorage.setItem('mockUser', JSON.stringify(mockUser));
       localStorage.setItem('mockIsAuthenticated', 'true');
-      localStorage.setItem('mockIsAdmin', String(isAdminLogin && username === 'adminlicencedocumentum'));
+      localStorage.setItem('mockIsAdmin', 'false');
       
-      console.log('Mock login successful:', mockUser);
+      console.log('Mock regular login successful:', mockUser);
       return;
     }
 
@@ -201,11 +236,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const storedIsAdmin = localStorage.getItem('mockIsAdmin');
         
         if (storedUser && storedIsAuthenticated === 'true') {
-          const parsedUser = JSON.parse(storedUser);
-          setUser(parsedUser);
-          setIsAuthenticated(true);
-          setIsAdmin(storedIsAdmin === 'true');
-          console.log('Mock session restored:', parsedUser);
+          try {
+            const parsedUser = JSON.parse(storedUser);
+            setUser(parsedUser);
+            setIsAuthenticated(true);
+            setIsAdmin(storedIsAdmin === 'true');
+            console.log('Mock session restored:', parsedUser);
+          } catch (error) {
+            console.error('Error parsing stored user:', error);
+            // Clear potentially corrupted data
+            localStorage.removeItem('mockUser');
+            localStorage.removeItem('mockIsAuthenticated');
+            localStorage.removeItem('mockIsAdmin');
+          }
         }
         return;
       }

@@ -5,7 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
-import { Eye, EyeOff, Lock, User } from 'lucide-react';
+import { Eye, EyeOff, Lock, User, LogIn } from 'lucide-react';
 
 import {
   Card,
@@ -36,8 +36,8 @@ const useMockAuth = process.env.NODE_ENV === 'development' &&
   (!import.meta.env.VITE_SUPABASE_URL || !import.meta.env.VITE_SUPABASE_ANON_KEY);
 
 const formSchema = z.object({
-  username: z.string().min(3, { message: 'Nome de usuário deve ter pelo menos 3 caracteres' }),
-  password: z.string().min(6, { message: 'A senha deve ter pelo menos 6 caracteres' }),
+  username: z.string().min(1, { message: 'Nome de usuário é obrigatório' }),
+  password: z.string().min(1, { message: 'Senha é obrigatória' }),
   isAdmin: z.boolean().default(false),
 });
 
@@ -58,8 +58,8 @@ const Login: React.FC = () => {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      username: useMockAuth ? 'demo' : '',
-      password: useMockAuth ? 'password123' : '',
+      username: '',
+      password: '',
       isAdmin: false,
     },
   });
@@ -118,6 +118,7 @@ const Login: React.FC = () => {
     if (useMockAuth) {
       form.setValue('username', 'demo');
       form.setValue('password', 'password123');
+      form.setValue('isAdmin', false);
       form.handleSubmit(onSubmit)();
     }
   };
@@ -147,7 +148,7 @@ const Login: React.FC = () => {
               <AlertCircle className="h-4 w-4 text-amber-600" />
               <AlertTitle className="text-amber-700">Modo de desenvolvimento</AlertTitle>
               <AlertDescription className="text-amber-700">
-                Sistema executando com credenciais de teste. Use o botão de login rápido abaixo.
+                Sistema executando com credenciais de teste. Use os botões de login rápido abaixo ou qualquer credencial.
               </AlertDescription>
             </Alert>
           )}
@@ -239,7 +240,10 @@ const Login: React.FC = () => {
                     Entrando...
                   </>
                 ) : (
-                  "Entrar"
+                  <>
+                    <LogIn className="mr-2 h-4 w-4" />
+                    Entrar
+                  </>
                 )}
               </Button>
             </form>
