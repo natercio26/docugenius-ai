@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Draft } from '@/types';
 import { Info, ChevronDown, ChevronUp, FileText, AlertTriangle, Edit, Eye, Trash2, Save } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Tooltip } from '@/components/ui/tooltip';
 import { useToast } from '@/hooks/use-toast';
+import { useLocation } from 'react-router-dom';
 
 interface DraftViewerProps {
   draft: Draft;
@@ -17,9 +17,13 @@ const DraftViewer: React.FC<DraftViewerProps> = ({ draft, extractedData }) => {
   const [localData, setLocalData] = useState<Record<string, string>>({});
   const [processedContent, setProcessedContent] = useState(draft.content);
   const { toast } = useToast();
+  const location = useLocation();
+  const isNewDraft = location.pathname.includes('/view/new');
   
   useEffect(() => {
-    if (extractedData) {
+    if (isNewDraft && !draft.protocoloInfo) {
+      setLocalData({});
+    } else if (extractedData) {
       const cleanedData = Object.entries(extractedData).reduce((acc, [key, value]) => {
         const cleanValue = cleanupDataValue(value);
         if (cleanValue && !isInvalidData(cleanValue)) {
@@ -30,9 +34,14 @@ const DraftViewer: React.FC<DraftViewerProps> = ({ draft, extractedData }) => {
       
       setLocalData(cleanedData);
     }
-  }, [extractedData]);
+  }, [extractedData, draft.protocoloInfo, isNewDraft]);
 
   useEffect(() => {
+    if (isNewDraft && !draft.protocoloInfo) {
+      setProcessedContent(draft.content);
+      return;
+    }
+    
     if (draft.type === 'Inventário' && localData && Object.keys(localData).length > 0) {
       let content = draft.content;
       
@@ -179,7 +188,7 @@ const DraftViewer: React.FC<DraftViewerProps> = ({ draft, extractedData }) => {
     } else {
       setProcessedContent(draft.content);
     }
-  }, [draft.content, draft.type, localData]);
+  }, [draft.content, draft.type, localData, draft.protocoloInfo, isNewDraft]);
   
   const toggleExtractedData = () => {
     setShowExtractedData(!showExtractedData);
@@ -325,6 +334,85 @@ const DraftViewer: React.FC<DraftViewerProps> = ({ draft, extractedData }) => {
     return cleanedValue;
   };
 
+  const getFieldLabel = (key: string): string => {
+    const fieldLabels: Record<string, string> = {
+      'falecido': 'Falecido(a)',
+      'inventariante': 'Inventariante',
+      'dataFalecimento': 'Data do Falecimento',
+      'herdeiro1': 'Herdeiro 1',
+      'herdeiro2': 'Herdeiro 2',
+      'herdeiro3': 'Herdeiro 3',
+      'herdeiro4': 'Herdeiro 4',
+      'herdeiro5': 'Herdeiro 5',
+      'conjuge': 'Cônjuge',
+      'dataCasamento': 'Data do Casamento',
+      'regimeBens': 'Regime de Bens',
+      'advogado': 'Advogado(a)',
+      'oabAdvogado': 'OAB',
+      'numeroApartamento': 'Número do Apartamento',
+      'blocoApartamento': 'Bloco',
+      'quadraApartamento': 'Quadra/Endereço',
+      'matriculaImovel': 'Matrícula do Imóvel',
+      'inscricaoGDF': 'Inscrição GDF',
+      'valorPartilhaImovel': 'Valor do Imóvel',
+      'valorTotalBens': 'Valor Total dos Bens',
+      'valorTotalMeacao': 'Valor Total da Meação',
+      'numeroFilhos': 'Número de Filhos',
+      'nomesFilhos': 'Nomes dos Filhos',
+      'valorUnitarioHerdeiros': 'Valor por Herdeiro',
+      'valorPorHerdeiro': 'Valor por Herdeiro',
+      'percentualHerdeiros': 'Percentual por Herdeiro',
+      'percentualHerdeiro': 'Percentual por Herdeiro',
+      'numeroITCMD': 'Número ITCMD',
+      'valorITCMD': 'Valor ITCMD',
+      'hospitalFalecimento': 'Hospital do Falecimento',
+      'cidadeFalecimento': 'Cidade do Falecimento',
+      'matriculaObito': 'Matrícula do Óbito',
+      'cartorioObito': 'Cartório do Óbito',
+      'cartorioCompetente': 'Cartório Competente',
+      'nome': 'Nome',
+      'rg': 'RG',
+      'cpf': 'CPF',
+      'cpfConjuge': 'CPF do Cônjuge',
+      'cpfFalecido': 'CPF do Falecido',
+      'estadoCivil': 'Estado Civil',
+      'profissao': 'Profissão',
+      'nacionalidade': 'Nacionalidade',
+      'endereco': 'Endereço',
+      'enderecoConjuge': 'Endereço do Cônjuge',
+      'hashCNIB': 'Hash CNIB',
+      'veiculoMarca': 'Marca do Veículo',
+      'veiculoModelo': 'Modelo do Veículo',
+      'veiculoAno': 'Ano do Veículo',
+      'veiculoPlaca': 'Placa do Veículo',
+      'veiculoCor': 'Cor do Veículo',
+      'veiculoChassi': 'Chassi do Veículo',
+      'veiculoRenavam': 'Renavam do Veículo',
+      'veiculoValor': 'Valor do Veículo',
+      'bancoConta': 'Banco',
+      'agenciaConta': 'Agência',
+      'numeroConta': 'Número da Conta',
+      'saldoConta': 'Saldo em Conta',
+      'certidaoReceita': 'Certidão da Receita Federal',
+      'certidaoGDF': 'Certidão do GDF',
+      'certidaoIPTU': 'Certidão IPTU do Imóvel',
+      'dataCertidaoCasamento': 'Data da Certidão de Casamento',
+      'dataExpedicaoCertidaoObito': 'Data de Expedição da Certidão de Óbito',
+      'descricaoAdicionalImovel': 'Descrição Adicional do Imóvel',
+      'cartorioImovel': 'Cartório do Imóvel',
+      'cartorioCasamento': 'Cartório do Casamento',
+      'viuvo': 'Viúvo(a)',
+      'viuva': 'Viúva',
+      'rgFalecido': 'RG do Falecido',
+      'rgConjuge': 'RG do Cônjuge',
+      'bloco': 'Bloco',
+      'quadra': 'Quadra',
+      'data': 'Data',
+    };
+    
+    return fieldLabels[key] || key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
+  };
+
   const groupExtractedData = () => {
     if (!localData || Object.keys(localData).length === 0) return {};
     
@@ -414,88 +502,10 @@ const DraftViewer: React.FC<DraftViewerProps> = ({ draft, extractedData }) => {
     return groups;
   };
 
-  const getFieldLabel = (key: string): string => {
-    const fieldLabels: Record<string, string> = {
-      'falecido': 'Falecido(a)',
-      'inventariante': 'Inventariante',
-      'dataFalecimento': 'Data do Falecimento',
-      'herdeiro1': 'Herdeiro 1',
-      'herdeiro2': 'Herdeiro 2',
-      'herdeiro3': 'Herdeiro 3',
-      'herdeiro4': 'Herdeiro 4',
-      'herdeiro5': 'Herdeiro 5',
-      'conjuge': 'Cônjuge',
-      'dataCasamento': 'Data do Casamento',
-      'regimeBens': 'Regime de Bens',
-      'advogado': 'Advogado(a)',
-      'oabAdvogado': 'OAB',
-      'numeroApartamento': 'Número do Apartamento',
-      'blocoApartamento': 'Bloco',
-      'quadraApartamento': 'Quadra/Endereço',
-      'matriculaImovel': 'Matrícula do Imóvel',
-      'inscricaoGDF': 'Inscrição GDF',
-      'valorPartilhaImovel': 'Valor do Imóvel',
-      'valorTotalBens': 'Valor Total dos Bens',
-      'valorTotalMeacao': 'Valor Total da Meação',
-      'numeroFilhos': 'Número de Filhos',
-      'nomesFilhos': 'Nomes dos Filhos',
-      'valorUnitarioHerdeiros': 'Valor por Herdeiro',
-      'valorPorHerdeiro': 'Valor por Herdeiro',
-      'percentualHerdeiros': 'Percentual por Herdeiro',
-      'percentualHerdeiro': 'Percentual por Herdeiro',
-      'numeroITCMD': 'Número ITCMD',
-      'valorITCMD': 'Valor ITCMD',
-      'hospitalFalecimento': 'Hospital do Falecimento',
-      'cidadeFalecimento': 'Cidade do Falecimento',
-      'matriculaObito': 'Matrícula do Óbito',
-      'cartorioObito': 'Cartório do Óbito',
-      'cartorioCompetente': 'Cartório Competente',
-      'nome': 'Nome',
-      'rg': 'RG',
-      'cpf': 'CPF',
-      'cpfConjuge': 'CPF do Cônjuge',
-      'cpfFalecido': 'CPF do Falecido',
-      'estadoCivil': 'Estado Civil',
-      'profissao': 'Profissão',
-      'nacionalidade': 'Nacionalidade',
-      'endereco': 'Endereço',
-      'enderecoConjuge': 'Endereço do Cônjuge',
-      'hashCNIB': 'Hash CNIB',
-      'veiculoMarca': 'Marca do Veículo',
-      'veiculoModelo': 'Modelo do Veículo',
-      'veiculoAno': 'Ano do Veículo',
-      'veiculoPlaca': 'Placa do Veículo',
-      'veiculoCor': 'Cor do Veículo',
-      'veiculoChassi': 'Chassi do Veículo',
-      'veiculoRenavam': 'Renavam do Veículo',
-      'veiculoValor': 'Valor do Veículo',
-      'bancoConta': 'Banco',
-      'agenciaConta': 'Agência',
-      'numeroConta': 'Número da Conta',
-      'saldoConta': 'Saldo em Conta',
-      'certidaoReceita': 'Certidão da Receita Federal',
-      'certidaoGDF': 'Certidão do GDF',
-      'certidaoIPTU': 'Certidão IPTU do Imóvel',
-      'dataCertidaoCasamento': 'Data da Certidão de Casamento',
-      'dataExpedicaoCertidaoObito': 'Data de Expedição da Certidão de Óbito',
-      'descricaoAdicionalImovel': 'Descrição Adicional do Imóvel',
-      'cartorioImovel': 'Cartório do Imóvel',
-      'cartorioCasamento': 'Cartório do Casamento',
-      'viuvo': 'Viúvo(a)',
-      'viuva': 'Viúva',
-      'rgFalecido': 'RG do Falecido',
-      'rgConjuge': 'RG do Cônjuge',
-      'bloco': 'Bloco',
-      'quadra': 'Quadra',
-      'data': 'Data',
-    };
-    
-    return fieldLabels[key] || key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
-  };
-
   const groupedData = groupExtractedData();
-
   const containsHtml = processedContent.includes('<h1>') || processedContent.includes('<p>');
+
+  const shouldShowDataSection = !isNewDraft || (draft.protocoloInfo && Object.keys(localData).length > 0);
 
   return (
     <div className="glass rounded-lg shadow-md p-8 max-w-4xl mx-auto">
@@ -515,7 +525,7 @@ const DraftViewer: React.FC<DraftViewerProps> = ({ draft, extractedData }) => {
         </div>
       </header>
       
-      {localData && Object.keys(localData).length > 0 && (
+      {shouldShowDataSection && localData && Object.keys(localData).length > 0 && (
         <div className="mb-6">
           <div className="flex items-center justify-between">
             <button 
