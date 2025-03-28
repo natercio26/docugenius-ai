@@ -7,6 +7,7 @@ interface User {
   id: string;
   email: string;
   name: string;
+  isAdmin?: boolean;
 }
 
 interface AuthContextType {
@@ -47,6 +48,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         id: mockAuthState.user.id,
         email: mockAuthState.user.email,
         name: mockAuthState.user.name,
+        isAdmin: false, // Default to non-admin for mock auth
       });
       setIsAuthenticated(true);
       setIsLoading(false);
@@ -92,6 +94,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         id: supaUser.id,
         email: supaUser.email || '',
         name: supaUser.user_metadata?.name || supaUser.email?.split('@')[0] || 'User',
+        isAdmin: supaUser.user_metadata?.isAdmin || false,
       };
       
       setUser(formattedUser);
@@ -110,6 +113,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         id: mockAuthState.user.id,
         email: email,
         name: email.split('@')[0] || 'User',
+        isAdmin: email.includes('admin'), // Simple mock check - if email contains 'admin'
       });
       setIsAuthenticated(true);
       return;

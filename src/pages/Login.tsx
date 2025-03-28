@@ -27,19 +27,14 @@ import {
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
 
 const formSchema = z.object({
   email: z.string().email({ message: 'Digite um e-mail válido' }),
   password: z.string().min(6, { message: 'A senha deve ter pelo menos 6 caracteres' }),
-});
-
-const registerFormSchema = z.object({
-  email: z.string().email({ message: 'Digite um e-mail válido' }),
-  password: z.string().min(6, { message: 'A senha deve ter pelo menos 6 caracteres' }),
-  name: z.string().min(2, { message: 'O nome deve ter pelo menos 2 caracteres' }),
+  isAdmin: z.boolean().default(false),
 });
 
 // Check if we're in development mode with no Supabase keys
@@ -52,7 +47,6 @@ const Login: React.FC = () => {
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = React.useState(false);
   const [isLoading, setIsLoading] = React.useState(false);
-  const [showRegisterDialog, setShowRegisterDialog] = useState(false);
   
   useEffect(() => {
     // Redirect if already authenticated
@@ -66,15 +60,7 @@ const Login: React.FC = () => {
     defaultValues: {
       email: '',
       password: '',
-    },
-  });
-
-  const registerForm = useForm<z.infer<typeof registerFormSchema>>({
-    resolver: zodResolver(registerFormSchema),
-    defaultValues: {
-      email: '',
-      password: '',
-      name: '',
+      isAdmin: false,
     },
   });
 
@@ -82,6 +68,10 @@ const Login: React.FC = () => {
     setIsLoading(true);
     try {
       await login(values.email, values.password);
+      // Note: In a real implementation, the isAdmin value would be validated on the server
+      // and stored in the user's session or JWT claims
+      console.log('Is admin login:', values.isAdmin);
+      
       toast({
         title: "Login realizado com sucesso",
         description: "Você será redirecionado para a página inicial",
@@ -92,49 +82,6 @@ const Login: React.FC = () => {
       toast({
         variant: "destructive",
         title: "Erro ao fazer login",
-        description: errorMessage,
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const onRegisterSubmit = async (values: z.infer<typeof registerFormSchema>) => {
-    setIsLoading(true);
-    try {
-      if (useMockAuth) {
-        // Mock registration in development
-        toast({
-          title: "Registro simulado com sucesso",
-          description: "Em ambiente de desenvolvimento, você pode fazer login com qualquer credencial",
-        });
-        setShowRegisterDialog(false);
-        setIsLoading(false);
-        return;
-      }
-
-      const { error } = await supabase.auth.signUp({
-        email: values.email,
-        password: values.password,
-        options: {
-          data: {
-            name: values.name,
-          },
-        },
-      });
-
-      if (error) throw new Error(error.message);
-
-      toast({
-        title: "Registro realizado com sucesso",
-        description: "Verifique seu e-mail para confirmar o cadastro",
-      });
-      setShowRegisterDialog(false);
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Erro ao registrar usuário';
-      toast({
-        variant: "destructive",
-        title: "Erro ao registrar",
         description: errorMessage,
       });
     } finally {
@@ -220,6 +167,28 @@ const Login: React.FC = () => {
                   </FormItem>
                 )}
               />
+              
+              <FormField
+                control={form.control}
+                name="isAdmin"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md p-4 border">
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                    <div className="space-y-1 leading-none">
+                      <FormLabel>Administrador</FormLabel>
+                      <FormDescription className="text-sm text-muted-foreground">
+                        Faça login como administrador do sistema
+                      </FormDescription>
+                    </div>
+                  </FormItem>
+                )}
+              />
+              
               <Button type="submit" className="w-full" disabled={isLoading}>
                 {isLoading ? (
                   <>
@@ -236,89 +205,11 @@ const Login: React.FC = () => {
         <CardFooter className="flex-col space-y-2">
           <div className="text-sm text-muted-foreground text-center">
             <p>
-              Não tem uma conta?{" "}
-              <Button 
-                variant="link" 
-                className="p-0 h-auto" 
-                onClick={() => setShowRegisterDialog(true)}
-              >
-                Registre-se
-              </Button>
+              Para adquirir uma licença de uso do sistema, entre em contato com o suporte.
             </p>
           </div>
         </CardFooter>
       </Card>
-
-      {/* Registration Dialog */}
-      <Dialog open={showRegisterDialog} onOpenChange={setShowRegisterDialog}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>Criar conta</DialogTitle>
-            <DialogDescription>
-              Preencha os dados abaixo para criar sua conta.
-            </DialogDescription>
-          </DialogHeader>
-          {useMockAuth && (
-            <Alert variant="warning" className="my-2">
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>
-                Executando em modo de desenvolvimento - o registro será simulado.
-              </AlertDescription>
-            </Alert>
-          )}
-          <Form {...registerForm}>
-            <form onSubmit={registerForm.handleSubmit(onRegisterSubmit)} className="space-y-4">
-              <FormField
-                control={registerForm.control}
-                name="name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Nome</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Seu nome" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={registerForm.control}
-                name="email"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Email</FormLabel>
-                    <FormControl>
-                      <Input placeholder="seu@email.com" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={registerForm.control}
-                name="password"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Senha</FormLabel>
-                    <FormControl>
-                      <Input type="password" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <DialogFooter>
-                <Button type="button" variant="outline" onClick={() => setShowRegisterDialog(false)}>
-                  Cancelar
-                </Button>
-                <Button type="submit" disabled={isLoading}>
-                  {isLoading ? "Registrando..." : "Registrar"}
-                </Button>
-              </DialogFooter>
-            </form>
-          </Form>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 };
