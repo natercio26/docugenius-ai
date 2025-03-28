@@ -23,7 +23,7 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-  FormDescription, // Add this import
+  FormDescription,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -43,11 +43,12 @@ const useMockAuth = import.meta.env.DEV &&
   (!import.meta.env.VITE_SUPABASE_URL || !import.meta.env.VITE_SUPABASE_ANON_KEY);
 
 const Login: React.FC = () => {
-  const { login, isAuthenticated } = useAuth();
+  const { login, isAuthenticated, createAdminUser } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = React.useState(false);
   const [isLoading, setIsLoading] = React.useState(false);
+  const [isCreatingAdmin, setIsCreatingAdmin] = React.useState(false);
   
   useEffect(() => {
     // Redirect if already authenticated
@@ -68,10 +69,7 @@ const Login: React.FC = () => {
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     setIsLoading(true);
     try {
-      await login(values.email, values.password);
-      // Note: In a real implementation, the isAdmin value would be validated on the server
-      // and stored in the user's session or JWT claims
-      console.log('Is admin login:', values.isAdmin);
+      await login(values.email, values.password, values.isAdmin);
       
       toast({
         title: "Login realizado com sucesso",
@@ -87,6 +85,26 @@ const Login: React.FC = () => {
       });
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleCreateAdminUser = async () => {
+    setIsCreatingAdmin(true);
+    try {
+      await createAdminUser();
+      toast({
+        title: "Usuário admin criado",
+        description: "O usuário administrativo foi criado com sucesso",
+      });
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Erro ao criar usuário admin';
+      toast({
+        variant: "destructive",
+        title: "Erro ao criar admin",
+        description: errorMessage,
+      });
+    } finally {
+      setIsCreatingAdmin(false);
     }
   };
 
@@ -202,6 +220,25 @@ const Login: React.FC = () => {
               </Button>
             </form>
           </Form>
+          
+          <div className="pt-2">
+            <Button 
+              type="button" 
+              variant="outline" 
+              className="w-full" 
+              onClick={handleCreateAdminUser}
+              disabled={isCreatingAdmin}
+            >
+              {isCreatingAdmin ? (
+                <>
+                  <span className="animate-spin mr-2">⏳</span>
+                  Criando admin...
+                </>
+              ) : (
+                "Criar usuário administrativo"
+              )}
+            </Button>
+          </div>
         </CardContent>
         <CardFooter className="flex-col space-y-2">
           <div className="text-sm text-muted-foreground text-center">

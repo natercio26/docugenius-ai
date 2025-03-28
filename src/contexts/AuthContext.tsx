@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User as SupabaseUser, Session } from '@supabase/supabase-js';
 import { supabase, mockAuthState } from '@/lib/supabase';
@@ -13,8 +12,9 @@ interface User {
 interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string, isAdmin?: boolean) => Promise<void>;
   logout: () => Promise<void>;
+  createAdminUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -22,6 +22,7 @@ const AuthContext = createContext<AuthContextType>({
   isAuthenticated: false,
   login: async () => {},
   logout: async () => {},
+  createAdminUser: async () => {},
 });
 
 export const useAuth = () => useContext(AuthContext);
@@ -105,27 +106,100 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  // Create admin user function
+  const createAdminUser = async (): Promise<void> => {
+    if (useMockAuth) {
+      console.log('Mock admin user created successfully');
+      return;
+    }
+
+    const adminEmail = 'adminlicencedocumentum';
+    const adminPassword = 'adminlicence';
+    
+    try {
+      // Check if admin user already exists
+      const { data: existingUsers, error: searchError } = await supabase
+        .from('auth.users')
+        .select('*')
+        .eq('email', adminEmail)
+        .single();
+      
+      if (searchError && searchError.code !== 'PGRST116') {
+        console.error('Error checking for existing admin:', searchError);
+      }
+      
+      if (existingUsers) {
+        console.log('Admin user already exists');
+        return;
+      }
+      
+      // Create the admin user
+      const { data, error } = await supabase.auth.signUp({
+        email: adminEmail,
+        password: adminPassword,
+        options: {
+          data: {
+            isAdmin: true,
+            name: 'Admin Documentum',
+          }
+        }
+      });
+      
+      if (error) {
+        throw new Error(error.message);
+      }
+      
+      console.log('Admin user created successfully');
+    } catch (error) {
+      console.error('Error creating admin user:', error);
+    }
+  };
+
   // Login function
-  const login = async (email: string, password: string): Promise<void> => {
+  const login = async (email: string, password: string, isAdmin: boolean = false): Promise<void> => {
     if (useMockAuth) {
       // Simulate login for development
       setUser({
         id: mockAuthState.user.id,
         email: email,
         name: email.split('@')[0] || 'User',
-        isAdmin: email.includes('admin'), // Simple mock check - if email contains 'admin'
+        isAdmin: isAdmin, // Use the isAdmin parameter
       });
       setIsAuthenticated(true);
       return;
     }
 
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-    
-    if (error) {
-      throw new Error(error.message);
+    // Check if this is the admin login
+    if (email === 'adminlicencedocumentum' && isAdmin) {
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      
+      if (error) {
+        throw new Error(error.message);
+      }
+    } else {
+      // Regular user login
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      
+      if (error) {
+        throw new Error(error.message);
+      }
+      
+      // Check if the user is trying to log in as admin but isn't one
+      if (isAdmin) {
+        const { data: userData } = await supabase.auth.getUser();
+        const userIsAdmin = userData?.user?.user_metadata?.isAdmin;
+        
+        if (!userIsAdmin) {
+          await supabase.auth.signOut();
+          throw new Error('Você não tem permissões de administrador');
+        }
+      }
     }
   };
 
@@ -155,7 +229,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   }
 
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated, login, logout }}>
+    <AuthContext.Provider value={{ user, isAuthenticated, login, logout, createAdminUser }}>
       {children}
     </AuthContext.Provider>
   );
