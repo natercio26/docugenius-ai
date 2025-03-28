@@ -4,7 +4,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import React from "react";
+import * as React from "react";
 import Index from "./pages/Index";
 import Upload from "./pages/Upload";
 import ViewDraft from "./pages/ViewDraft";
@@ -13,7 +13,6 @@ import Cadastro from "./pages/Cadastro";
 import NotFound from "./pages/NotFound";
 
 const App: React.FC = () => {
-  // Create QueryClient inside the component
   const [queryClient] = React.useState(() => new QueryClient());
 
   return (
