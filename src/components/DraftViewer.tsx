@@ -1,10 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Draft } from '@/types';
+import { Draft, ProtocoloData } from '@/types';
 import { Info, ChevronDown, ChevronUp, FileText, AlertTriangle, Edit, Eye, Trash2, Save } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { useToast } from '@/hooks/use-toast';
 import { useLocation } from 'react-router-dom';
 import { ScrollArea } from './ui/scroll-area';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+import { getProtocoloByNumero } from '@/utils/protocoloStorage';
 
 interface DraftViewerProps {
   draft: Draft;
@@ -53,6 +56,79 @@ const DraftViewer: React.FC<DraftViewerProps> = ({ draft, extractedData }) => {
     }
   }, [extractedData, draft.protocoloInfo, isNewDraft]);
 
+  const formatarDataPorExtenso = (data: Date) => {
+    return format(data, "dd 'de' MMMM 'de' yyyy", { locale: ptBR });
+  };
+
+  const generateHeirQualification = (protocoloInfo?: Draft['protocoloInfo']) => {
+    if (!protocoloInfo?.numero) return '';
+    
+    const protocolo = getProtocoloByNumero(protocoloInfo.numero);
+    if (!protocolo || !protocolo.registrationData) return '';
+    
+    const { personalInfo } = protocolo.registrationData;
+    let heirQualification = '';
+    
+    if (personalInfo.name) {
+      heirQualification += `${personalInfo.name}`;
+    }
+    
+    if (personalInfo.nationality) {
+      heirQualification += `, ${personalInfo.nationality}`;
+    } else {
+      heirQualification += `, brasileiro(a)`;
+    }
+    
+    if (personalInfo.naturality && personalInfo.uf) {
+      heirQualification += `, natural de ${personalInfo.naturality}-${personalInfo.uf}`;
+    }
+    
+    if (personalInfo.birthDate) {
+      try {
+        const birthDate = new Date(personalInfo.birthDate);
+        heirQualification += `, nascido(a) aos ${formatarDataPorExtenso(birthDate)}`;
+      } catch (error) {
+        console.error('Error parsing birth date:', error);
+      }
+    }
+    
+    if (personalInfo.filiation) {
+      heirQualification += `, filho(a) de ${personalInfo.filiation}`;
+    }
+    
+    if (personalInfo.profession) {
+      heirQualification += `, profissão ${personalInfo.profession}`;
+    }
+    
+    if (personalInfo.civilStatus) {
+      heirQualification += `, estado civil ${personalInfo.civilStatus}`;
+    }
+    
+    if (personalInfo.rg) {
+      const issuer = personalInfo.issuer || 'SSP';
+      heirQualification += `, portador(a) da Cédula de Identidade nº ${personalInfo.rg}-${issuer}`;
+    }
+    
+    if (personalInfo.cpf) {
+      heirQualification += ` e inscrito(a) no CPF/MF sob o nº ${personalInfo.cpf}`;
+    }
+    
+    if (personalInfo.email) {
+      heirQualification += `, endereço eletrônico: ${personalInfo.email}`;
+    }
+    
+    if (personalInfo.address) {
+      heirQualification += `, residente e domiciliado(a) na ${personalInfo.address}`;
+    }
+    
+    if (!heirQualification.endsWith(';') && !heirQualification.endsWith('.')) {
+      heirQualification += ';';
+    }
+    
+    console.log("Generated heir qualification from protocol:", heirQualification);
+    return heirQualification;
+  };
+
   useEffect(() => {
     if (draft.content) {
       let content = draft.content;
@@ -61,7 +137,14 @@ const DraftViewer: React.FC<DraftViewerProps> = ({ draft, extractedData }) => {
       
       content = content.replace(placeholderRegex, (match, placeholder) => {
         if (placeholder.trim() === 'qualificacao_do(a)(s)_herdeiro(a)(s)') {
-          if (draft.protocoloInfo && Object.keys(localData).length > 0) {
+          if (draft.protocoloInfo && draft.protocoloInfo.numero) {
+            const heirQualification = generateHeirQualification(draft.protocoloInfo);
+            if (heirQualification) {
+              return heirQualification;
+            }
+          }
+          
+          if (Object.keys(localData).length > 0) {
             let heirQualification = '';
             
             if (localData.nome) {
@@ -560,6 +643,16 @@ const DraftViewer: React.FC<DraftViewerProps> = ({ draft, extractedData }) => {
           </time>
         </div>
       </header>
+      
+      {draft.protocoloInfo && draft.protocoloInfo.numero && (
+        <div className="mb-4 px-4 py-2 bg-primary/10 rounded-md border border-primary/20">
+          <p className="text-sm font-medium">
+            Protocolo: <span className="text-primary">{draft.protocoloInfo.numero}</span> | 
+            Nome: <span className="text-primary">{draft.protocoloInfo.nome}</span> | 
+            CPF: <span className="text-primary">{draft.protocoloInfo.cpf}</span>
+          </p>
+        </div>
+      )}
       
       {shouldShowDataSection && localData && Object.keys(localData).length > 0 && (
         <div className="mb-6">
