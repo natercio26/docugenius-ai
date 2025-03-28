@@ -4,6 +4,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { ArrowLeft, Download, Copy } from "lucide-react";
+import { jsPDF } from "jspdf";
 
 import Navbar from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
@@ -69,6 +70,52 @@ const DocumentoGerado: React.FC = () => {
     }
   };
 
+  // Função para baixar o documento como PDF
+  const baixarDocumento = () => {
+    try {
+      const doc = new jsPDF({
+        orientation: "portrait",
+        unit: "mm",
+        format: "a4"
+      });
+      
+      // Configurações do documento
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(12);
+      
+      // Obter o texto do documento
+      const texto = document.getElementById('documento-texto')?.innerText || "";
+      
+      // Adicionar o texto ao PDF, com quebra de linhas automática
+      const margemEsquerda = 20;
+      const margemSuperior = 20;
+      const larguraUtil = doc.internal.pageSize.width - 40; // 20mm de margem em cada lado
+      
+      doc.text(texto, margemEsquerda, margemSuperior, { 
+        maxWidth: larguraUtil,
+        align: "justify"
+      });
+      
+      // Nome do arquivo baseado no nome da pessoa
+      const nomeArquivo = `qualificacao_${formData.nome.toLowerCase().replace(/\s+/g, '_')}.pdf`;
+      
+      // Salvar o PDF
+      doc.save(nomeArquivo);
+      
+      toast({
+        title: "Download concluído",
+        description: "O documento foi baixado com sucesso."
+      });
+    } catch (error) {
+      console.error("Erro ao gerar PDF:", error);
+      toast({
+        title: "Erro ao baixar",
+        description: "Não foi possível gerar o documento PDF.",
+        variant: "destructive"
+      });
+    }
+  };
+
   // Função para voltar à página de revisão
   const voltarParaRevisao = () => {
     navigate('/cadastro/revisar', { state: { formData } });
@@ -115,7 +162,10 @@ const DocumentoGerado: React.FC = () => {
                 <Copy className="h-4 w-4" />
                 Copiar Texto
               </Button>
-              <Button className="gap-2">
+              <Button 
+                onClick={baixarDocumento}
+                className="gap-2"
+              >
                 <Download className="h-4 w-4" />
                 Baixar Documento
               </Button>
