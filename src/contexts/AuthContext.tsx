@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 
@@ -112,47 +113,52 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Mock authentication for development
       console.log('Using mock authentication in development mode');
       
-      // Check for admin login with correct credentials
-      if (isAdminLogin && username === 'adminlicencedocumentum' && password === 'adminlicence') {
-        const mockAdminUser = {
-          id: 'mock-admin-id',
-          name: 'Admin User',
-          username: 'adminlicencedocumentum',
-          isAdmin: true
+      try {
+        // Check for admin login with correct credentials
+        if (isAdminLogin && username === 'adminlicencedocumentum' && password === 'adminlicence') {
+          const mockAdminUser = {
+            id: 'mock-admin-id',
+            name: 'Admin User',
+            username: 'adminlicencedocumentum',
+            isAdmin: true
+          };
+          
+          setUser(mockAdminUser);
+          setIsAuthenticated(true);
+          setIsAdmin(true);
+          
+          // Store in localStorage for persistence
+          localStorage.setItem('mockUser', JSON.stringify(mockAdminUser));
+          localStorage.setItem('mockIsAuthenticated', 'true');
+          localStorage.setItem('mockIsAdmin', 'true');
+          
+          console.log('Mock admin login successful:', mockAdminUser);
+          return;
+        }
+        
+        // Regular user login (accept any credentials in dev mode)
+        const mockUser = {
+          id: 'mock-user-id',
+          name: 'Regular User',
+          username: username || 'demo',
+          isAdmin: false
         };
         
-        setUser(mockAdminUser);
+        setUser(mockUser);
         setIsAuthenticated(true);
-        setIsAdmin(true);
+        setIsAdmin(false);
         
         // Store in localStorage for persistence
-        localStorage.setItem('mockUser', JSON.stringify(mockAdminUser));
+        localStorage.setItem('mockUser', JSON.stringify(mockUser));
         localStorage.setItem('mockIsAuthenticated', 'true');
-        localStorage.setItem('mockIsAdmin', 'true');
+        localStorage.setItem('mockIsAdmin', 'false');
         
-        console.log('Mock admin login successful:', mockAdminUser);
+        console.log('Mock regular login successful:', mockUser);
         return;
+      } catch (error) {
+        console.error('Error with mock login:', error);
+        throw new Error('Falha na autenticação');
       }
-      
-      // Regular user login (accept any credentials in dev mode)
-      const mockUser = {
-        id: 'mock-user-id',
-        name: 'Regular User',
-        username: username || 'demo',
-        isAdmin: false
-      };
-      
-      setUser(mockUser);
-      setIsAuthenticated(true);
-      setIsAdmin(false);
-      
-      // Store in localStorage for persistence
-      localStorage.setItem('mockUser', JSON.stringify(mockUser));
-      localStorage.setItem('mockIsAuthenticated', 'true');
-      localStorage.setItem('mockIsAdmin', 'false');
-      
-      console.log('Mock regular login successful:', mockUser);
-      return;
     }
 
     // Only allow admin login for the specific admin username
@@ -160,10 +166,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       throw new Error('Usuário não autorizado como administrador');
     }
 
-    // For Supabase, we need to use email
-    const email = username.includes('@') ? username : `${username}@documentum.com`;
-
     try {
+      // For Supabase, we need to use email
+      const email = username.includes('@') ? username : `${username}@documentum.com`;
+      
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -190,6 +196,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setIsAdmin(isAdminLogin && username === 'adminlicencedocumentum');
     } catch (error) {
       console.error('Login error:', error);
+      
+      // Check if this is a network error (Failed to fetch)
+      if (error instanceof TypeError && error.message.includes('fetch')) {
+        throw new Error('Erro de conexão. Verifique sua rede ou tente novamente mais tarde.');
+      }
+      
       throw error;
     }
   };

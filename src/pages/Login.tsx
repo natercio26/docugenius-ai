@@ -5,7 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
-import { Eye, EyeOff, Lock, User, LogIn } from 'lucide-react';
+import { Eye, EyeOff, Lock, User, LogIn, AlertTriangle } from 'lucide-react';
 
 import {
   Card,
@@ -48,6 +48,7 @@ const Login: React.FC = () => {
   const [showPassword, setShowPassword] = React.useState(false);
   const [isLoading, setIsLoading] = React.useState(false);
   const [isCreatingAdmin, setIsCreatingAdmin] = React.useState(false);
+  const [loginError, setLoginError] = React.useState<string | null>(null);
   
   useEffect(() => {
     if (isAuthenticated) {
@@ -66,6 +67,8 @@ const Login: React.FC = () => {
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     setIsLoading(true);
+    setLoginError(null);
+    
     try {
       console.log('Attempting login with values:', values);
       await login(values.username, values.password, values.isAdmin);
@@ -78,6 +81,9 @@ const Login: React.FC = () => {
     } catch (error) {
       console.error('Login error:', error);
       const errorMessage = error instanceof Error ? error.message : 'Verifique suas credenciais e tente novamente';
+      
+      setLoginError(errorMessage);
+      
       toast({
         variant: "destructive",
         title: "Erro ao fazer login",
@@ -149,6 +155,16 @@ const Login: React.FC = () => {
               <AlertTitle className="text-amber-700">Modo de desenvolvimento</AlertTitle>
               <AlertDescription className="text-amber-700">
                 Sistema executando com credenciais de teste. Use os botões de login rápido abaixo ou qualquer credencial.
+              </AlertDescription>
+            </Alert>
+          )}
+          
+          {loginError && (
+            <Alert variant="destructive" className="mb-4">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertTitle>Erro ao fazer login</AlertTitle>
+              <AlertDescription>
+                {loginError}
               </AlertDescription>
             </Alert>
           )}
