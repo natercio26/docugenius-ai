@@ -31,6 +31,14 @@ const Navbar: React.FC = () => {
             Nova Minuta
           </Link>
           <Link 
+            to="/cadastro" 
+            className={`px-4 py-2 text-sm font-medium transition-colors ${
+              location.pathname === '/cadastro' ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            Cadastro
+          </Link>
+          <Link 
             to="/config" 
             className={`px-4 py-2 text-sm font-medium transition-colors ${
               location.pathname === '/config' ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'

@@ -47,3 +47,24 @@ export interface TemplateField {
   options?: string[];
   placeholder?: string;
 }
+
+export type RegistrationType = 'solteiro' | 'casado';
+
+export interface RegistrationData {
+  type: RegistrationType;
+  personalInfo: {
+    name: string;
+    birthDate: string;
+    cpf: string;
+    rg: string;
+    address: string;
+    email: string;
+    phone: string;
+  };
+  spouseInfo?: {
+    name: string;
+    birthDate: string;
+    cpf: string;
+    rg: string;
+  };
+}
