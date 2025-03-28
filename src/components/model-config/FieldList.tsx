@@ -18,29 +18,47 @@ const FieldList: React.FC<FieldListProps> = ({
 }) => {
   const { toast } = useToast();
 
-  // Organize fields based on document type
+  // Organize fields based on document type with enhanced categorization
   const organizeFields = () => {
-    // For inventory documents, we need specific ordering
+    // For inventory documents, we need specific ordering with expanded categories
     if (documentType === "Inventário") {
       // Define the correct order of categories as specified
       const orderedCategories = [
+        "qualificação do falecido",
+        "dados do falecido",
         "viúvo/viúva",
-        "herdeiros/cônjuge/casamento",
+        "qualificação do cônjuge",
+        "dados do casamento",
+        "regime de bens",
+        "dados do falecimento",
+        "certidão de óbito",
+        "herdeiros",
+        "qualificação dos herdeiros",
         "filhos",
+        "inventariante",
         "advogado",
-        "falecido",
-        "qualificações do falecido",
-        "do casamento",
-        "do falecimento",
-        "dos herdeiros",
-        "nomeação do inventariante",
-        "bens",
+        "bens imóveis",
+        "bens móveis",
+        "veículos",
+        "contas bancárias",
         "partilha",
-        "certidões",
-        "imposto"
+        "monte mor",
+        "meação",
+        "quinhão dos herdeiros",
+        "certidões e documentos",
+        "certidão da receita federal",
+        "certidão de IPTU",
+        "certidões negativas",
+        "guias e impostos",
+        "ITCMD",
+        "inscrições rurais",
+        "CCIR",
+        "NIRF",
+        "códigos e identificadores",
+        "assinaturas e procurações"
       ];
       
-      // Group fields by categories
+      // Categorize fields by type
       const categorizedFields: Record<string, { name: string; type: string; required: boolean }[]> = {};
       
       fields.forEach(field => {
@@ -48,44 +66,157 @@ const FieldList: React.FC<FieldListProps> = ({
         let category = "outros";
         const fieldNameLower = field.name.toLowerCase();
         
-        if (fieldNameLower.includes("viúv") || fieldNameLower.includes("viuv")) {
+        // Enhanced categorization for falecido/de cujus
+        if (fieldNameLower.includes("falecido") || fieldNameLower.includes("de cujus") || 
+            fieldNameLower.includes("autor da herança") || fieldNameLower.includes("autor da heranca")) {
+          category = "qualificação do falecido";
+          
+          if (fieldNameLower.includes("cpf") || fieldNameLower.includes("rg") || 
+              fieldNameLower.includes("identidade") || fieldNameLower.includes("profissão") ||
+              fieldNameLower.includes("nacionalidade") || fieldNameLower.includes("estado civil")) {
+            category = "dados do falecido";
+          }
+        } 
+        // Enhanced categorization for viúvo/cônjuge
+        else if (fieldNameLower.includes("viúvo") || fieldNameLower.includes("viuva") || 
+                fieldNameLower.includes("viuvo") || fieldNameLower.includes("meeiro") || 
+                fieldNameLower.includes("meeira")) {
           category = "viúvo/viúva";
-        } else if (fieldNameLower.includes("cônjuge") || fieldNameLower.includes("conjuge") || 
-                  fieldNameLower.includes("casamento")) {
-          category = "herdeiros/cônjuge/casamento";
-        } else if (fieldNameLower.includes("filho") || fieldNameLower.includes("criança")) {
+        }
+        else if (fieldNameLower.includes("cônjuge") || fieldNameLower.includes("conjuge") || 
+                fieldNameLower.includes("esposo") || fieldNameLower.includes("esposa")) {
+          category = "qualificação do cônjuge";
+        } 
+        // Enhanced categorization for casamento
+        else if (fieldNameLower.includes("casamento") || fieldNameLower.includes("matrimônio") || 
+                fieldNameLower.includes("matrimonio")) {
+          category = "dados do casamento";
+        }
+        else if (fieldNameLower.includes("regime") || fieldNameLower.includes("comunhão") || 
+                fieldNameLower.includes("comunhao") || fieldNameLower.includes("separação") || 
+                fieldNameLower.includes("separacao") || fieldNameLower.includes("aquestos")) {
+          category = "regime de bens";
+        } 
+        // Enhanced categorization for filhos/herdeiros
+        else if (fieldNameLower.includes("filho") || fieldNameLower.includes("criança") || 
+                fieldNameLower.includes("crianca")) {
           category = "filhos";
-        } else if (fieldNameLower.includes("advogad") || fieldNameLower.includes("oab")) {
+        }
+        else if (fieldNameLower.includes("herdeiro") || fieldNameLower.includes("sucessor")) {
+          category = "herdeiros";
+          
+          if (fieldNameLower.includes("qualificação") || fieldNameLower.includes("qualificacao") || 
+              fieldNameLower.includes("cpf") || fieldNameLower.includes("rg")) {
+            category = "qualificação dos herdeiros";
+          }
+        } 
+        // Enhanced categorization for advogado
+        else if (fieldNameLower.includes("advogad") || fieldNameLower.includes("oab")) {
           category = "advogado";
-        } else if (fieldNameLower.includes("falecido") || fieldNameLower.includes("de cujus") || 
-                  fieldNameLower.includes("autor da herança")) {
-          category = "falecido";
-        } else if (fieldNameLower.includes("qualificação") || fieldNameLower.includes("rg falecido") || 
-                  fieldNameLower.includes("cpf falecido") || fieldNameLower.includes("profissão") ||
-                  fieldNameLower.includes("nacionalidade")) {
-          category = "qualificações do falecido";
-        } else if (fieldNameLower.includes("regime de bens") || fieldNameLower.includes("data casamento")) {
-          category = "do casamento";
-        } else if (fieldNameLower.includes("data falecimento") || fieldNameLower.includes("certidão óbito") ||
-                  fieldNameLower.includes("hospital") || fieldNameLower.includes("cidade falecimento")) {
-          category = "do falecimento";
-        } else if (fieldNameLower.includes("herdeiro") || fieldNameLower.includes("sucessor")) {
-          category = "dos herdeiros";
-        } else if (fieldNameLower.includes("inventariante") || fieldNameLower.includes("nomeação")) {
-          category = "nomeação do inventariante";
-        } else if (fieldNameLower.includes("imóvel") || fieldNameLower.includes("bem") || 
-                  fieldNameLower.includes("apartamento") || fieldNameLower.includes("veículo") ||
-                  fieldNameLower.includes("bloco") || fieldNameLower.includes("quadra")) {
-          category = "bens";
-        } else if (fieldNameLower.includes("partilha") || fieldNameLower.includes("quinhão") || 
-                  fieldNameLower.includes("percentual") || fieldNameLower.includes("valor")) {
+        } 
+        // Enhanced categorization for inventariante
+        else if (fieldNameLower.includes("inventariante") || fieldNameLower.includes("nomeação") || 
+                fieldNameLower.includes("nomeacao")) {
+          category = "inventariante";
+        } 
+        // Enhanced categorization for falecimento
+        else if (fieldNameLower.includes("falecimento") || fieldNameLower.includes("óbito") || 
+                fieldNameLower.includes("obito") || fieldNameLower.includes("hospital") || 
+                fieldNameLower.includes("cidade falecimento") || fieldNameLower.includes("local falecimento")) {
+          category = "dados do falecimento";
+        }
+        else if (fieldNameLower.includes("certidão") && fieldNameLower.includes("óbito") || 
+                fieldNameLower.includes("certidao") && fieldNameLower.includes("obito")) {
+          category = "certidão de óbito";
+        } 
+        // Enhanced categorization for bens
+        else if (fieldNameLower.includes("bem") || fieldNameLower.includes("bens")) {
+          category = "bens móveis";
+          
+          if (fieldNameLower.includes("imóvel") || fieldNameLower.includes("imovel") || 
+              fieldNameLower.includes("apartamento") || fieldNameLower.includes("casa") || 
+              fieldNameLower.includes("terreno") || fieldNameLower.includes("lote") || 
+              fieldNameLower.includes("bloco") || fieldNameLower.includes("quadra")) {
+            category = "bens imóveis";
+          }
+        } 
+        // Enhanced categorization for veículos
+        else if (fieldNameLower.includes("veículo") || fieldNameLower.includes("veiculo") || 
+                fieldNameLower.includes("carro") || fieldNameLower.includes("automóvel") || 
+                fieldNameLower.includes("automovel") || fieldNameLower.includes("placa") || 
+                fieldNameLower.includes("chassi") || fieldNameLower.includes("renavam")) {
+          category = "veículos";
+        } 
+        // Enhanced categorization for contas bancárias
+        else if (fieldNameLower.includes("conta") || fieldNameLower.includes("banco") || 
+                fieldNameLower.includes("agência") || fieldNameLower.includes("agencia") || 
+                fieldNameLower.includes("poupança") || fieldNameLower.includes("poupanca") || 
+                fieldNameLower.includes("corrente")) {
+          category = "contas bancárias";
+        } 
+        // Enhanced categorization for partilha/monte-mor
+        else if (fieldNameLower.includes("partilha") || fieldNameLower.includes("quinhão") || 
+                fieldNameLower.includes("quinhao") || fieldNameLower.includes("percentual") || 
+                fieldNameLower.includes("valor herdeiro")) {
           category = "partilha";
-        } else if (fieldNameLower.includes("certidão") || fieldNameLower.includes("receita") || 
-                  fieldNameLower.includes("gdf") || fieldNameLower.includes("iptu")) {
-          category = "certidões";
-        } else if (fieldNameLower.includes("imposto") || fieldNameLower.includes("itcmd") || 
-                  fieldNameLower.includes("tributo")) {
-          category = "imposto";
+        }
+        else if (fieldNameLower.includes("monte") || fieldNameLower.includes("mor") || 
+                fieldNameLower.includes("total")) {
+          category = "monte mor";
+        }
+        else if (fieldNameLower.includes("meação") || fieldNameLower.includes("meacao") || 
+                fieldNameLower.includes("metade")) {
+          category = "meação";
+        }
+        else if (fieldNameLower.includes("quinhão") || fieldNameLower.includes("quinhao") || 
+                fieldNameLower.includes("percentual") || fieldNameLower.includes("porcentagem")) {
+          category = "quinhão dos herdeiros";
+        } 
+        // Enhanced categorization for certidões
+        else if ((fieldNameLower.includes("certidão") || fieldNameLower.includes("certidao")) && 
+                (fieldNameLower.includes("receita") || fieldNameLower.includes("federal") || 
+                 fieldNameLower.includes("cpf") || fieldNameLower.includes("cnpj"))) {
+          category = "certidão da receita federal";
+        }
+        else if ((fieldNameLower.includes("certidão") || fieldNameLower.includes("certidao")) && 
+                (fieldNameLower.includes("iptu") || fieldNameLower.includes("predial"))) {
+          category = "certidão de IPTU";
+        }
+        else if (fieldNameLower.includes("certidão") || fieldNameLower.includes("certidao") || 
+                fieldNameLower.includes("gdf") || fieldNameLower.includes("cnd")) {
+          category = "certidões e documentos";
+        } 
+        // Enhanced categorization for impostos
+        else if (fieldNameLower.includes("imposto") || fieldNameLower.includes("tributo") || 
+                fieldNameLower.includes("guia")) {
+          category = "guias e impostos";
+        }
+        else if (fieldNameLower.includes("itcmd") || fieldNameLower.includes("itcd") || 
+                fieldNameLower.includes("causa mortis")) {
+          category = "ITCMD";
+        } 
+        // Enhanced categorization for rural properties
+        else if (fieldNameLower.includes("rural") || fieldNameLower.includes("fazenda") || 
+                fieldNameLower.includes("sítio") || fieldNameLower.includes("sitio") || 
+                fieldNameLower.includes("chácara") || fieldNameLower.includes("chacara")) {
+          category = "inscrições rurais";
+        }
+        else if (fieldNameLower.includes("ccir")) {
+          category = "CCIR";
+        }
+        else if (fieldNameLower.includes("nirf")) {
+          category = "NIRF";
+        } 
+        // Enhanced categorization for identifier codes
+        else if (fieldNameLower.includes("código") || fieldNameLower.includes("codigo") || 
+                fieldNameLower.includes("hash") || fieldNameLower.includes("identificador")) {
+          category = "códigos e identificadores";
+        } 
+        // Enhanced categorization for signatures and procurations
+        else if (fieldNameLower.includes("assinatura") || fieldNameLower.includes("procuração") || 
+                fieldNameLower.includes("procuracao") || fieldNameLower.includes("representação") || 
+                fieldNameLower.includes("representacao")) {
+          category = "assinaturas e procurações";
         }
         
         if (!categorizedFields[category]) {
@@ -122,10 +253,10 @@ const FieldList: React.FC<FieldListProps> = ({
 
   useEffect(() => {
     // Provide feedback to user about field organization
-    if (documentType === "Inventário" && fields.length > 0) {
+    if (documentType === "Inventário" && fields.length > 5) {
       toast({
         title: `Campos organizados para ${documentType}`,
-        description: `${fields.length} campos organizados na ordem especificada.`,
+        description: `${fields.length} campos organizados em categorias específicas para Inventário.`,
         duration: 3000,
       });
     }
