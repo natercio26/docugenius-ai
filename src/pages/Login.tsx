@@ -6,7 +6,6 @@ import * as z from 'zod';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 import { Eye, EyeOff, Lock, User } from 'lucide-react';
-import { supabase } from '@/lib/supabase';
 
 import {
   Card,
@@ -59,8 +58,8 @@ const Login: React.FC = () => {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      username: '',
-      password: '',
+      username: useMockAuth ? 'demo' : '',
+      password: useMockAuth ? 'password123' : '',
       isAdmin: false,
     },
   });
@@ -68,6 +67,7 @@ const Login: React.FC = () => {
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     setIsLoading(true);
     try {
+      console.log('Attempting login with values:', values);
       await login(values.username, values.password, values.isAdmin);
       
       toast({
@@ -76,6 +76,7 @@ const Login: React.FC = () => {
       });
       navigate('/');
     } catch (error) {
+      console.error('Login error:', error);
       const errorMessage = error instanceof Error ? error.message : 'Verifique suas credenciais e tente novamente';
       toast({
         variant: "destructive",
@@ -112,6 +113,25 @@ const Login: React.FC = () => {
     }
   };
 
+  // Function to use demo login in development mode
+  const handleDemoLogin = () => {
+    if (useMockAuth) {
+      form.setValue('username', 'demo');
+      form.setValue('password', 'password123');
+      form.handleSubmit(onSubmit)();
+    }
+  };
+
+  // Function to use admin login in development mode
+  const handleAdminLogin = () => {
+    if (useMockAuth) {
+      form.setValue('username', 'adminlicencedocumentum');
+      form.setValue('password', 'adminlicence');
+      form.setValue('isAdmin', true);
+      form.handleSubmit(onSubmit)();
+    }
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-slate-50 px-4">
       <Card className="w-full max-w-md">
@@ -123,11 +143,11 @@ const Login: React.FC = () => {
         </CardHeader>
         <CardContent className="space-y-4">
           {useMockAuth && (
-            <Alert variant="warning" className="mb-4">
-              <AlertCircle className="h-4 w-4" />
-              <AlertTitle>Modo de desenvolvimento</AlertTitle>
-              <AlertDescription>
-                Sistema executando com credenciais de teste. Você pode fazer login com qualquer e-mail e senha.
+            <Alert className="mb-4 bg-amber-50 border-amber-200">
+              <AlertCircle className="h-4 w-4 text-amber-600" />
+              <AlertTitle className="text-amber-700">Modo de desenvolvimento</AlertTitle>
+              <AlertDescription className="text-amber-700">
+                Sistema executando com credenciais de teste. Use o botão de login rápido abaixo.
               </AlertDescription>
             </Alert>
           )}
@@ -224,6 +244,27 @@ const Login: React.FC = () => {
               </Button>
             </form>
           </Form>
+          
+          {useMockAuth && (
+            <div className="flex flex-col gap-2 pt-2">
+              <Button 
+                type="button" 
+                variant="secondary" 
+                className="w-full"
+                onClick={handleDemoLogin}
+              >
+                Login rápido como usuário
+              </Button>
+              <Button 
+                type="button" 
+                variant="secondary" 
+                className="w-full"
+                onClick={handleAdminLogin}
+              >
+                Login rápido como admin
+              </Button>
+            </div>
+          )}
           
           <div className="pt-2">
             <Button 
