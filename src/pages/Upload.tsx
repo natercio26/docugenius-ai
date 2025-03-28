@@ -4,12 +4,36 @@ import { useNavigate } from 'react-router-dom';
 import Navbar from '@/components/Navbar';
 import FileUpload from '@/components/FileUpload';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { UploadStatus } from '@/types';
+import { DraftType, UploadStatus } from '@/types';
 import ProtocoloSearch from '@/components/ProtocoloSearch';
+import { 
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const Upload: React.FC = () => {
   const [status, setStatus] = useState<UploadStatus>('idle');
+  const [documentType, setDocumentType] = useState<DraftType>('Inventário');
   const navigate = useNavigate();
+
+  const documentTypes: DraftType[] = [
+    'Inventário',
+    'Escritura de Compra e Venda',
+    'Doação',
+    'União Estável',
+    'Procuração',
+    'Testamento',
+    'Contrato de Aluguel',
+    'Contrato Social',
+    'Outro'
+  ];
+
+  const handleDocumentTypeChange = (value: string) => {
+    setDocumentType(value as DraftType);
+  };
 
   const handleUploadComplete = (files: File[]) => {
     // Simulate processing
@@ -27,7 +51,7 @@ const Upload: React.FC = () => {
         const newDraft = {
           id: draftId,
           title: `Minuta - ${files[0].name.split('.')[0]}`,
-          type: 'Inventário',
+          type: documentType,
           content: '', // This would be filled with the actual content extracted from the files
           createdAt: new Date(),
           updatedAt: new Date()
@@ -54,6 +78,24 @@ const Upload: React.FC = () => {
           <p className="text-muted-foreground text-center mb-8">
             Crie uma nova minuta carregando documentos ou usando um número de protocolo
           </p>
+
+          <div className="mb-8 max-w-xs mx-auto">
+            <label htmlFor="documentType" className="block text-sm font-medium mb-2">
+              Tipo de Documento
+            </label>
+            <Select value={documentType} onValueChange={handleDocumentTypeChange}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Selecione o tipo de documento" />
+              </SelectTrigger>
+              <SelectContent>
+                {documentTypes.map((type) => (
+                  <SelectItem key={type} value={type}>
+                    {type}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
           
           <Tabs defaultValue="upload" className="w-full">
             <TabsList className="grid grid-cols-2 w-full max-w-md mx-auto mb-6">
@@ -69,7 +111,7 @@ const Upload: React.FC = () => {
             </TabsContent>
             
             <TabsContent value="protocolo" className="mt-4">
-              <ProtocoloSearch />
+              <ProtocoloSearch documentType={documentType} />
             </TabsContent>
           </Tabs>
         </div>
