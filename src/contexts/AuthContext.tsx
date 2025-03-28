@@ -1,7 +1,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User as SupabaseUser, Session } from '@supabase/supabase-js';
-import { supabase } from '@/lib/supabase';
+import { supabase, mockAuthState } from '@/lib/supabase';
 
 interface User {
   id: string;
@@ -29,13 +29,31 @@ interface AuthProviderProps {
   children: React.ReactNode;
 }
 
+// Check if we're in development mode with no Supabase keys
+const useMockAuth = import.meta.env.DEV && 
+  (!import.meta.env.VITE_SUPABASE_URL || !import.meta.env.VITE_SUPABASE_ANON_KEY);
+
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Initialize Supabase auth state
+  // Initialize auth state
   useEffect(() => {
+    if (useMockAuth) {
+      // Use mock auth for development without Supabase credentials
+      console.info('Using mock authentication for development');
+      setUser({
+        id: mockAuthState.user.id,
+        email: mockAuthState.user.email,
+        name: mockAuthState.user.name,
+      });
+      setIsAuthenticated(true);
+      setIsLoading(false);
+      return;
+    }
+
+    // Real Supabase auth
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (_event, session) => {
         handleAuthChange(session);
@@ -46,7 +64,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     initializeAuth();
 
     return () => {
-      subscription.unsubscribe();
+      if (subscription) subscription.unsubscribe();
     };
   }, []);
 
@@ -84,8 +102,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  // Supabase login function
+  // Login function
   const login = async (email: string, password: string): Promise<void> => {
+    if (useMockAuth) {
+      // Simulate login for development
+      setUser({
+        id: mockAuthState.user.id,
+        email: email,
+        name: email.split('@')[0] || 'User',
+      });
+      setIsAuthenticated(true);
+      return;
+    }
+
     const { error } = await supabase.auth.signInWithPassword({
       email,
       password,
@@ -96,8 +125,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  // Supabase logout function
+  // Logout function
   const logout = async (): Promise<void> => {
+    if (useMockAuth) {
+      // Simulate logout for development
+      setUser(null);
+      setIsAuthenticated(false);
+      return;
+    }
+
     const { error } = await supabase.auth.signOut();
     
     if (error) {

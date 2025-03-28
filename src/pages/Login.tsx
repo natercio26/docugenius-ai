@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -27,6 +28,8 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { AlertCircle } from 'lucide-react';
 
 const formSchema = z.object({
   email: z.string().email({ message: 'Digite um e-mail válido' }),
@@ -39,14 +42,25 @@ const registerFormSchema = z.object({
   name: z.string().min(2, { message: 'O nome deve ter pelo menos 2 caracteres' }),
 });
 
+// Check if we're in development mode with no Supabase keys
+const useMockAuth = import.meta.env.DEV && 
+  (!import.meta.env.VITE_SUPABASE_URL || !import.meta.env.VITE_SUPABASE_ANON_KEY);
+
 const Login: React.FC = () => {
-  const { login } = useAuth();
+  const { login, isAuthenticated } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = React.useState(false);
   const [isLoading, setIsLoading] = React.useState(false);
   const [showRegisterDialog, setShowRegisterDialog] = useState(false);
   
+  useEffect(() => {
+    // Redirect if already authenticated
+    if (isAuthenticated) {
+      navigate('/');
+    }
+  }, [isAuthenticated, navigate]);
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -88,6 +102,17 @@ const Login: React.FC = () => {
   const onRegisterSubmit = async (values: z.infer<typeof registerFormSchema>) => {
     setIsLoading(true);
     try {
+      if (useMockAuth) {
+        // Mock registration in development
+        toast({
+          title: "Registro simulado com sucesso",
+          description: "Em ambiente de desenvolvimento, você pode fazer login com qualquer credencial",
+        });
+        setShowRegisterDialog(false);
+        setIsLoading(false);
+        return;
+      }
+
       const { error } = await supabase.auth.signUp({
         email: values.email,
         password: values.password,
@@ -126,7 +151,17 @@ const Login: React.FC = () => {
             Entre com suas credenciais para acessar o sistema
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-4">
+          {useMockAuth && (
+            <Alert variant="warning" className="mb-4">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Modo de desenvolvimento</AlertTitle>
+              <AlertDescription>
+                Sistema executando com credenciais de teste. Você pode fazer login com qualquer e-mail e senha.
+              </AlertDescription>
+            </Alert>
+          )}
+
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
               <FormField
@@ -223,6 +258,14 @@ const Login: React.FC = () => {
               Preencha os dados abaixo para criar sua conta.
             </DialogDescription>
           </DialogHeader>
+          {useMockAuth && (
+            <Alert variant="warning" className="my-2">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                Executando em modo de desenvolvimento - o registro será simulado.
+              </AlertDescription>
+            </Alert>
+          )}
           <Form {...registerForm}>
             <form onSubmit={registerForm.handleSubmit(onRegisterSubmit)} className="space-y-4">
               <FormField
