@@ -88,6 +88,9 @@ export interface RegistrationData {
     uf?: string;
     filiation?: string;
     issuer?: string;
+    email?: string;
+    marriageDate?: string;
+    propertyRegime?: string;
   };
 }
 
@@ -98,5 +101,5 @@ export interface ProtocoloData {
   cpf: string;
   conteudo: string;
   registrationData?: RegistrationData;
-  textoQualificacao?: string; // Added this property to fix the type error
+  textoQualificacao?: string;
 }

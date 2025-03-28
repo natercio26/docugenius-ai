@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { format } from "date-fns";
@@ -49,10 +48,8 @@ const ProtocoloGerado: React.FC = () => {
   const protocolo = useProtocolo();
   const [protocoloNumero, setProtocoloNumero] = useState<string>("");
   
-  // Recuperar os dados do estado da navegação
   const formData = location.state?.formData as FormData;
   
-  // Se não houver dados, redirecionar para o formulário
   useEffect(() => {
     if (!formData) {
       toast({
@@ -61,7 +58,6 @@ const ProtocoloGerado: React.FC = () => {
         variant: "destructive"
       });
       
-      // Redirecionar para o formulário apropriado com base no estado civil
       if (formData?.estadoCivil === "Casado(a)") {
         navigate('/cadastro/casado');
       } else {
@@ -70,61 +66,22 @@ const ProtocoloGerado: React.FC = () => {
       return;
     }
     
-    // Gerar protocolo na primeira renderização apenas se não tiver protocolo
     if (!protocoloNumero) {
       try {
-        // Preparar dados para o protocolo
-        const documentoTexto = getDocumentoTexto(formData);
+        const protocoloData = prepareProtocoloData();
         
-        // Salvar o texto completo da qualificação no sessionStorage
-        sessionStorage.setItem('documentoGeradoTexto', documentoTexto);
-        console.log("Qualificação completa armazenada do protocolo:", documentoTexto);
+        if (!protocoloData) {
+          throw new Error("Falha ao preparar dados do protocolo");
+        }
         
-        // Converter formData para o formato de RegistrationData
-        const registrationData: RegistrationData = {
-          type: formData.estadoCivil === "Casado(a)" ? 'casado' : 'solteiro',
-          personalInfo: {
-            name: formData.nome,
-            birthDate: formData.dataNascimento.toISOString(),
-            cpf: formData.cpf,
-            rg: formData.rg,
-            address: formData.endereco,
-            email: formData.email,
-            phone: "",
-            naturality: formData.naturalidade,
-            uf: formData.uf,
-            filiation: formData.filiacao,
-            profession: formData.profissao,
-            civilStatus: formData.estadoCivil,
-            issuer: formData.orgaoExpedidor,
-            nationality: formData.nacionalidade || "Brasileiro(a)"
-          },
-          // Adicionar dados do cônjuge se for casado
-          spouseInfo: formData.estadoCivil === "Casado(a)" ? {
-            name: formData.nomeConjuge || "",
-            birthDate: formData.dataNascimentoConjuge?.toISOString() || "",
-            cpf: formData.cpfConjuge || "",
-            rg: formData.rgConjuge || "",
-            naturality: formData.naturalidadeConjuge || "",
-            uf: formData.ufConjuge || "",
-            filiation: formData.filiacaoConjuge || "",
-            profession: formData.profissaoConjuge || "",
-            issuer: formData.orgaoExpedidorConjuge || "",
-            email: formData.emailConjuge || "",
-            marriageDate: formData.dataCasamento?.toISOString() || "",
-            propertyRegime: formData.regimeBens || ""
-          } : undefined
-        };
-        
-        // Salvar o novo protocolo com os dados de registro
         const novoProtocolo = protocolo.saveNewProtocolo({
           nome: formData.nome,
           cpf: formData.cpf,
-          conteudo: documentoTexto,
-          registrationData: registrationData
+          conteudo: protocoloData.documentoTexto,
+          registrationData: protocoloData.registrationData,
+          textoQualificacao: protocoloData.documentoTexto
         });
         
-        // Atualizar o estado com o número do protocolo gerado
         setProtocoloNumero(novoProtocolo.numero);
         
         toast({
@@ -142,30 +99,24 @@ const ProtocoloGerado: React.FC = () => {
     }
   }, [formData, navigate, toast, protocolo, protocoloNumero]);
 
-  // Função para formatar a data por extenso
   const formatarDataPorExtenso = (data: Date) => {
     if (!data) return "";
     return format(data, "dd 'de' MMMM 'de' yyyy", { locale: ptBR });
   };
   
-  // Função para formatar data no formato dd/mm/yyyy
   const formatarData = (data: Date) => {
     if (!data) return "";
     return format(data, "dd/MM/yyyy");
   };
   
-  // Função para obter o texto completo do documento
   const getDocumentoTexto = (data: FormData): string => {
-    // Para pessoas casadas, usar o modelo específico
     if (data.estadoCivil === "Casado(a)" && data.nomeConjuge) {
       return `${data.nome}, ${data.nacionalidade || "brasileiro"}, nascido na cidade de ${data.naturalidade}-${data.uf}, aos ${formatarData(data.dataNascimento)}, filho de ${data.filiacao}, profissão ${data.profissao}, portador da Cédula de Identidade nº ${data.rg}-${data.orgaoExpedidor} e inscrito no CPF/MF sob o nº ${data.cpf}, endereço eletrônico: ${data.email}, casado, desde ${formatarData(data.dataCasamento!)}, sob o regime da ${data.regimeBens || "comunhão parcial de bens"}, na vigência da Lei nº 6.515/77, com ${data.nomeConjuge}, ${data.nacionalidade || "brasileira"}, nascida na cidade de ${data.naturalidadeConjuge}-${data.ufConjuge}, aos ${formatarData(data.dataNascimentoConjuge!)}, filha de ${data.filiacaoConjuge}, profissão ${data.profissaoConjuge}, portadora da Cédula de Identidade nº ${data.rgConjuge}-${data.orgaoExpedidorConjuge} e inscrita no CPF/MF sob o nº ${data.cpfConjuge}, endereço eletrônico: ${data.emailConjuge}, residentes e domiciliados na ${data.endereco};`;
     } else {
-      // Para pessoa solteira, manter o formato original
       return `${data.nome}, ${data.nacionalidade ? data.nacionalidade : "brasileiro(a)"}, natural de ${data.naturalidade}-${data.uf}, nascido(a) aos ${formatarDataPorExtenso(data.dataNascimento)}, filho(a) de ${data.filiacao}, profissão ${data.profissao}, estado civil ${data.estadoCivil}, portador(a) da Cédula de Identidade nº ${data.rg}-${data.orgaoExpedidor} e inscrito(a) no CPF/MF sob o nº ${data.cpf}, endereço eletrônico: ${data.email}, residente e domiciliado(a) na ${data.endereco};`;
     }
   };
 
-  // Função para copiar o texto para a área de transferência
   const copiarTexto = () => {
     const texto = document.getElementById('documento-texto')?.innerText;
     if (texto) {
@@ -184,7 +135,6 @@ const ProtocoloGerado: React.FC = () => {
     }
   };
 
-  // Função para baixar o documento como PDF
   const baixarDocumento = () => {
     try {
       const doc = new jsPDF({
@@ -193,34 +143,28 @@ const ProtocoloGerado: React.FC = () => {
         format: "a4"
       });
       
-      // Configurações do documento
       doc.setFont("helvetica", "normal");
       doc.setFontSize(12);
       
-      // Adicionar número de protocolo
       doc.setFontSize(14);
       doc.setFont("helvetica", "bold");
       doc.text(`Protocolo: ${protocoloNumero}`, 20, 20);
       doc.setFont("helvetica", "normal");
       doc.setFontSize(12);
       
-      // Obter o texto do documento
       const texto = document.getElementById('documento-texto')?.innerText || "";
       
-      // Adicionar o texto ao PDF, com quebra de linhas automática
       const margemEsquerda = 20;
-      const margemSuperior = 35; // Aumenta a margem superior para acomodar o protocolo
-      const larguraUtil = doc.internal.pageSize.width - 40; // 20mm de margem em cada lado
+      const margemSuperior = 35;
+      const larguraUtil = doc.internal.pageSize.width - 40;
       
       doc.text(texto, margemEsquerda, margemSuperior, { 
         maxWidth: larguraUtil,
         align: "justify"
       });
       
-      // Nome do arquivo baseado no número de protocolo
       const nomeArquivo = `documento_${protocoloNumero.replace(/-/g, '_').toLowerCase()}.pdf`;
       
-      // Salvar o PDF
       doc.save(nomeArquivo);
       
       toast({
@@ -237,9 +181,59 @@ const ProtocoloGerado: React.FC = () => {
     }
   };
 
-  // Função para voltar à página anterior
   const voltarParaDocumento = () => {
     navigate('/cadastro/documento', { state: { formData } });
+  };
+
+  const prepareProtocoloData = () => {
+    if (!formData) return null;
+    
+    const documentoTexto = getDocumentoTexto(formData);
+    
+    sessionStorage.setItem('documentoGeradoTexto', documentoTexto);
+    console.log("Qualificação completa armazenada do protocolo:", documentoTexto);
+    
+    const registrationData: RegistrationData = {
+      type: formData.estadoCivil === "Casado(a)" ? 'casado' : 'solteiro',
+      personalInfo: {
+        name: formData.nome,
+        birthDate: formData.dataNascimento.toISOString(),
+        cpf: formData.cpf,
+        rg: formData.rg,
+        address: formData.endereco,
+        email: formData.email,
+        phone: "",
+        naturality: formData.naturalidade,
+        uf: formData.uf,
+        filiation: formData.filiacao,
+        profession: formData.profissao,
+        civilStatus: formData.estadoCivil,
+        issuer: formData.orgaoExpedidor,
+        nationality: formData.nacionalidade || "Brasileiro(a)"
+      }
+    };
+    
+    if (formData.estadoCivil === "Casado(a)" && formData.nomeConjuge) {
+      registrationData.spouseInfo = {
+        name: formData.nomeConjuge || "",
+        birthDate: formData.dataNascimentoConjuge?.toISOString() || "",
+        cpf: formData.cpfConjuge || "",
+        rg: formData.rgConjuge || "",
+        naturality: formData.naturalidadeConjuge || "",
+        uf: formData.ufConjuge || "",
+        filiation: formData.filiacaoConjuge || "",
+        profession: formData.profissaoConjuge || "",
+        issuer: formData.orgaoExpedidorConjuge || "",
+        email: formData.emailConjuge || "",
+        marriageDate: formData.dataCasamento?.toISOString() || "",
+        propertyRegime: formData.regimeBens || ""
+      };
+    }
+    
+    return {
+      documentoTexto,
+      registrationData
+    };
   };
 
   if (!formData) return null;
