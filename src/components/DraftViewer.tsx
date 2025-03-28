@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Draft } from '@/types';
 import { Info, ChevronDown, ChevronUp, FileText, AlertTriangle, Edit, Eye, Trash2, Save } from 'lucide-react';
@@ -16,6 +15,7 @@ const DraftViewer: React.FC<DraftViewerProps> = ({ draft, extractedData }) => {
   const [isDataComplete, setIsDataComplete] = useState(true);
   const [editMode, setEditMode] = useState(false);
   const [localData, setLocalData] = useState<Record<string, string>>({});
+  const [processedContent, setProcessedContent] = useState(draft.content);
   const { toast } = useToast();
   
   useEffect(() => {
@@ -32,6 +32,56 @@ const DraftViewer: React.FC<DraftViewerProps> = ({ draft, extractedData }) => {
       setLocalData(cleanedData);
     }
   }, [extractedData]);
+
+  // Process document content to replace placeholders when localData changes
+  useEffect(() => {
+    if (draft.type === 'Inventário' && localData && Object.keys(localData).length > 0) {
+      let content = draft.content;
+      
+      // Replace placeholders with data
+      const placeholderRegex = /¿([^>]+)>/g;
+      content = content.replace(placeholderRegex, (match, placeholder) => {
+        // Map placeholder to the corresponding field in localData
+        const mappings: Record<string, string> = {
+          'nome_do_"de_cujus"': 'falecido',
+          'nome_do_autor_da_heranca': 'falecido',
+          'qualificacao_do_autor_da_heranca': `${localData.profissao || ''}, ${localData.estadoCivil || ''}, ${localData.nacionalidade || ''}`,
+          'nome_do(a)_viuva(o)-meeira(o)': 'conjuge',
+          'regime': 'regimeBens',
+          'data_do_casamento': 'dataCasamento',
+          'data_do_falecimento': 'dataFalecimento',
+          'nome_do_hospital': 'hospitalFalecimento',
+          'cidade': 'cidadeFalecimento',
+          'quantidade_de_filhos': 'numeroFilhos',
+          'nome_dos_filhos': 'nomesFilhos',
+          'nome_do_inventariante': 'inventariante',
+          'DESCRICAO_DO(S)_BEM(NS)': 'descricaoAdicionalImovel',
+          'MATRICULA_Nº': 'matriculaImovel',
+          'nº_do_cartorio': 'cartorioImovel',
+          'monte_mor': 'valorTotalBens',
+          'nome_do(a)_viuvo(a)': 'conjuge',
+          'valor_da_meacao': 'valorTotalMeacao',
+          'incluir_o_nome_dos_herdeiros': 'nomesFilhos',
+          'incluir_o_percentual': 'percentualHerdeiro',
+          'incluir_valor_que_pertence_a_cada_herdeiro': 'valorPorHerdeiro',
+          'nº_da_guia': 'numeroITCMD',
+          'valor': 'valorITCMD',
+          'qualificacao_do(a)_viuvo(a)': `${localData.conjuge || ''}, portador(a) do RG ${localData.rgConjuge || ''} e CPF ${localData.cpfConjuge || ''}`,
+          'qualificacao_do(a)(s)_herdeiro(a)(s)': `${localData.herdeiro1 || ''}, portador(a) do RG ${localData.rg || ''} e CPF ${localData.cpf || ''}`,
+          'nome_do_advogado': 'advogado',
+          'rg_herdeiro1': 'rg',
+          'cpf_herdeiro1': 'cpf',
+        };
+        
+        const fieldName = mappings[placeholder] || placeholder;
+        return localData[fieldName] || match;
+      });
+      
+      setProcessedContent(content);
+    } else {
+      setProcessedContent(draft.content);
+    }
+  }, [draft.content, draft.type, localData]);
   
   const toggleExtractedData = () => {
     setShowExtractedData(!showExtractedData);
@@ -361,7 +411,7 @@ const DraftViewer: React.FC<DraftViewerProps> = ({ draft, extractedData }) => {
   const groupedData = groupExtractedData();
 
   // Check if content contains HTML markup
-  const containsHtml = draft.content.includes('<h1>') || draft.content.includes('<p>');
+  const containsHtml = processedContent.includes('<h1>') || processedContent.includes('<p>');
 
   return (
     <div className="glass rounded-lg shadow-md p-8 max-w-4xl mx-auto">
@@ -489,9 +539,9 @@ const DraftViewer: React.FC<DraftViewerProps> = ({ draft, extractedData }) => {
       
       <div className="legal-text prose prose-legal">
         {containsHtml ? (
-          <div dangerouslySetInnerHTML={{ __html: draft.content }} />
+          <div dangerouslySetInnerHTML={{ __html: processedContent }} />
         ) : (
-          draft.content.split('\n').map((paragraph, index) => (
+          processedContent.split('\n').map((paragraph, index) => (
             <p key={index} className="mb-4 text-justify">
               {paragraph}
             </p>
