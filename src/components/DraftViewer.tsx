@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Draft } from '@/types';
 import { Info, ChevronDown, ChevronUp, FileText, AlertTriangle, Edit, Eye, Trash2, Save } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { useLocation } from 'react-router-dom';
+import { ScrollArea } from './ui/scroll-area';
 
 interface DraftViewerProps {
   draft: Draft;
@@ -18,6 +19,7 @@ const DraftViewer: React.FC<DraftViewerProps> = ({ draft, extractedData }) => {
   const [processedContent, setProcessedContent] = useState(draft.content);
   const { toast } = useToast();
   const location = useLocation();
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
   const isNewDraft = location.pathname.includes('/view/new');
   
   useEffect(() => {
@@ -50,68 +52,71 @@ const DraftViewer: React.FC<DraftViewerProps> = ({ draft, extractedData }) => {
       content = content.replace(placeholderRegex, (match, placeholder) => {
         const placeholderKey = placeholder.trim();
         
-        // Specific handling for heir qualification
         if (placeholderKey === 'qualificacao_do(a)(s)_herdeiro(a)(s)') {
-          // Construct full qualification text from extractedData
+          if (!localData || Object.keys(localData).length === 0) {
+            console.log("Dados locais não encontrados para qualificação do herdeiro");
+            return match;
+          }
+          
+          console.log("Construindo qualificação completa do herdeiro com dados:", localData);
+          
           let qualification = '';
           
-          // Name
-          if (extractedData.nome) {
-            qualification += `${extractedData.nome}, `;
+          if (localData.nome) {
+            qualification += `${localData.nome}`;
+          } else if (localData.herdeiro1) {
+            qualification += `${localData.herdeiro1}`;
+          } else if (localData.falecido) {
+            qualification += `${localData.falecido}`;
           }
           
-          // Nationality
-          if (extractedData.nacionalidade) {
-            qualification += `${extractedData.nacionalidade}, `;
+          if (localData.nacionalidade) {
+            qualification += `, ${localData.nacionalidade}`;
           } else {
-            qualification += 'brasileiro(a), ';
+            qualification += ', brasileiro(a)';
           }
           
-          // Natural origin
-          if (extractedData.naturalidade && extractedData.uf) {
-            qualification += `natural de ${extractedData.naturalidade}-${extractedData.uf}, `;
+          if (localData.naturalidade && localData.uf) {
+            qualification += `, natural de ${localData.naturalidade}-${localData.uf}`;
           }
           
-          // Birth date
-          if (extractedData.dataNascimento) {
-            qualification += `nascido(a) aos ${extractedData.dataNascimento}, `;
+          if (localData.dataNascimento) {
+            qualification += `, nascido(a) aos ${localData.dataNascimento}`;
           }
           
-          // Filiation
-          if (extractedData.filiacao) {
-            qualification += `filho(a) de ${extractedData.filiacao}, `;
+          if (localData.filiacao) {
+            qualification += `, filho(a) de ${localData.filiacao}`;
           }
           
-          // Profession
-          if (extractedData.profissao) {
-            qualification += `profissão ${extractedData.profissao}, `;
+          if (localData.profissao) {
+            qualification += `, profissão ${localData.profissao}`;
           }
           
-          // Civil Status
-          if (extractedData.estadoCivil) {
-            qualification += `estado civil ${extractedData.estadoCivil}, `;
+          if (localData.estadoCivil) {
+            qualification += `, estado civil ${localData.estadoCivil}`;
           }
           
-          // Documents
-          if (extractedData.rg && extractedData.orgaoExpedidor) {
-            qualification += `portador(a) da Cédula de Identidade nº ${extractedData.rg}-${extractedData.orgaoExpedidor}, `;
+          if (localData.rg && localData.orgaoExpedidor) {
+            qualification += `, portador(a) da Cédula de Identidade nº ${localData.rg}-${localData.orgaoExpedidor}`;
           }
           
-          // CPF
-          if (extractedData.cpf) {
-            qualification += `inscrito(a) no CPF/MF sob o nº ${extractedData.cpf}, `;
+          if (localData.cpf) {
+            qualification += `, inscrito(a) no CPF/MF sob o nº ${localData.cpf}`;
           }
           
-          // Email
-          if (extractedData.email) {
-            qualification += `endereço eletrônico: ${extractedData.email}, `;
+          if (localData.email) {
+            qualification += `, endereço eletrônico: ${localData.email}`;
           }
           
-          // Address
-          if (extractedData.endereco) {
-            qualification += `residente e domiciliado(a) na ${extractedData.endereco};`;
+          if (localData.endereco) {
+            qualification += `, residente e domiciliado(a) na ${localData.endereco}`;
           }
           
+          if (!qualification.endsWith(';') && !qualification.endsWith('.')) {
+            qualification += ';';
+          }
+          
+          console.log("Qualificação completa construída:", qualification);
           return qualification;
         }
         
@@ -206,10 +211,6 @@ const DraftViewer: React.FC<DraftViewerProps> = ({ draft, extractedData }) => {
           return `${localData.conjuge || ''}, portador(a) do RG ${localData.rgConjuge || ''} e CPF ${localData.cpfConjuge || ''}`;
         }
         
-        if (placeholderKey === 'qualificacao_do(a)(s)_herdeiro(a)(s)') {
-          return `${localData.herdeiro1 || ''}, portador(a) do RG ${localData.rg || ''} e CPF ${localData.cpf || ''}`;
-        }
-        
         if (placeholderKey === 'nome_do_advogado') {
           return localData.advogado || match;
         }
@@ -233,16 +234,31 @@ const DraftViewer: React.FC<DraftViewerProps> = ({ draft, extractedData }) => {
           }
         }
         
-        console.log(`Placeholder not mapped: ${placeholderKey}`);
+        console.log(`Placeholder não mapeado: ${placeholderKey}`);
         return match;
       });
       
       setProcessedContent(content);
-      console.log("Content processed with replacements");
+      console.log("Conteúdo processado com substituições");
     } else {
       setProcessedContent(draft.content);
     }
   }, [draft.content, draft.type, extractedData, draft.protocoloInfo, isNewDraft]);
+
+  useEffect(() => {
+    const preventScroll = (e: Event) => {
+      if (!e.isTrusted) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+    };
+
+    document.addEventListener('scroll', preventScroll, { passive: false });
+    
+    return () => {
+      document.removeEventListener('scroll', preventScroll);
+    };
+  }, []);
 
   const toggleExtractedData = () => {
     setShowExtractedData(!showExtractedData);
@@ -685,7 +701,7 @@ const DraftViewer: React.FC<DraftViewerProps> = ({ draft, extractedData }) => {
         </div>
       )}
       
-      <div className="legal-text prose prose-legal">
+      <ScrollArea className="legal-text prose prose-legal" ref={scrollAreaRef}>
         {containsHtml ? (
           <div dangerouslySetInnerHTML={{ __html: processedContent }} />
         ) : (
@@ -695,7 +711,7 @@ const DraftViewer: React.FC<DraftViewerProps> = ({ draft, extractedData }) => {
             </p>
           ))
         )}
-      </div>
+      </ScrollArea>
     </div>
   );
 };

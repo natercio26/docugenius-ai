@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { ArrowLeft, Save, FileDown, File } from 'lucide-react';
@@ -93,8 +93,8 @@ VEÍCULO marca ¿marca> , cor ¿cor> , categoria ¿categoria> , combustível
 ¿alcool/gasolina> , placa ¿placa> , chassi nº ¿chassi> , ano ¿ano> , modelo
 ¿modelo> , renavam ¿renavam> , para o qual as partes atribuem o valor de
 ¿valor> , avaliado para fins fiscais no valor de ¿VALOR_R$> ;
-SALDO EM CONTA Saldo em Conta ¿corrente_ou_poupanca> nº ¿numero>
-, Agência nº ¿agencia> , junto ao Banco ¿nome_do_banco> , no valor de
+SALDO EM CONTA Saldo em Conta ¿corrente_ou_poupanca> nº ¿numero> ,
+Agência nº ¿agencia> , junto ao Banco ¿nome_do_banco> , no valor de
 ¿valor> e acréscimos ou deduções se houver;
 ===QUANTIDADE=== cotas de Capital Social da Empresa ===NOME===,
 inscrita no CNPJ sob o nº ======, correspondente a ===PERCENTUAL===
@@ -207,6 +207,23 @@ const ViewDraft: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const isNew = id === 'new';
+
+  // Prevenir rolagem automática da página
+  useEffect(() => {
+    const preventScroll = (e: Event) => {
+      // Prevenir a rolagem automática apenas se não for iniciada pelo usuário
+      if (!e.isTrusted) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+    };
+
+    document.addEventListener('scroll', preventScroll, { passive: false });
+    
+    return () => {
+      document.removeEventListener('scroll', preventScroll);
+    };
+  }, []);
 
   useEffect(() => {
     if (isNew) {

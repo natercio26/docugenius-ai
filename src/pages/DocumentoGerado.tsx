@@ -9,6 +9,7 @@ import Navbar from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface FormData {
   nome: string;
@@ -44,6 +45,21 @@ const DocumentoGerado: React.FC = () => {
       });
       navigate('/cadastro/solteiro');
     }
+    
+    // Prevenir rolagem automática da página
+    const preventScroll = (e: Event) => {
+      // Prevenir a rolagem automática apenas se não for iniciada pelo usuário
+      if (!e.isTrusted) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+    };
+
+    document.addEventListener('scroll', preventScroll, { passive: false });
+    
+    return () => {
+      document.removeEventListener('scroll', preventScroll);
+    };
   }, [formData, navigate, toast]);
 
   // Função para formatar a data por extenso
@@ -55,7 +71,12 @@ const DocumentoGerado: React.FC = () => {
   const gerarQualificacaoCompleta = () => {
     if (!formData) return "";
     
-    let qualificacao = `${formData.nome}, brasileiro(a), natural de ${formData.naturalidade}-${formData.uf}, nascido(a) aos ${formatarDataPorExtenso(formData.dataNascimento)}, filho(a) de ${formData.filiacao}, profissão ${formData.profissao}, estado civil ${formData.estadoCivil}, portador(a) da Cédula de Identidade nº ${formData.rg}-${formData.orgaoExpedidor} e inscrito(a) no CPF/MF sob o nº ${formData.cpf}, endereço eletrônico: ${formData.email}, residente e domiciliado(a) na ${formData.endereco};`;
+    let qualificacao = `${formData.nome}, `;
+    
+    // Adicionar nacionalidade se existir, ou padrão 'brasileiro(a)'
+    qualificacao += formData.nacionalidade ? `${formData.nacionalidade}, ` : "brasileiro(a), ";
+    
+    qualificacao += `natural de ${formData.naturalidade}-${formData.uf}, nascido(a) aos ${formatarDataPorExtenso(formData.dataNascimento)}, filho(a) de ${formData.filiacao}, profissão ${formData.profissao}, estado civil ${formData.estadoCivil}, portador(a) da Cédula de Identidade nº ${formData.rg}-${formData.orgaoExpedidor} e inscrito(a) no CPF/MF sob o nº ${formData.cpf}, endereço eletrônico: ${formData.email}, residente e domiciliado(a) na ${formData.endereco};`;
     
     return qualificacao;
   };
@@ -100,11 +121,11 @@ const DocumentoGerado: React.FC = () => {
             <CardTitle className="text-2xl font-serif">Documento Gerado</CardTitle>
           </CardHeader>
           <CardContent className="py-6">
-            <div className="bg-white p-6 border rounded-md">
+            <ScrollArea className="bg-white p-6 border rounded-md h-[50vh]">
               <p id="documento-texto" className="text-justify leading-relaxed whitespace-pre-line">
                 {gerarQualificacaoCompleta()}
               </p>
-            </div>
+            </ScrollArea>
           </CardContent>
           <CardFooter className="flex justify-between border-t bg-slate-50 p-4">
             <Button 
