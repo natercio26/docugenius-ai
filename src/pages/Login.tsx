@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -33,14 +32,10 @@ import { AlertCircle } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 
 const formSchema = z.object({
-  email: z.string().email({ message: 'Digite um e-mail válido' }),
+  username: z.string().min(3, { message: 'Nome de usuário deve ter pelo menos 3 caracteres' }),
   password: z.string().min(6, { message: 'A senha deve ter pelo menos 6 caracteres' }),
   isAdmin: z.boolean().default(false),
 });
-
-// Check if we're in development mode with no Supabase keys
-const useMockAuth = import.meta.env.DEV && 
-  (!import.meta.env.VITE_SUPABASE_URL || !import.meta.env.VITE_SUPABASE_ANON_KEY);
 
 const Login: React.FC = () => {
   const { login, isAuthenticated, createAdminUser } = useAuth();
@@ -51,7 +46,6 @@ const Login: React.FC = () => {
   const [isCreatingAdmin, setIsCreatingAdmin] = React.useState(false);
   
   useEffect(() => {
-    // Redirect if already authenticated
     if (isAuthenticated) {
       navigate('/');
     }
@@ -60,7 +54,7 @@ const Login: React.FC = () => {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      email: '',
+      username: '',
       password: '',
       isAdmin: false,
     },
@@ -69,7 +63,7 @@ const Login: React.FC = () => {
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     setIsLoading(true);
     try {
-      await login(values.email, values.password, values.isAdmin);
+      await login(values.username, values.password, values.isAdmin);
       
       toast({
         title: "Login realizado com sucesso",
@@ -97,8 +91,7 @@ const Login: React.FC = () => {
         description: "O usuário administrativo foi criado com sucesso",
       });
       
-      // Auto-fill admin credentials for convenience
-      form.setValue('email', 'adminlicencedocumentum');
+      form.setValue('username', 'adminlicencedocumentum');
       form.setValue('password', 'adminlicence');
       form.setValue('isAdmin', true);
       
@@ -138,15 +131,15 @@ const Login: React.FC = () => {
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
               <FormField
                 control={form.control}
-                name="email"
+                name="username"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Email</FormLabel>
+                    <FormLabel>Nome de Usuário</FormLabel>
                     <FormControl>
                       <div className="relative">
                         <User className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                         <Input 
-                          placeholder="seu@email.com" 
+                          placeholder="Nome de usuário" 
                           className="pl-10" 
                           {...field} 
                         />
