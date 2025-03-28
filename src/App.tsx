@@ -17,24 +17,26 @@ const App: React.FC = () => {
   const [queryClient] = React.useState(() => new QueryClient());
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/upload" element={<Upload />} />
-            <Route path="/view/:id" element={<ViewDraft />} />
-            <Route path="/edit/:id" element={<ViewDraft />} />
-            <Route path="/config" element={<ModelConfig />} />
-            <Route path="/cadastro" element={<Cadastro />} />
-            <Route path="/cadastro/solteiro" element={<CadastroSolteiro />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </TooltipProvider>
-      </BrowserRouter>
-    </QueryClientProvider>
+    <React.StrictMode>
+      <QueryClientProvider client={queryClient}>
+        <BrowserRouter>
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="/upload" element={<Upload />} />
+              <Route path="/view/:id" element={<ViewDraft />} />
+              <Route path="/edit/:id" element={<ViewDraft />} />
+              <Route path="/config" element={<ModelConfig />} />
+              <Route path="/cadastro" element={<Cadastro />} />
+              <Route path="/cadastro/solteiro" element={<CadastroSolteiro />} />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </TooltipProvider>
+        </BrowserRouter>
+      </QueryClientProvider>
+    </React.StrictMode>
   );
 };
 
