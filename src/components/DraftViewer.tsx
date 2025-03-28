@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { Draft, ProtocoloData } from '@/types';
 import { Info, ChevronDown, ChevronUp, FileText, AlertTriangle, Edit, Eye, Trash2, Save } from 'lucide-react';
@@ -103,7 +104,7 @@ const DraftViewer: React.FC<DraftViewerProps> = ({ draft, extractedData }) => {
     }
     
     if (personalInfo.filiation) {
-      heirQualification += `, filho(a) de ${personalInfo.filiacao}`;
+      heirQualification += `, filho(a) de ${personalInfo.filiation}`;
     }
     
     if (personalInfo.profession) {
