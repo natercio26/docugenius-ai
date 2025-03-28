@@ -1,4 +1,3 @@
-
 export type DraftType = 
   | 'Inventário' 
   | 'Escritura de Compra e Venda' 
@@ -23,6 +22,7 @@ export interface Draft {
     nome: string;
     cpf: string;
   };
+  extractedData?: Record<string, string>;
 }
 
 export type UploadStatus = 
@@ -87,4 +87,5 @@ export interface ProtocoloData {
   nome: string;
   cpf: string;
   conteudo: string;
+  registrationData?: RegistrationData;
 }

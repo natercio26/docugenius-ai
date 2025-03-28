@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Navbar from '@/components/Navbar';
@@ -35,7 +34,7 @@ const Upload: React.FC = () => {
     setDocumentType(value as DraftType);
   };
 
-  const handleUploadComplete = (files: File[]) => {
+  const handleUploadComplete = (files: File[], extractedData: Record<string, string> = {}) => {
     // Simulate processing
     setStatus('uploading');
     
@@ -54,7 +53,8 @@ const Upload: React.FC = () => {
           type: documentType,
           content: '', // This would be filled with the actual content extracted from the files
           createdAt: new Date(),
-          updatedAt: new Date()
+          updatedAt: new Date(),
+          extractedData: extractedData // Add the extracted data
         };
         
         // Store draft in session storage
