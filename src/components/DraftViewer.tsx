@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Draft } from '@/types';
 import { Info, ChevronDown, ChevronUp, FileText, AlertTriangle, Edit, Eye, Trash2, Save } from 'lucide-react';
@@ -21,7 +20,6 @@ const DraftViewer: React.FC<DraftViewerProps> = ({ draft, extractedData }) => {
   
   useEffect(() => {
     if (extractedData) {
-      // Apply initial data cleaning when data is received
       const cleanedData = Object.entries(extractedData).reduce((acc, [key, value]) => {
         const cleanValue = cleanupDataValue(value);
         if (cleanValue && !isInvalidData(cleanValue)) {
@@ -34,30 +32,36 @@ const DraftViewer: React.FC<DraftViewerProps> = ({ draft, extractedData }) => {
     }
   }, [extractedData]);
 
-  // Process document content to replace placeholders when localData changes
   useEffect(() => {
     if (draft.type === 'Inventário' && localData && Object.keys(localData).length > 0) {
       let content = draft.content;
       
-      // Enhanced placeholder regex to catch all formats including quote marks and parentheses
       const placeholderRegex = /¿([^>]+)>/g;
+      const sectionRegex = /§([^§]+)§/g;
+      
+      content = content.replace(sectionRegex, (match, placeholder) => {
+        const key = placeholder.toLowerCase();
+        
+        if (key === '2herdeiro' || key === '2filho') {
+          return localData['herdeiro1'] || match;
+        }
+        
+        return match;
+      });
       
       content = content.replace(placeholderRegex, (match, placeholder) => {
-        // Map placeholder to the corresponding field in localData
         const placeholderKey = placeholder.trim();
         
-        // Comprehensive mapping table for all placeholders
-        const mappings: Record<string, string | Function> = {
-          // Basic mappings
+        const exactMappings: Record<string, string> = {
           'nome_do_"de_cujus"': 'falecido',
           'nome_do_autor_da_heranca': 'falecido',
-          'qualificacao_do_autor_da_heranca': () => `${localData.profissao || ''}, ${localData.estadoCivil || ''}, ${localData.nacionalidade || ''}`,
           'nome_do(a)_viuva(o)-meeira(o)': 'conjuge',
           'nome_do(a)_viuvo(a)': 'conjuge',
           'viuvo(a)-meeiro(a)': 'conjuge',
           'regime': 'regimeBens',
           'data_do_casamento': 'dataCasamento',
           'data_do_falecimento': 'dataFalecimento',
+          'data_do_falecimento_autor_heranca': 'dataFalecimento',
           'nome_do_hospital': 'hospitalFalecimento',
           'cidade': 'cidadeFalecimento',
           'quantidade_de_filhos': 'numeroFilhos',
@@ -73,13 +77,6 @@ const DraftViewer: React.FC<DraftViewerProps> = ({ draft, extractedData }) => {
           'incluir_valor_que_pertence_a_cada_herdeiro': 'valorPorHerdeiro',
           'nº_da_guia': 'numeroITCMD',
           'valor': 'valorITCMD',
-          'qualificacao_do(a)_viuvo(a)': () => `${localData.conjuge || ''}, portador(a) do RG ${localData.rgConjuge || ''} e CPF ${localData.cpfConjuge || ''}`,
-          'qualificacao_do(a)(s)_herdeiro(a)(s)': () => `${localData.herdeiro1 || ''}, portador(a) do RG ${localData.rg || ''} e CPF ${localData.cpf || ''}`,
-          'nome_do_advogado': 'advogado',
-          'rg_herdeiro1': 'rg',
-          'cpf_herdeiro1': 'cpf',
-          
-          // Additional mapping for other fields
           'nº_da_matricula_da_cert._obito': 'matriculaObito',
           'oficio_do_cartorio': 'cartorioObito',
           'nº_do_termo': 'numeroTermoObito',
@@ -87,7 +84,10 @@ const DraftViewer: React.FC<DraftViewerProps> = ({ draft, extractedData }) => {
           'fls': 'folhasObito',
           'cartorio': 'cartorioObito',
           'data_de_expedicao': 'dataExpedicaoCertidao',
+          'data_de_expedicao_obito': 'dataExpedicaoObito',
+          'data_de_expedicao_casamento': 'dataExpedicaoCasamento',
           'nº__da_certidao': 'numeroCertidao',
+          'nº__da_certidao_receita_federal': 'numeroCertidaoReceita',
           'data_da_emissao': 'dataEmissaoCertidao',
           'incluir_hora_de_emissao': 'horaEmissaoCertidao',
           'validade': 'validadeCertidao',
@@ -102,8 +102,7 @@ const DraftViewer: React.FC<DraftViewerProps> = ({ draft, extractedData }) => {
           'modo_de_aquisicao': 'modoAquisicaoImovel',
           'REGISTRO_Nº': 'numeroRegistroImovel',
           'VALOR_R$': 'valorImovel',
-          
-          // Vehicle information
+          'MATRICULA-': 'matriculaImovel',
           'marca': 'veiculoMarca',
           'cor': 'veiculoCor',
           'categoria': 'veiculoCategoria',
@@ -113,47 +112,66 @@ const DraftViewer: React.FC<DraftViewerProps> = ({ draft, extractedData }) => {
           'ano': 'veiculoAno',
           'modelo': 'veiculoModelo',
           'renavam': 'veiculoRenavam',
-          
-          // Bank information
+          'corrente_ou_poupanca': 'tipoConta',
           'numero': 'numeroConta',
           'agencia': 'agenciaConta',
           'nome_do_banco': 'bancoConta',
-          
-          // Additional templates for complex placeholders
-          'verificar_no_CCIR': 'dadosCCIR',
+          'numero_rural': 'numeroRural',
+          'codigo_rural': 'codigoRural',
+          'numero_do_exercicio': 'numeroExercicio',
+          'area_total': 'areaTotal',
+          'nome_da_fazenda': 'nomeFazenda',
+          'fracao_minima': 'fracaoMinima',
+          'area_registrada': 'areaRegistrada',
           'nirf': 'numeroNIRF',
+          'citar_demais_orgaos': 'demaissOrgaos',
           'quando_feito_por_procuracao': 'infoProcuracao',
-          'citar_demais_orgaos': 'outrosOrgaos',
+          'hora_da_emissao': 'horaEmissao',
+          'nº': 'numeroModuloFiscal',
+          'cidade]': 'cidade',
         };
         
-        // Try to get the value from mappings
-        const mappedField = mappings[placeholderKey];
-        
-        if (typeof mappedField === 'function') {
-          // If it's a function, execute it to get the composed value
-          return mappedField();
-        } else if (typeof mappedField === 'string') {
-          // If it's a direct mapping, get the value from localData
-          return localData[mappedField] || match;
+        if (exactMappings[placeholderKey] && localData[exactMappings[placeholderKey]]) {
+          return localData[exactMappings[placeholderKey]];
         }
         
-        // If no direct mapping found, try to find a similar match
-        const simplifiedKey = placeholderKey
-          .replace(/[()]/g, '') // Remove parentheses
-          .replace(/["']/g, '') // Remove quotes
-          .replace(/[-_]/g, '') // Remove dashes and underscores
-          .toLowerCase();
+        if (placeholderKey === 'qualificacao_do_autor_da_heranca') {
+          return `${localData.profissao || ''}, ${localData.estadoCivil || ''}, ${localData.nacionalidade || ''}`;
+        }
+        
+        if (placeholderKey === 'qualificacao_do(a)_viuvo(a)') {
+          return `${localData.conjuge || ''}, portador(a) do RG ${localData.rgConjuge || ''} e CPF ${localData.cpfConjuge || ''}`;
+        }
+        
+        if (placeholderKey === 'qualificacao_do(a)(s)_herdeiro(a)(s)') {
+          return `${localData.herdeiro1 || ''}, portador(a) do RG ${localData.rg || ''} e CPF ${localData.cpf || ''}`;
+        }
+        
+        if (placeholderKey === 'nome_do_advogado') {
+          return localData.advogado || match;
+        }
+        
+        if (placeholderKey === 'verificar_no_CCIR') {
+          return localData.dadosCCIR || match;
+        }
         
         for (const [key, value] of Object.entries(localData)) {
-          // Check if the simplified key contains the data key
-          const simpleDataKey = key.toLowerCase();
-          if (simplifiedKey.includes(simpleDataKey)) {
+          const simplifiedPlaceholder = placeholderKey
+            .replace(/[()]/g, '')
+            .replace(/["']/g, '')
+            .replace(/[-_]/g, '')
+            .toLowerCase();
+            
+          const simplifiedKey = key.toLowerCase();
+          
+          if (simplifiedPlaceholder.includes(simplifiedKey) || 
+              simplifiedKey.includes(simplifiedPlaceholder)) {
             return value;
           }
         }
         
         console.log(`Placeholder not mapped: ${placeholderKey}`);
-        return match; // Return original placeholder if no mapping found
+        return match;
       });
       
       setProcessedContent(content);
@@ -222,7 +240,6 @@ const DraftViewer: React.FC<DraftViewerProps> = ({ draft, extractedData }) => {
     }
   };
 
-  // Check for missing important data
   useEffect(() => {
     if (draft.type === 'Inventário' && extractedData) {
       const requiredFields = [
@@ -240,7 +257,6 @@ const DraftViewer: React.FC<DraftViewerProps> = ({ draft, extractedData }) => {
     }
   }, [draft.type, localData]);
 
-  // Check if a data value is likely invalid system/placeholder text
   const isInvalidData = (value: string): boolean => {
     if (!value) return true;
     
@@ -280,11 +296,9 @@ const DraftViewer: React.FC<DraftViewerProps> = ({ draft, extractedData }) => {
     return invalidPatterns.some(pattern => pattern.test(value));
   };
 
-  // Clean up and filter out invalid values
   const cleanupDataValue = (value: string): string => {
     if (!value) return '';
     
-    // Remove common OCR errors and clean up the value
     let cleanedValue = value
       .replace(/\s+/g, ' ')
       .replace(/^\s+|\s+$/g, '')
@@ -292,12 +306,10 @@ const DraftViewer: React.FC<DraftViewerProps> = ({ draft, extractedData }) => {
       .replace(/^[.,;:?!@#$%&*()[\]{}/<>+=\-\\|'"°ºª]+/, '')
       .replace(/[.,;:?!@#$%&*()[\]{}/<>+=\-\\|'"°ºª]+$/, '');
     
-    // Remove very short values unless they are dates or numbers
     if (cleanedValue.length < 3 && !/\d/.test(cleanedValue)) {
       return '';
     }
     
-    // Check for system text and placeholders
     const systemTextPatterns = [
       /poder judiciário/i, /certidão/i, /consulta/i, /validar/i, 
       /código/i, /tribunal/i, /recuperação/i, /judicial/i,
@@ -313,11 +325,9 @@ const DraftViewer: React.FC<DraftViewerProps> = ({ draft, extractedData }) => {
     return cleanedValue;
   };
 
-  // Group extracted data by categories according to the specified order
   const groupExtractedData = () => {
     if (!localData || Object.keys(localData).length === 0) return {};
     
-    // Define groups according to the specified order
     const groups: Record<string, Record<string, string>> = {
       "Falecido": {},
       "Qualificações do Falecido": {},
@@ -336,9 +346,7 @@ const DraftViewer: React.FC<DraftViewerProps> = ({ draft, extractedData }) => {
       "Outros": {}
     };
     
-    // Sort data into groups
     Object.entries(localData).forEach(([key, value]) => {
-      // Skip empty, placeholder, or system text values
       if (!value || 
           value === "Não identificado" || 
           value === "Não identificada" || 
@@ -349,7 +357,6 @@ const DraftViewer: React.FC<DraftViewerProps> = ({ draft, extractedData }) => {
         return; 
       }
       
-      // Categorize fields according to the specified order
       if (key === 'falecido' || key === 'autor da herança' || key === 'de cujus') {
         groups["Falecido"][key] = value;
       } else if (key.includes('rg falecido') || key.includes('cpf falecido') || 
@@ -398,7 +405,6 @@ const DraftViewer: React.FC<DraftViewerProps> = ({ draft, extractedData }) => {
       }
     });
     
-    // Remove empty categories
     Object.keys(groups).forEach(key => {
       if (Object.keys(groups[key]).length === 0) {
         delete groups[key];
@@ -408,7 +414,6 @@ const DraftViewer: React.FC<DraftViewerProps> = ({ draft, extractedData }) => {
     return groups;
   };
 
-  // Get human-readable field names
   const getFieldLabel = (key: string): string => {
     const fieldLabels: Record<string, string> = {
       'falecido': 'Falecido(a)',
@@ -490,7 +495,6 @@ const DraftViewer: React.FC<DraftViewerProps> = ({ draft, extractedData }) => {
 
   const groupedData = groupExtractedData();
 
-  // Check if content contains HTML markup
   const containsHtml = processedContent.includes('<h1>') || processedContent.includes('<p>');
 
   return (
