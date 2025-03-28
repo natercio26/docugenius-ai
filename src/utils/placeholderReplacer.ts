@@ -1,3 +1,4 @@
+
 import { Draft } from '@/types';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -261,6 +262,8 @@ export const getPlaceholderMappings = (): Record<string, string> => {
     'hora_da_emissao': 'horaEmissao',
     'nº': 'numeroModuloFiscal',
     'cidade]': 'cidade',
+    // Adicionar mapeamento direto para qualificação do herdeiro
+    'qualificacao_do(a)(s)_herdeiro(a)(s)': 'qualificacaoCompleta'
   };
 };
 
@@ -276,7 +279,13 @@ export const replacePlaceholders = (content: string, localData: Record<string, s
     
     // Caso especial para qualificação do herdeiro
     if (trimmedPlaceholder === 'qualificacao_do(a)(s)_herdeiro(a)(s)') {
-      // Estratégia 1: Verificar diretamente no protocolo
+      // Estratégia 1: Verificar diretamente no localData
+      if (localData['qualificacao_do(a)(s)_herdeiro(a)(s)']) {
+        console.log("Usando a qualificação diretamente do localData:", localData['qualificacao_do(a)(s)_herdeiro(a)(s)']);
+        return localData['qualificacao_do(a)(s)_herdeiro(a)(s)'];
+      }
+      
+      // Estratégia 2: Verificar diretamente no protocolo
       if (draft.protocoloInfo?.numero) {
         const protocolo = getProtocoloByNumero(draft.protocoloInfo.numero);
         if (protocolo && protocolo.textoQualificacao) {
@@ -285,26 +294,26 @@ export const replacePlaceholders = (content: string, localData: Record<string, s
         }
       }
       
-      // Estratégia 2: Verificar nos dados extraídos
+      // Estratégia 3: Verificar nos dados extraídos
       if (extractedData && extractedData.qualificacaoCompleta) {
         console.log("Usando qualificação completa dos dados extraídos:", extractedData.qualificacaoCompleta);
         return extractedData.qualificacaoCompleta;
       }
       
-      // Estratégia 3: Verificar nos dados locais
+      // Estratégia 4: Verificar nos dados locais
       if (localData.qualificacaoCompleta) {
         console.log("Usando qualificação completa dos dados locais:", localData.qualificacaoCompleta);
         return localData.qualificacaoCompleta;
       }
       
-      // Estratégia 4: Verificar se há texto de qualificação no sessionStorage
+      // Estratégia 5: Verificar se há texto de qualificação no sessionStorage
       const storedQualification = sessionStorage.getItem('documentoGeradoTexto');
       if (storedQualification && storedQualification.trim() !== '') {
         console.log("Usando qualificação do sessionStorage:", storedQualification);
         return storedQualification;
       }
       
-      // Estratégia 5: Gerar a partir do protocolo
+      // Estratégia 6: Gerar a partir do protocolo
       if (draft.protocoloInfo && draft.protocoloInfo.numero) {
         const heirQualification = generateHeirQualification(draft.protocoloInfo);
         if (heirQualification) {
@@ -313,7 +322,7 @@ export const replacePlaceholders = (content: string, localData: Record<string, s
         }
       }
       
-      // Estratégia 6: Tentar gerar a partir dos dados locais
+      // Estratégia 7: Tentar gerar a partir dos dados locais
       if (Object.keys(localData).length > 0) {
         const heirQualification = generateQualificationFromLocalData(localData);
         if (heirQualification) {
@@ -328,7 +337,13 @@ export const replacePlaceholders = (content: string, localData: Record<string, s
     }
     
     // Verificar correspondências exatas nos dados
+    if (localData[trimmedPlaceholder]) {
+      console.log(`Match direto encontrado para ${trimmedPlaceholder}:`, localData[trimmedPlaceholder]);
+      return localData[trimmedPlaceholder];
+    }
+    
     if (exactMappings[trimmedPlaceholder] && localData[exactMappings[trimmedPlaceholder]]) {
+      console.log(`Match exato via mapeamento para ${trimmedPlaceholder}:`, localData[exactMappings[trimmedPlaceholder]]);
       return localData[exactMappings[trimmedPlaceholder]];
     }
     
@@ -344,10 +359,12 @@ export const replacePlaceholders = (content: string, localData: Record<string, s
       
       if (simplifiedPlaceholder.includes(simplifiedKey) || 
           simplifiedKey.includes(simplifiedPlaceholder)) {
+        console.log(`Match aproximado encontrado para ${trimmedPlaceholder} via ${key}:`, value);
         return value;
       }
     }
     
+    console.log(`Nenhum match encontrado para ${trimmedPlaceholder}`);
     return match;
   });
 };

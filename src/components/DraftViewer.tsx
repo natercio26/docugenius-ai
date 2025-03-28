@@ -58,7 +58,9 @@ const DraftViewer: React.FC<DraftViewerProps> = ({ draft, extractedData }) => {
           
           // Criar dados locais com a qualificação
           const protocoloData = {
-            qualificacaoCompleta: protocolo.textoQualificacao
+            qualificacaoCompleta: protocolo.textoQualificacao,
+            // Garantir que o placeholder específico também seja substituído diretamente
+            'qualificacao_do(a)(s)_herdeiro(a)(s)': protocolo.textoQualificacao
           };
           
           setLocalData(protocoloData);
@@ -71,7 +73,10 @@ const DraftViewer: React.FC<DraftViewerProps> = ({ draft, extractedData }) => {
           if (qualificacao) {
             console.log("DraftViewer: Qualificação gerada a partir do protocolo:", qualificacao);
             
-            const initialData = { qualificacaoCompleta: qualificacao };
+            const initialData = { 
+              qualificacaoCompleta: qualificacao,
+              'qualificacao_do(a)(s)_herdeiro(a)(s)': qualificacao 
+            };
             setLocalData(initialData);
             return;
           }
@@ -86,7 +91,10 @@ const DraftViewer: React.FC<DraftViewerProps> = ({ draft, extractedData }) => {
     const qualificacaoTexto = sessionStorage.getItem('documentoGeradoTexto');
     if (qualificacaoTexto) {
       console.log("DraftViewer: Qualificação encontrada no sessionStorage:", qualificacaoTexto);
-      const storageData = { qualificacaoCompleta: qualificacaoTexto };
+      const storageData = { 
+        qualificacaoCompleta: qualificacaoTexto,
+        'qualificacao_do(a)(s)_herdeiro(a)(s)': qualificacaoTexto 
+      };
       setLocalData(storageData);
       return;
     }
