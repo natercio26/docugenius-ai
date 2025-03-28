@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Navbar from '@/components/Navbar';
@@ -277,6 +278,81 @@ const sampleExtractedData = {
   rg: "1015311127"
 };
 
+const defaultNewDrafts: Record<DraftType, Draft> = {
+  'Inventário': {
+    id: 'new',
+    title: 'Inventário - Espólio',
+    type: 'Inventário',
+    content: inventarioSampleContent,
+    createdAt: new Date(),
+    updatedAt: new Date()
+  },
+  'Escritura de Compra e Venda': {
+    id: 'new',
+    title: 'Escritura de Compra e Venda - Imóvel',
+    type: 'Escritura de Compra e Venda',
+    content: sampleContent,
+    createdAt: new Date(),
+    updatedAt: new Date()
+  },
+  'Doação': {
+    id: 'new',
+    title: 'Escritura de Doação',
+    type: 'Doação',
+    content: '',
+    createdAt: new Date(),
+    updatedAt: new Date()
+  },
+  'União Estável': {
+    id: 'new',
+    title: 'Declaração de União Estável',
+    type: 'União Estável',
+    content: '',
+    createdAt: new Date(),
+    updatedAt: new Date()
+  },
+  'Procuração': {
+    id: 'new',
+    title: 'Procuração',
+    type: 'Procuração',
+    content: '',
+    createdAt: new Date(),
+    updatedAt: new Date()
+  },
+  'Testamento': {
+    id: 'new',
+    title: 'Testamento',
+    type: 'Testamento',
+    content: '',
+    createdAt: new Date(),
+    updatedAt: new Date()
+  },
+  'Contrato de Aluguel': {
+    id: 'new',
+    title: 'Contrato de Aluguel',
+    type: 'Contrato de Aluguel',
+    content: '',
+    createdAt: new Date(),
+    updatedAt: new Date()
+  },
+  'Contrato Social': {
+    id: 'new',
+    title: 'Contrato Social',
+    type: 'Contrato Social',
+    content: '',
+    createdAt: new Date(),
+    updatedAt: new Date()
+  },
+  'Outro': {
+    id: 'new',
+    title: 'Documento',
+    type: 'Outro',
+    content: '',
+    createdAt: new Date(),
+    updatedAt: new Date()
+  }
+};
+
 const newDraft: Draft = {
   id: 'new',
   title: 'Escritura de Compra e Venda - Apartamento',
@@ -330,21 +406,21 @@ const ViewDraft: React.FC = () => {
             parsedDraft.updatedAt = new Date(parsedDraft.updatedAt);
           }
           
-          if (parsedDraft.type === 'Inventário' as DraftType) {
+          if (parsedDraft.type === 'Inventário') {
             parsedDraft.extractedData = sampleExtractedData;
           }
           
           setDraft(parsedDraft);
         } catch (error) {
           console.error('Error parsing stored draft:', error);
-          const defaultType: DraftType = 'Escritura de Compra e Venda';
-          const defaultDraft = {...defaultNewDrafts[defaultType]};
+          const defaultType: DraftType = 'Inventário';
+          const defaultExtendedDraft = {...defaultNewDrafts[defaultType]} as ExtendedDraft;
           
-          if (defaultType === 'Inventário' as DraftType) {
-            (defaultDraft as ExtendedDraft).extractedData = sampleExtractedData;
+          if (defaultType === 'Inventário') {
+            defaultExtendedDraft.extractedData = sampleExtractedData;
           }
           
-          setDraft(defaultDraft as ExtendedDraft);
+          setDraft(defaultExtendedDraft);
         }
       } else {
         const defaultDraft = {...defaultNewDrafts['Inventário']} as ExtendedDraft;
@@ -355,7 +431,7 @@ const ViewDraft: React.FC = () => {
       const foundDraft = mockDrafts.find(d => d.id === id);
       
       if (foundDraft) {
-        if (foundDraft.type === 'Inventário' as DraftType) {
+        if (foundDraft.type === 'Inventário') {
           const extendedDraft: ExtendedDraft = {
             ...foundDraft, 
             extractedData: sampleExtractedData
