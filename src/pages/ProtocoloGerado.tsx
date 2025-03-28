@@ -27,6 +27,19 @@ interface FormData {
   email: string;
   endereco: string;
   nacionalidade?: string;
+  // Campos específicos para pessoa casada
+  nomeConjuge?: string;
+  naturalidadeConjuge?: string;
+  ufConjuge?: string;
+  dataNascimentoConjuge?: Date;
+  filiacaoConjuge?: string;
+  profissaoConjuge?: string;
+  rgConjuge?: string;
+  orgaoExpedidorConjuge?: string;
+  cpfConjuge?: string;
+  emailConjuge?: string;
+  dataCasamento?: Date;
+  regimeBens?: string;
 }
 
 const ProtocoloGerado: React.FC = () => {
@@ -47,7 +60,13 @@ const ProtocoloGerado: React.FC = () => {
         description: "Por favor, preencha o formulário novamente.",
         variant: "destructive"
       });
-      navigate('/cadastro/solteiro');
+      
+      // Redirecionar para o formulário apropriado com base no estado civil
+      if (formData?.estadoCivil === "Casado(a)") {
+        navigate('/cadastro/casado');
+      } else {
+        navigate('/cadastro/solteiro');
+      }
       return;
     }
     
@@ -63,7 +82,7 @@ const ProtocoloGerado: React.FC = () => {
         
         // Converter formData para o formato de RegistrationData
         const registrationData: RegistrationData = {
-          type: 'solteiro',
+          type: formData.estadoCivil === "Casado(a)" ? 'casado' : 'solteiro',
           personalInfo: {
             name: formData.nome,
             birthDate: formData.dataNascimento.toISOString(),
@@ -79,7 +98,22 @@ const ProtocoloGerado: React.FC = () => {
             civilStatus: formData.estadoCivil,
             issuer: formData.orgaoExpedidor,
             nationality: formData.nacionalidade || "Brasileiro(a)"
-          }
+          },
+          // Adicionar dados do cônjuge se for casado
+          spouseInfo: formData.estadoCivil === "Casado(a)" ? {
+            name: formData.nomeConjuge || "",
+            birthDate: formData.dataNascimentoConjuge?.toISOString() || "",
+            cpf: formData.cpfConjuge || "",
+            rg: formData.rgConjuge || "",
+            naturality: formData.naturalidadeConjuge || "",
+            uf: formData.ufConjuge || "",
+            filiation: formData.filiacaoConjuge || "",
+            profession: formData.profissaoConjuge || "",
+            issuer: formData.orgaoExpedidorConjuge || "",
+            email: formData.emailConjuge || "",
+            marriageDate: formData.dataCasamento?.toISOString() || "",
+            propertyRegime: formData.regimeBens || ""
+          } : undefined
         };
         
         // Salvar o novo protocolo com os dados de registro
@@ -110,12 +144,25 @@ const ProtocoloGerado: React.FC = () => {
 
   // Função para formatar a data por extenso
   const formatarDataPorExtenso = (data: Date) => {
+    if (!data) return "";
     return format(data, "dd 'de' MMMM 'de' yyyy", { locale: ptBR });
+  };
+  
+  // Função para formatar data no formato dd/mm/yyyy
+  const formatarData = (data: Date) => {
+    if (!data) return "";
+    return format(data, "dd/MM/yyyy");
   };
   
   // Função para obter o texto completo do documento
   const getDocumentoTexto = (data: FormData): string => {
-    return `${data.nome}, ${data.nacionalidade || "brasileiro(a)"}, natural de ${data.naturalidade}-${data.uf}, nascido(a) aos ${formatarDataPorExtenso(data.dataNascimento)}, filho(a) de ${data.filiacao}, profissão ${data.profissao}, estado civil ${data.estadoCivil}, portador(a) da Cédula de Identidade nº ${data.rg}-${data.orgaoExpedidor} e inscrito(a) no CPF/MF sob o nº ${data.cpf}, endereço eletrônico: ${data.email}, residente e domiciliado(a) na ${data.endereco};`;
+    // Para pessoas casadas, usar o modelo específico
+    if (data.estadoCivil === "Casado(a)" && data.nomeConjuge) {
+      return `${data.nome}, ${data.nacionalidade || "brasileiro"}, nascido na cidade de ${data.naturalidade}-${data.uf}, aos ${formatarData(data.dataNascimento)}, filho de ${data.filiacao}, profissão ${data.profissao}, portador da Cédula de Identidade nº ${data.rg}-${data.orgaoExpedidor} e inscrito no CPF/MF sob o nº ${data.cpf}, endereço eletrônico: ${data.email}, casado, desde ${formatarData(data.dataCasamento!)}, sob o regime da ${data.regimeBens || "comunhão parcial de bens"}, na vigência da Lei nº 6.515/77, com ${data.nomeConjuge}, ${data.nacionalidade || "brasileira"}, nascida na cidade de ${data.naturalidadeConjuge}-${data.ufConjuge}, aos ${formatarData(data.dataNascimentoConjuge!)}, filha de ${data.filiacaoConjuge}, profissão ${data.profissaoConjuge}, portadora da Cédula de Identidade nº ${data.rgConjuge}-${data.orgaoExpedidorConjuge} e inscrita no CPF/MF sob o nº ${data.cpfConjuge}, endereço eletrônico: ${data.emailConjuge}, residentes e domiciliados na ${data.endereco};`;
+    } else {
+      // Para pessoa solteira, manter o formato original
+      return `${data.nome}, ${data.nacionalidade ? data.nacionalidade : "brasileiro(a)"}, natural de ${data.naturalidade}-${data.uf}, nascido(a) aos ${formatarDataPorExtenso(data.dataNascimento)}, filho(a) de ${data.filiacao}, profissão ${data.profissao}, estado civil ${data.estadoCivil}, portador(a) da Cédula de Identidade nº ${data.rg}-${data.orgaoExpedidor} e inscrito(a) no CPF/MF sob o nº ${data.cpf}, endereço eletrônico: ${data.email}, residente e domiciliado(a) na ${data.endereco};`;
+    }
   };
 
   // Função para copiar o texto para a área de transferência

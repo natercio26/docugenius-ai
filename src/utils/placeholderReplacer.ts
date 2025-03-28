@@ -17,6 +17,12 @@ export const formatarDataPorExtenso = (data: Date) => {
   return format(data, "dd 'de' MMMM 'de' yyyy", { locale: ptBR });
 };
 
+export const formatarData = (data: Date | string) => {
+  if (!data) return "";
+  const dateObj = typeof data === 'string' ? new Date(data) : data;
+  return format(dateObj, "dd/MM/yyyy");
+};
+
 export const generateHeirQualification = (protocoloInfo?: Draft['protocoloInfo']) => {
   if (!protocoloInfo?.numero) {
     console.log("Sem número de protocolo fornecido");
@@ -40,147 +46,169 @@ export const generateHeirQualification = (protocoloInfo?: Draft['protocoloInfo']
     return '';
   }
   
-  const { personalInfo } = protocolo.registrationData;
-  let heirQualification = '';
+  const { personalInfo, spouseInfo, type } = protocolo.registrationData;
   
-  if (personalInfo.name) {
-    heirQualification += `${personalInfo.name}`;
-  }
-  
-  if (personalInfo.nationality) {
-    heirQualification += `, ${personalInfo.nationality}`;
+  // Se for casado e tiver informações do cônjuge, usar o formato específico
+  if (type === 'casado' && spouseInfo && personalInfo.civilStatus === "Casado(a)") {
+    let heirQualification = `${personalInfo.name}, ${personalInfo.nationality || "brasileiro"}, nascido na cidade de ${personalInfo.naturality}-${personalInfo.uf}, aos ${formatarData(personalInfo.birthDate)}, filho de ${personalInfo.filiation}, profissão ${personalInfo.profession}, portador da Cédula de Identidade nº ${personalInfo.rg}-${personalInfo.issuer} e inscrito no CPF/MF sob o nº ${personalInfo.cpf}, endereço eletrônico: ${personalInfo.email}, casado, desde ${formatarData(spouseInfo.marriageDate)}, sob o regime da ${spouseInfo.propertyRegime}, na vigência da Lei nº 6.515/77, com ${spouseInfo.name}, ${personalInfo.nationality || "brasileira"}, nascida na cidade de ${spouseInfo.naturality}-${spouseInfo.uf}, aos ${formatarData(spouseInfo.birthDate)}, filha de ${spouseInfo.filiation}, profissão ${spouseInfo.profession}, portadora da Cédula de Identidade nº ${spouseInfo.rg}-${spouseInfo.issuer} e inscrita no CPF/MF sob o nº ${spouseInfo.cpf}, endereço eletrônico: ${spouseInfo.email}, residentes e domiciliados na ${personalInfo.address};`;
+    
+    console.log("Generated married heir qualification from protocol:", heirQualification);
+    return heirQualification;
   } else {
-    heirQualification += `, brasileiro(a)`;
-  }
-  
-  if (personalInfo.naturality && personalInfo.uf) {
-    heirQualification += `, natural de ${personalInfo.naturality}-${personalInfo.uf}`;
-  }
-  
-  if (personalInfo.birthDate) {
-    try {
-      const birthDate = new Date(personalInfo.birthDate);
-      heirQualification += `, nascido(a) aos ${formatarDataPorExtenso(birthDate)}`;
-    } catch (error) {
-      console.error('Error parsing birth date:', error);
+    // Para solteiro, usar o formato original
+    let heirQualification = '';
+    
+    if (personalInfo.name) {
+      heirQualification += `${personalInfo.name}`;
     }
+    
+    if (personalInfo.nationality) {
+      heirQualification += `, ${personalInfo.nationality}`;
+    } else {
+      heirQualification += `, brasileiro(a)`;
+    }
+    
+    if (personalInfo.naturality && personalInfo.uf) {
+      heirQualification += `, natural de ${personalInfo.naturality}-${personalInfo.uf}`;
+    }
+    
+    if (personalInfo.birthDate) {
+      try {
+        const birthDate = new Date(personalInfo.birthDate);
+        heirQualification += `, nascido(a) aos ${formatarDataPorExtenso(birthDate)}`;
+      } catch (error) {
+        console.error('Error parsing birth date:', error);
+      }
+    }
+    
+    if (personalInfo.filiation) {
+      heirQualification += `, filho(a) de ${personalInfo.filiation}`;
+    }
+    
+    if (personalInfo.profession) {
+      heirQualification += `, profissão ${personalInfo.profession}`;
+    }
+    
+    if (personalInfo.civilStatus) {
+      heirQualification += `, estado civil ${personalInfo.civilStatus}`;
+    }
+    
+    if (personalInfo.rg) {
+      const issuer = personalInfo.issuer || 'SSP';
+      heirQualification += `, portador(a) da Cédula de Identidade nº ${personalInfo.rg}-${issuer}`;
+    }
+    
+    if (personalInfo.cpf) {
+      heirQualification += ` e inscrito(a) no CPF/MF sob o nº ${personalInfo.cpf}`;
+    }
+    
+    if (personalInfo.email) {
+      heirQualification += `, endereço eletrônico: ${personalInfo.email}`;
+    }
+    
+    if (personalInfo.address) {
+      heirQualification += `, residente e domiciliado(a) na ${personalInfo.address}`;
+    }
+    
+    if (!heirQualification.endsWith(';') && !heirQualification.endsWith('.')) {
+      heirQualification += ';';
+    }
+    
+    console.log("Generated single heir qualification from protocol:", heirQualification);
+    return heirQualification;
   }
-  
-  if (personalInfo.filiation) {
-    heirQualification += `, filho(a) de ${personalInfo.filiation}`;
-  }
-  
-  if (personalInfo.profession) {
-    heirQualification += `, profissão ${personalInfo.profession}`;
-  }
-  
-  if (personalInfo.civilStatus) {
-    heirQualification += `, estado civil ${personalInfo.civilStatus}`;
-  }
-  
-  if (personalInfo.rg) {
-    const issuer = personalInfo.issuer || 'SSP';
-    heirQualification += `, portador(a) da Cédula de Identidade nº ${personalInfo.rg}-${issuer}`;
-  }
-  
-  if (personalInfo.cpf) {
-    heirQualification += ` e inscrito(a) no CPF/MF sob o nº ${personalInfo.cpf}`;
-  }
-  
-  if (personalInfo.email) {
-    heirQualification += `, endereço eletrônico: ${personalInfo.email}`;
-  }
-  
-  if (personalInfo.address) {
-    heirQualification += `, residente e domiciliado(a) na ${personalInfo.address}`;
-  }
-  
-  if (!heirQualification.endsWith(';') && !heirQualification.endsWith('.')) {
-    heirQualification += ';';
-  }
-  
-  console.log("Generated heir qualification from protocol:", heirQualification);
-  return heirQualification;
 };
 
 export const generateQualificationFromLocalData = (localData: Record<string, string>) => {
   if (Object.keys(localData).length === 0) return '';
   
-  let heirQualification = '';
+  // Verificar se temos dados de cônjuge para determinar o formato
+  const isCasado = localData.estadoCivil === "Casado(a)" || 
+                  localData.civilStatus === "Casado(a)" || 
+                  (localData.nomeConjuge && localData.nomeConjuge.trim() !== '');
   
-  if (localData.nome) {
-    heirQualification += `${localData.nome}`;
-  }
-  
-  if (localData.nacionalidade) {
-    heirQualification += `, ${localData.nacionalidade}`;
-  } else if (localData.naturality) {
-    heirQualification += `, ${localData.naturality}`;
+  if (isCasado) {
+    // Formato para pessoas casadas
+    let heirQualification = `${localData.nome || localData.name}, ${localData.nacionalidade || localData.nationality || "brasileiro"}, nascido na cidade de ${localData.naturalidade || localData.naturality}-${localData.uf}, aos ${localData.dataNascimento ? formatarData(localData.dataNascimento) : (localData.birthDate ? formatarData(localData.birthDate) : "")}, filho de ${localData.filiacao || localData.filiation}, profissão ${localData.profissao || localData.profession}, portador da Cédula de Identidade nº ${localData.rg}-${localData.orgaoExpedidor || localData.issuer} e inscrito no CPF/MF sob o nº ${localData.cpf}, endereço eletrônico: ${localData.email}, casado, desde ${localData.dataCasamento ? formatarData(localData.dataCasamento) : (localData.marriageDate ? formatarData(localData.marriageDate) : "")}, sob o regime da ${localData.regimeBens || localData.propertyRegime || "comunhão parcial de bens"}, na vigência da Lei nº 6.515/77, com ${localData.nomeConjuge || localData.spouseName}, ${localData.nacionalidadeConjuge || localData.spouseNationality || "brasileira"}, nascida na cidade de ${localData.naturalidadeConjuge || localData.spouseNaturality}-${localData.ufConjuge || localData.spouseUf}, aos ${localData.dataNascimentoConjuge ? formatarData(localData.dataNascimentoConjuge) : (localData.spouseBirthDate ? formatarData(localData.spouseBirthDate) : "")}, filha de ${localData.filiacaoConjuge || localData.spouseFiliation}, profissão ${localData.profissaoConjuge || localData.spouseProfession}, portadora da Cédula de Identidade nº ${localData.rgConjuge || localData.spouseRg}-${localData.orgaoExpedidorConjuge || localData.spouseIssuer} e inscrita no CPF/MF sob o nº ${localData.cpfConjuge || localData.spouseCpf}, endereço eletrônico: ${localData.emailConjuge || localData.spouseEmail}, residentes e domiciliados na ${localData.endereco || localData.address};`;
+    
+    console.log("Generated married heir qualification from local data:", heirQualification);
+    return heirQualification;
   } else {
-    heirQualification += `, brasileiro(a)`;
-  }
-  
-  if (localData.naturalidade && localData.uf) {
-    heirQualification += `, natural de ${localData.naturalidade}-${localData.uf}`;
-  } else if (localData.naturality && localData.uf) {
-    heirQualification += `, natural de ${localData.naturality}-${localData.uf}`;
-  }
-  
-  if (localData.dataNascimento) {
-    heirQualification += `, nascido(a) aos ${localData.dataNascimento}`;
-  } else if (localData.birthDate) {
-    try {
-      const birthDate = new Date(localData.birthDate);
-      heirQualification += `, nascido(a) aos ${formatarDataPorExtenso(birthDate)}`;
-    } catch (error) {
-      console.error('Error parsing birth date:', error);
+    // Formato para solteiros
+    let heirQualification = '';
+    
+    if (localData.nome || localData.name) {
+      heirQualification += `${localData.nome || localData.name}`;
     }
+    
+    if (localData.nacionalidade || localData.nationality) {
+      heirQualification += `, ${localData.nacionalidade || localData.nationality}`;
+    } else if (localData.naturality) {
+      heirQualification += `, brasileiro(a)`;
+    }
+    
+    if (localData.naturalidade && localData.uf) {
+      heirQualification += `, natural de ${localData.naturalidade}-${localData.uf}`;
+    } else if (localData.naturality && localData.uf) {
+      heirQualification += `, natural de ${localData.naturality}-${localData.uf}`;
+    }
+    
+    if (localData.dataNascimento) {
+      heirQualification += `, nascido(a) aos ${localData.dataNascimento}`;
+    } else if (localData.birthDate) {
+      try {
+        const birthDate = new Date(localData.birthDate);
+        heirQualification += `, nascido(a) aos ${formatarDataPorExtenso(birthDate)}`;
+      } catch (error) {
+        console.error('Error parsing birth date:', error);
+      }
+    }
+    
+    if (localData.filiacao) {
+      heirQualification += `, filho(a) de ${localData.filiacao}`;
+    } else if (localData.filiation) {
+      heirQualification += `, filho(a) de ${localData.filiation}`;
+    }
+    
+    if (localData.profissao) {
+      heirQualification += `, profissão ${localData.profissao}`;
+    } else if (localData.profession) {
+      heirQualification += `, profissão ${localData.profession}`;
+    }
+    
+    if (localData.estadoCivil) {
+      heirQualification += `, estado civil ${localData.estadoCivil}`;
+    } else if (localData.civilStatus) {
+      heirQualification += `, estado civil ${localData.civilStatus}`;
+    }
+    
+    if (localData.rg && localData.orgaoExpedidor) {
+      heirQualification += `, portador(a) da Cédula de Identidade nº ${localData.rg}-${localData.orgaoExpedidor}`;
+    } else if (localData.rg && localData.issuer) {
+      heirQualification += `, portador(a) da Cédula de Identidade nº ${localData.rg}-${localData.issuer}`;
+    }
+    
+    if (localData.cpf) {
+      heirQualification += ` e inscrito(a) no CPF/MF sob o nº ${localData.cpf}`;
+    }
+    
+    if (localData.email) {
+      heirQualification += `, endereço eletrônico: ${localData.email}`;
+    }
+    
+    if (localData.endereco) {
+      heirQualification += `, residente e domiciliado(a) na ${localData.endereco}`;
+    } else if (localData.address) {
+      heirQualification += `, residente e domiciliado(a) na ${localData.address}`;
+    }
+    
+    if (!heirQualification.endsWith(';') && !heirQualification.endsWith('.')) {
+      heirQualification += ';';
+    }
+    
+    console.log("Generated single heir qualification from local data:", heirQualification);
+    return heirQualification;
   }
-  
-  if (localData.filiacao) {
-    heirQualification += `, filho(a) de ${localData.filiacao}`;
-  } else if (localData.filiation) {
-    heirQualification += `, filho(a) de ${localData.filiation}`;
-  }
-  
-  if (localData.profissao) {
-    heirQualification += `, profissão ${localData.profissao}`;
-  } else if (localData.profession) {
-    heirQualification += `, profissão ${localData.profession}`;
-  }
-  
-  if (localData.estadoCivil) {
-    heirQualification += `, estado civil ${localData.estadoCivil}`;
-  } else if (localData.civilStatus) {
-    heirQualification += `, estado civil ${localData.civilStatus}`;
-  }
-  
-  if (localData.rg && localData.orgaoExpedidor) {
-    heirQualification += `, portador(a) da Cédula de Identidade nº ${localData.rg}-${localData.orgaoExpedidor}`;
-  } else if (localData.rg && localData.issuer) {
-    heirQualification += `, portador(a) da Cédula de Identidade nº ${localData.rg}-${localData.issuer}`;
-  }
-  
-  if (localData.cpf) {
-    heirQualification += ` e inscrito(a) no CPF/MF sob o nº ${localData.cpf}`;
-  }
-  
-  if (localData.email) {
-    heirQualification += `, endereço eletrônico: ${localData.email}`;
-  }
-  
-  if (localData.endereco) {
-    heirQualification += `, residente e domiciliado(a) na ${localData.endereco}`;
-  } else if (localData.address) {
-    heirQualification += `, residente e domiciliado(a) na ${localData.address}`;
-  }
-  
-  if (!heirQualification.endsWith(';') && !heirQualification.endsWith('.')) {
-    heirQualification += ';';
-  }
-  
-  console.log("Generated heir qualification from local data:", heirQualification);
-  return heirQualification;
 };
 
 export const getPlaceholderMappings = (): Record<string, string> => {

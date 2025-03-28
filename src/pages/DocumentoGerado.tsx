@@ -25,6 +25,19 @@ interface FormData {
   email: string;
   endereco: string;
   nacionalidade?: string;
+  // Campos específicos para pessoa casada
+  nomeConjuge?: string;
+  naturalidadeConjuge?: string;
+  ufConjuge?: string;
+  dataNascimentoConjuge?: Date;
+  filiacaoConjuge?: string;
+  profissaoConjuge?: string;
+  rgConjuge?: string;
+  orgaoExpedidorConjuge?: string;
+  cpfConjuge?: string;
+  emailConjuge?: string;
+  dataCasamento?: Date;
+  regimeBens?: string;
 }
 
 const DocumentoGerado: React.FC = () => {
@@ -43,7 +56,13 @@ const DocumentoGerado: React.FC = () => {
         description: "Por favor, preencha o formulário novamente.",
         variant: "destructive"
       });
-      navigate('/cadastro/solteiro');
+      
+      // Redirecionar para o formulário apropriado com base no estado civil
+      if (formData?.estadoCivil === "Casado(a)") {
+        navigate('/cadastro/casado');
+      } else {
+        navigate('/cadastro/solteiro');
+      }
     }
     
     // Prevenir rolagem automática da página
@@ -64,19 +83,29 @@ const DocumentoGerado: React.FC = () => {
 
   // Função para formatar a data por extenso
   const formatarDataPorExtenso = (data: Date) => {
+    if (!data) return "";
     return format(data, "dd 'de' MMMM 'de' yyyy", { locale: ptBR });
+  };
+  
+  // Função para formatar data no formato dd/mm/yyyy
+  const formatarData = (data: Date) => {
+    if (!data) return "";
+    return format(data, "dd/MM/yyyy");
   };
 
   // Função para gerar a qualificação completa da pessoa
   const gerarQualificacaoCompleta = () => {
     if (!formData) return "";
     
-    let qualificacao = `${formData.nome}, `;
+    let qualificacao = "";
     
-    // Adicionar nacionalidade se existir, ou padrão 'brasileiro(a)'
-    qualificacao += formData.nacionalidade ? `${formData.nacionalidade}, ` : "brasileiro(a), ";
-    
-    qualificacao += `natural de ${formData.naturalidade}-${formData.uf}, nascido(a) aos ${formatarDataPorExtenso(formData.dataNascimento)}, filho(a) de ${formData.filiacao}, profissão ${formData.profissao}, estado civil ${formData.estadoCivil}, portador(a) da Cédula de Identidade nº ${formData.rg}-${formData.orgaoExpedidor} e inscrito(a) no CPF/MF sob o nº ${formData.cpf}, endereço eletrônico: ${formData.email}, residente e domiciliado(a) na ${formData.endereco};`;
+    // Para pessoas casadas, usar o modelo específico
+    if (formData.estadoCivil === "Casado(a)" && formData.nomeConjuge) {
+      qualificacao = `${formData.nome}, ${formData.nacionalidade || "brasileiro"}, nascido na cidade de ${formData.naturalidade}-${formData.uf}, aos ${formatarData(formData.dataNascimento)}, filho de ${formData.filiacao}, profissão ${formData.profissao}, portador da Cédula de Identidade nº ${formData.rg}-${formData.orgaoExpedidor} e inscrito no CPF/MF sob o nº ${formData.cpf}, endereço eletrônico: ${formData.email}, casado, desde ${formatarData(formData.dataCasamento!)}, sob o regime da ${formData.regimeBens || "comunhão parcial de bens"}, na vigência da Lei nº 6.515/77, com ${formData.nomeConjuge}, ${formData.nacionalidade || "brasileira"}, nascida na cidade de ${formData.naturalidadeConjuge}-${formData.ufConjuge}, aos ${formatarData(formData.dataNascimentoConjuge!)}, filha de ${formData.filiacaoConjuge}, profissão ${formData.profissaoConjuge}, portadora da Cédula de Identidade nº ${formData.rgConjuge}-${formData.orgaoExpedidorConjuge} e inscrita no CPF/MF sob o nº ${formData.cpfConjuge}, endereço eletrônico: ${formData.emailConjuge}, residentes e domiciliados na ${formData.endereco};`;
+    } else {
+      // Para pessoa solteira, manter o formato original
+      qualificacao = `${formData.nome}, ${formData.nacionalidade ? formData.nacionalidade : "brasileiro(a)"}, natural de ${formData.naturalidade}-${formData.uf}, nascido(a) aos ${formatarDataPorExtenso(formData.dataNascimento)}, filho(a) de ${formData.filiacao}, profissão ${formData.profissao}, estado civil ${formData.estadoCivil}, portador(a) da Cédula de Identidade nº ${formData.rg}-${formData.orgaoExpedidor} e inscrito(a) no CPF/MF sob o nº ${formData.cpf}, endereço eletrônico: ${formData.email}, residente e domiciliado(a) na ${formData.endereco};`;
+    }
     
     // Armazenar a qualificação no sessionStorage com uma chave específica
     if (qualificacao && qualificacao.trim() !== '') {
