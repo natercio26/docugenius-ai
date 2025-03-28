@@ -82,7 +82,7 @@ const ProtocoloSearch: React.FC<ProtocoloSearchProps> = ({ documentType = 'Inven
         // For inventory, assume registered person is a heir
         if (documentType === 'Inventário') {
           // Create a formatted qualification string for the placeholder
-          const heirQualification = `${personalInfo.name}, ${personalInfo.nationality || 'brasileiro(a)'}, ${personalInfo.civilStatus || 'maior e capaz'}, ${personalInfo.profession || 'profissão não informada'}, portador(a) da cédula de identidade RG nº ${personalInfo.rg}, inscrito(a) no CPF/MF sob nº ${personalInfo.cpf}, residente e domiciliado(a) ${personalInfo.address}`;
+          const heirQualification = `${personalInfo.name}, ${personalInfo.naturality ? personalInfo.naturality : 'brasileiro(a)'}, ${personalInfo.civilStatus || 'maior e capaz'}, ${personalInfo.profession || 'profissão não informada'}, portador(a) da cédula de identidade RG nº ${personalInfo.rg}, inscrito(a) no CPF/MF sob nº ${personalInfo.cpf}, residente e domiciliado(a) ${personalInfo.address}`;
           
           // Replace placeholders in the document content
           documentContent = documentContent.replace(/¿qualificacao_do\(a\)\(s\)_herdeiro\(a\)\(s\)>/g, heirQualification);
