@@ -210,7 +210,7 @@ const DraftViewer: React.FC<DraftViewerProps> = ({ draft, extractedData }) => {
           console.log("- draft.extractedData.qualificacaoCompleta:", 
             draft.extractedData.qualificacaoCompleta.substring(0, 50) + "...");
         }
-        if (localData.qualificacaoCompleta) {
+        if (localData && localData.qualificacaoCompleta) {
           console.log("- localData.qualificacaoCompleta:", 
             localData.qualificacaoCompleta.substring(0, 50) + "...");
         }
