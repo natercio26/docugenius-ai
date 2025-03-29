@@ -1,7 +1,7 @@
+
 import { Draft } from '@/types';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { getProtocoloByNumero } from './protocoloStorage';
 
 const cleanupDataValue = (value: string): string => {
   if (!value) return '';
@@ -41,188 +41,16 @@ const formatPropertyRegime = (regime: string): string => {
   return regimeMap[regime] || regime.replace("_", " ").toLowerCase();
 };
 
-export const generateHeirQualification = (protocoloInfo?: Draft['protocoloInfo']) => {
-  if (!protocoloInfo?.numero) {
-    console.log("Sem número de protocolo fornecido");
-    return '';
-  }
-  
-  const protocolo = getProtocoloByNumero(protocoloInfo.numero);
-  if (!protocolo) {
-    console.log(`Protocolo ${protocoloInfo.numero} não encontrado`);
-    return '';
-  }
-  
-  if (protocolo.textoQualificacao) {
-    console.log("Usando texto de qualificação do protocolo:", protocolo.textoQualificacao);
-    return protocolo.textoQualificacao;
-  }
-  
-  if (!protocolo.registrationData) {
-    console.log(`Protocolo ${protocoloInfo.numero} sem dados de registro`);
-    return '';
-  }
-  
-  const { personalInfo, spouseInfo, type } = protocolo.registrationData;
-  
-  if (type === 'casado' && spouseInfo && personalInfo.civilStatus === "Casado(a)") {
-    let heirQualification = `${personalInfo.name}, ${personalInfo.nationality || "brasileiro"}, nascido na cidade de ${personalInfo.naturality}-${personalInfo.uf}, aos ${formatarData(personalInfo.birthDate)}, filho de ${personalInfo.filiation}, profissão ${personalInfo.profession}, portador da Cédula de Identidade nº ${personalInfo.rg}-${personalInfo.issuer} e inscrito no CPF/MF sob o nº ${personalInfo.cpf}, endereço eletrônico: ${personalInfo.email}, casado, desde ${spouseInfo.marriageDate ? formatarData(spouseInfo.marriageDate) : ""}, sob o regime da ${formatPropertyRegime(spouseInfo.propertyRegime || "")}, na vigência da Lei nº 6.515/77, com ${spouseInfo.name}, ${personalInfo.nationality || "brasileira"}, nascida na cidade de ${spouseInfo.naturality}-${spouseInfo.uf}, aos ${formatarData(spouseInfo.birthDate)}, filha de ${spouseInfo.filiation}, profissão ${spouseInfo.profession}, portadora da Cédula de Identidade nº ${spouseInfo.rg}-${spouseInfo.issuer} e inscrita no CPF/MF sob o nº ${spouseInfo.cpf}, endereço eletrônico: ${spouseInfo.email || ""}, residentes e domiciliados na ${personalInfo.address};`;
-    
-    console.log("Generated married heir qualification from protocol:", heirQualification);
-    return heirQualification;
-  } else {
-    let heirQualification = '';
-    
-    if (personalInfo.name) {
-      heirQualification += `${personalInfo.name}`;
-    }
-    
-    if (personalInfo.nationality) {
-      heirQualification += `, ${personalInfo.nationality}`;
-    } else {
-      heirQualification += `, brasileiro(a)`;
-    }
-    
-    if (personalInfo.naturality && personalInfo.uf) {
-      heirQualification += `, natural de ${personalInfo.naturality}-${personalInfo.uf}`;
-    }
-    
-    if (personalInfo.birthDate) {
-      try {
-        const birthDate = new Date(personalInfo.birthDate);
-        heirQualification += `, nascido(a) aos ${formatarDataPorExtenso(birthDate)}`;
-      } catch (error) {
-        console.error('Error parsing birth date:', error);
-      }
-    }
-    
-    if (personalInfo.filiation) {
-      heirQualification += `, filho(a) de ${personalInfo.filiation}`;
-    }
-    
-    if (personalInfo.profession) {
-      heirQualification += `, profissão ${personalInfo.profession}`;
-    }
-    
-    if (personalInfo.civilStatus) {
-      heirQualification += `, estado civil ${personalInfo.civilStatus}`;
-    }
-    
-    if (personalInfo.rg) {
-      const issuer = personalInfo.issuer || 'SSP';
-      heirQualification += `, portador(a) da Cédula de Identidade nº ${personalInfo.rg}-${issuer}`;
-    }
-    
-    if (personalInfo.cpf) {
-      heirQualification += ` e inscrito(a) no CPF/MF sob o nº ${personalInfo.cpf}`;
-    }
-    
-    if (personalInfo.email) {
-      heirQualification += `, endereço eletrônico: ${personalInfo.email}`;
-    }
-    
-    if (personalInfo.address) {
-      heirQualification += `, residente e domiciliado(a) na ${personalInfo.address}`;
-    }
-    
-    if (!heirQualification.endsWith(';') && !heirQualification.endsWith('.')) {
-      heirQualification += ';';
-    }
-    
-    console.log("Generated single heir qualification from protocol:", heirQualification);
-    return heirQualification;
-  }
+export const generateHeirQualification = (): string => {
+  // This function now returns empty string as we don't want to generate 
+  // qualification data from registration/protocol data
+  return '';
 };
 
-export const generateQualificationFromLocalData = (localData: Record<string, string>) => {
-  if (Object.keys(localData).length === 0) return '';
-  
-  const isCasado = localData.estadoCivil === "Casado(a)" || 
-                  localData.civilStatus === "Casado(a)" || 
-                  (localData.nomeConjuge && localData.nomeConjuge.trim() !== '');
-  
-  if (isCasado) {
-    const propertyRegime = formatPropertyRegime(localData.regimeBens || localData.propertyRegime || "comunhao_parcial");
-    
-    let heirQualification = `${localData.nome || localData.name}, ${localData.nacionalidade || localData.nationality || "brasileiro"}, nascido na cidade de ${localData.naturalidade || localData.naturality}-${localData.uf}, aos ${localData.dataNascimento ? formatarData(localData.dataNascimento) : (localData.birthDate ? formatarData(localData.birthDate) : "")}, filho de ${localData.filiacao || localData.filiation}, profissão ${localData.profissao || localData.profession}, portador da Cédula de Identidade nº ${localData.rg}-${localData.orgaoExpedidor || localData.issuer} e inscrito no CPF/MF sob o nº ${localData.cpf}, endereço eletrônico: ${localData.email}, casado, desde ${localData.dataCasamento ? formatarData(localData.dataCasamento) : (localData.marriageDate ? formatarData(localData.marriageDate) : "")}, sob o regime da ${propertyRegime}, na vigência da Lei nº 6.515/77, com ${localData.nomeConjuge || localData.spouseName}, ${localData.nacionalidadeConjuge || localData.spouseNationality || "brasileira"}, nascida na cidade de ${localData.naturalidadeConjuge || localData.spouseNaturality}-${localData.ufConjuge || localData.spouseUf}, aos ${localData.dataNascimentoConjuge ? formatarData(localData.dataNascimentoConjuge) : (localData.spouseBirthDate ? formatarData(localData.spouseBirthDate) : "")}, filha de ${localData.filiacaoConjuge || localData.spouseFiliation}, profissão ${localData.profissaoConjuge || localData.spouseProfession}, portadora da Cédula de Identidade nº ${localData.rgConjuge || localData.spouseRg}-${localData.orgaoExpedidorConjuge || localData.spouseIssuer} e inscrita no CPF/MF sob o nº ${localData.cpfConjuge || localData.spouseCpf}, endereço eletrônico: ${localData.emailConjuge || localData.spouseEmail}, residentes e domiciliados na ${localData.endereco || localData.address};`;
-    
-    console.log("Generated married heir qualification from local data:", heirQualification);
-    return heirQualification;
-  } else {
-    let heirQualification = '';
-    
-    if (localData.nome || localData.name) {
-      heirQualification += `${localData.nome || localData.name}`;
-    }
-    
-    if (localData.nacionalidade || localData.nationality) {
-      heirQualification += `, ${localData.nacionalidade || localData.nationality}`;
-    } else if (localData.naturality) {
-      heirQualification += `, brasileiro(a)`;
-    }
-    
-    if (localData.naturalidade && localData.uf) {
-      heirQualification += `, natural de ${localData.naturalidade}-${localData.uf}`;
-    } else if (localData.naturality && localData.uf) {
-      heirQualification += `, natural de ${localData.naturalidade}-${localData.uf}`;
-    }
-    
-    if (localData.dataNascimento) {
-      heirQualification += `, nascido(a) aos ${localData.dataNascimento}`;
-    } else if (localData.birthDate) {
-      try {
-        const birthDate = new Date(localData.birthDate);
-        heirQualification += `, nascido(a) aos ${formatarDataPorExtenso(birthDate)}`;
-      } catch (error) {
-        console.error('Error parsing birth date:', error);
-      }
-    }
-    
-    if (localData.filiacao) {
-      heirQualification += `, filho(a) de ${localData.filiacao}`;
-    } else if (localData.filiation) {
-      heirQualification += `, filho(a) de ${localData.filiation}`;
-    }
-    
-    if (localData.profissao) {
-      heirQualification += `, profissão ${localData.profissao}`;
-    } else if (localData.profession) {
-      heirQualification += `, profissão ${localData.profession}`;
-    }
-    
-    if (localData.estadoCivil) {
-      heirQualification += `, estado civil ${localData.estadoCivil}`;
-    } else if (localData.civilStatus) {
-      heirQualification += `, estado civil ${localData.civilStatus}`;
-    }
-    
-    if (localData.rg && localData.orgaoExpedidor) {
-      heirQualification += `, portador(a) da Cédula de Identidade nº ${localData.rg}-${localData.orgaoExpedidor}`;
-    } else if (localData.rg && localData.issuer) {
-      heirQualification += `, portador(a) da Cédula de Identidade nº ${localData.rg}-${localData.issuer}`;
-    }
-    
-    if (localData.cpf) {
-      heirQualification += ` e inscrito(a) no CPF/MF sob o nº ${localData.cpf}`;
-    }
-    
-    if (localData.email) {
-      heirQualification += `, endereço eletrônico: ${localData.email}`;
-    }
-    
-    if (localData.endereco) {
-      heirQualification += `, residente e domiciliado(a) na ${localData.endereco}`;
-    } else if (localData.address) {
-      heirQualification += `, residente e domiciliado(a) na ${localData.address}`;
-    }
-    
-    if (!heirQualification.endsWith(';') && !heirQualification.endsWith('.')) {
-      heirQualification += ';';
-    }
-    
-    console.log("Generated single heir qualification from local data:", heirQualification);
-    return heirQualification;
-  }
+export const generateQualificationFromLocalData = (localData: Record<string, string>): string => {
+  // This function now returns empty string as we don't want to generate 
+  // qualification data from registration data
+  return '';
 };
 
 export const getPlaceholderMappings = (): Record<string, string> => {
@@ -317,100 +145,30 @@ export const replacePlaceholders = (content: string, localData: Record<string, s
   
   let resultContent = content;
   
-  const qualificacaoPlaceholder = '¿qualificacao_do(a)(s)_herdeiro(a)(s)';
-  
-  if (resultContent.includes(qualificacaoPlaceholder)) {
-    console.log("Tentando substituir diretamente o placeholder de qualificação");
-    
-    let qualificacaoTexto = '';
-    
-    if (localData['qualificacao_do(a)(s)_herdeiro(a)(s)']) {
-      qualificacaoTexto = localData['qualificacao_do(a)(s)_herdeiro(a)(s)'];
-      console.log("Usando a qualificação diretamente do localData:", qualificacaoTexto);
-    }
-    else if (localData.qualificacaoCompleta) {
-      qualificacaoTexto = localData.qualificacaoCompleta;
-      console.log("Usando qualificação completa dos dados locais:", qualificacaoTexto);
-    }
-    else if (draft.protocoloInfo?.numero) {
-      const protocolo = getProtocoloByNumero(draft.protocoloInfo.numero);
-      if (protocolo && protocolo.textoQualificacao) {
-        qualificacaoTexto = protocolo.textoQualificacao;
-        console.log("Usando qualificação diretamente do protocolo:", qualificacaoTexto);
-      }
-    }
-    else if (extractedData && extractedData.qualificacaoCompleta) {
-      qualificacaoTexto = extractedData.qualificacaoCompleta;
-      console.log("Usando qualificação completa dos dados extraídos:", qualificacaoTexto);
-    }
-    else {
-      const storedQualification = sessionStorage.getItem('documentoGeradoTexto');
-      if (storedQualification && storedQualification.trim() !== '') {
-        qualificacaoTexto = storedQualification;
-        console.log("Usando qualificação do sessionStorage:", qualificacaoTexto);
-      }
-    }
-    
-    if (qualificacaoTexto) {
-      resultContent = resultContent.replace(qualificacaoPlaceholder, qualificacaoTexto);
-      console.log("replacePlaceholders: Substituted qualificacao placeholder with text directly");
-    } else {
-      console.log("replacePlaceholders: No qualification text found to substitute");
-    }
+  // Handle current date for "Data_lav1" placeholder
+  if (resultContent.includes('¿Data_lav1>')) {
+    const currentDate = formatarData(new Date());
+    resultContent = resultContent.replace('¿Data_lav1>', currentDate);
+    console.log("replacePlaceholders: Replaced Data_lav1 with current date:", currentDate);
   }
   
   resultContent = resultContent.replace(placeholderRegex, (match, placeholder) => {
     const trimmedPlaceholder = placeholder.trim();
     console.log(`Substituindo ${trimmedPlaceholder}`);
     
-    if (trimmedPlaceholder === 'qualificacao_do(a)(s)_herdeiro(a)(s)') {
-      let qualificacaoTexto = '';
-      
-      if (localData['qualificacao_do(a)(s)_herdeiro(a)(s)']) {
-        qualificacaoTexto = localData['qualificacao_do(a)(s)_herdeiro(a)(s)'];
-        console.log("Usando a qualificação diretamente do localData:", qualificacaoTexto);
-      }
-      else if (localData.qualificacaoCompleta) {
-        qualificacaoTexto = localData.qualificacaoCompleta;
-        console.log("Usando qualificação completa dos dados locais:", qualificacaoTexto);
-      }
-      else if (draft.protocoloInfo?.numero) {
-        const protocolo = getProtocoloByNumero(draft.protocoloInfo.numero);
-        if (protocolo && protocolo.textoQualificacao) {
-          qualificacaoTexto = protocolo.textoQualificacao;
-          console.log("Usando qualificação diretamente do protocolo:", qualificacaoTexto);
-        }
-      }
-      else if (extractedData && extractedData.qualificacaoCompleta) {
-        qualificacaoTexto = extractedData.qualificacaoCompleta;
-        console.log("Usando qualificação completa dos dados extraídos:", qualificacaoTexto);
-      }
-      else {
-        const storedQualification = sessionStorage.getItem('documentoGeradoTexto');
-        if (storedQualification && storedQualification.trim() !== '') {
-          qualificacaoTexto = storedQualification;
-          console.log("Usando qualificação do sessionStorage:", qualificacaoTexto);
-        }
-      }
-      
-      if (qualificacaoTexto) {
-        return qualificacaoTexto;
-      } else {
-        console.log("Não foi possível gerar a qualificação - mantendo placeholder original");
-        return match;
-      }
-    }
-    
+    // Check direct match in local data
     if (localData[trimmedPlaceholder]) {
       console.log(`Match direto encontrado para ${trimmedPlaceholder}:`, localData[trimmedPlaceholder]);
       return localData[trimmedPlaceholder];
     }
     
+    // Check exact mappings
     if (exactMappings[trimmedPlaceholder] && localData[exactMappings[trimmedPlaceholder]]) {
       console.log(`Match exato via mapeamento para ${trimmedPlaceholder}:`, localData[exactMappings[trimmedPlaceholder]]);
       return localData[exactMappings[trimmedPlaceholder]];
     }
     
+    // Check for approximated matches
     for (const [key, value] of Object.entries(localData)) {
       const simplifiedPlaceholder = trimmedPlaceholder
         .replace(/[()]/g, '')
@@ -427,6 +185,7 @@ export const replacePlaceholders = (content: string, localData: Record<string, s
       }
     }
     
+    // Special case for current date
     if (trimmedPlaceholder === 'Data_lav1') {
       const today = formatarData(new Date());
       console.log(`Usando data atual para ${trimmedPlaceholder}:`, today);
@@ -443,7 +202,7 @@ export const replacePlaceholders = (content: string, localData: Record<string, s
 };
 
 export const processLocalData = (extractedData?: Record<string, string>, draft?: Draft): Record<string, string> => {
-  if (!extractedData && (!draft || !draft.protocoloInfo)) return {};
+  if (!extractedData) return {};
   
   const cleanedData = extractedData 
     ? Object.entries(extractedData).reduce((acc, [key, value]) => {

@@ -33,8 +33,7 @@ const ViewDraft: React.FC = () => {
       const loadedDraft = loadDraftData(isNew);
       
       if (loadedDraft) {
-        console.log("ViewDraft: Loaded draft with protocol info:", loadedDraft.protocoloInfo);
-        console.log("ViewDraft: Draft contains extracted data:", loadedDraft.extractedData);
+        console.log("ViewDraft: Loaded draft data successfully");
         console.log("ViewDraft: Draft content contains qualificacao placeholder:", 
           loadedDraft.content?.includes("¿qualificacao_do(a)(s)_herdeiro(a)(s)>"));
         

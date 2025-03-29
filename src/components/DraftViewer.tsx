@@ -5,10 +5,8 @@ import { useLocation } from 'react-router-dom';
 import DraftContent from './DraftContent';
 import { 
   processLocalData, 
-  replacePlaceholders,
-  generateHeirQualification
+  replacePlaceholders
 } from '@/utils/placeholderReplacer';
-import { getProtocoloByNumero } from '@/utils/protocoloStorage';
 import { toast } from 'sonner';
 
 interface DraftViewerProps {
@@ -35,98 +33,41 @@ const DraftViewer: React.FC<DraftViewerProps> = ({ draft, extractedData }) => {
   
   // Process extracted data into local data
   useEffect(() => {
-    console.log("DraftViewer: Inicializando com protocolo:", draft.protocoloInfo);
+    console.log("DraftViewer: Initializing with extracted data");
     
     // Clear previous local data
     setLocalData({});
     
-    // Primeiro, verificar dados extraídos diretamente no draft
+    // Only use data extracted directly from uploaded documents
     if (draft.extractedData && Object.keys(draft.extractedData).length > 0) {
-      console.log("DraftViewer: Usando dados extraídos do draft:", draft.extractedData);
+      console.log("DraftViewer: Using data extracted from documents:", draft.extractedData);
       setLocalData(draft.extractedData);
       return;
     }
     
-    // Se não tem dados no draft, verificar diretamente no protocolo se existir
-    if (draft.protocoloInfo?.numero) {
-      console.log("DraftViewer: Verificando protocolo número:", draft.protocoloInfo.numero);
-      const protocolo = getProtocoloByNumero(draft.protocoloInfo.numero);
-      
-      if (protocolo) {
-        console.log("DraftViewer: Protocolo encontrado:", protocolo.numero);
-        toast.success(`Protocolo ${protocolo.numero} carregado com sucesso`);
-        
-        // Verificar se o protocolo tem texto de qualificação
-        if (protocolo.textoQualificacao) {
-          console.log("DraftViewer: Texto de qualificação encontrado no protocolo:", protocolo.textoQualificacao);
-          
-          // Criar dados locais com a qualificação
-          const protocoloData = {
-            qualificacaoCompleta: protocolo.textoQualificacao,
-            // Garantir que o placeholder específico também seja substituído diretamente
-            'qualificacao_do(a)(s)_herdeiro(a)(s)': protocolo.textoQualificacao
-          };
-          
-          setLocalData(protocoloData);
-          return;
-        }
-        
-        // Se não tem texto pronto, mas tem dados de registro, tentar gerar
-        if (draft.protocoloInfo) {
-          const qualificacao = generateHeirQualification(draft.protocoloInfo);
-          if (qualificacao) {
-            console.log("DraftViewer: Qualificação gerada a partir do protocolo:", qualificacao);
-            
-            const initialData = { 
-              qualificacaoCompleta: qualificacao,
-              'qualificacao_do(a)(s)_herdeiro(a)(s)': qualificacao 
-            };
-            setLocalData(initialData);
-            return;
-          }
-        }
-      } else {
-        console.log("DraftViewer: Protocolo não encontrado:", draft.protocoloInfo.numero);
-        toast.error(`Protocolo ${draft.protocoloInfo.numero} não encontrado`);
-      }
-    }
-    
-    // Verificar qualificação no sessionStorage se não encontrou no protocolo
-    const qualificacaoTexto = sessionStorage.getItem('documentoGeradoTexto');
-    if (qualificacaoTexto) {
-      console.log("DraftViewer: Qualificação encontrada no sessionStorage:", qualificacaoTexto);
-      const storageData = { 
-        qualificacaoCompleta: qualificacaoTexto,
-        'qualificacao_do(a)(s)_herdeiro(a)(s)': qualificacaoTexto 
-      };
-      setLocalData(storageData);
-      return;
-    }
-    
-    // Se chegou aqui e temos dados extraídos, processar normalmente
+    // If we have extracted data from props, process it
     if (extractedData) {
       const cleanedData = processLocalData(extractedData, draft);
-      console.log("DraftViewer: Definindo dados locais processados:", cleanedData);
+      console.log("DraftViewer: Setting processed local data from props:", cleanedData);
       setLocalData(cleanedData);
     } else {
-      console.log("DraftViewer: Sem dados extraídos disponíveis");
+      console.log("DraftViewer: No extracted data available");
       setLocalData({});
     }
-  }, [draft.protocoloInfo, draft.extractedData, extractedData, draft]);
+  }, [draft.extractedData, extractedData, draft]);
 
   // Process content with placeholders
   useEffect(() => {
     if (draft.content) {
-      // Obter todas as possíveis fontes de dados
-      const mergedData = { 
+      // Use data extracted from documents only
+      const dataForReplacement = { 
         ...localData,
         ...(draft.extractedData || {})
       };
       
-      console.log("DraftViewer: Dados finais para substituição:", mergedData);
-      console.log("DraftViewer: Qualificação no mergedData:", mergedData['qualificacao_do(a)(s)_herdeiro(a)(s)']);
+      console.log("DraftViewer: Data for placeholder replacement:", dataForReplacement);
       
-      const processedText = replacePlaceholders(draft.content, mergedData, draft, extractedData);
+      const processedText = replacePlaceholders(draft.content, dataForReplacement, draft, extractedData);
       console.log("DraftViewer: Content after replacement (preview):", 
         processedText.substring(0, 100) + "..." + 
         (processedText.includes("¿qualificacao_do(a)(s)_herdeiro(a)(s)>") ? 
@@ -136,7 +77,7 @@ const DraftViewer: React.FC<DraftViewerProps> = ({ draft, extractedData }) => {
     } else {
       setProcessedContent('');
     }
-  }, [draft.content, draft.protocoloInfo, localData, extractedData, draft]);
+  }, [draft.content, localData, extractedData, draft]);
 
   return (
     <div className="bg-white border rounded-md shadow-sm overflow-hidden">
