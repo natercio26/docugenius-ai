@@ -37,6 +37,13 @@ const ViewDraft: React.FC = () => {
         console.log("ViewDraft: Draft content contains qualificacao placeholder:", 
           loadedDraft.content?.includes("¿qualificacao_do(a)(s)_herdeiro(a)(s)>"));
         
+        if (loadedDraft.extractedData) {
+          console.log("ViewDraft: Draft has extracted data with keys:", 
+            Object.keys(loadedDraft.extractedData));
+        } else {
+          console.log("ViewDraft: Draft does not have extracted data");
+        }
+        
         setDraft(loadedDraft);
       } else if (isNew) {
         toast.error('Nenhum rascunho foi gerado');
@@ -67,7 +74,7 @@ const ViewDraft: React.FC = () => {
 
   // Prepare data for the draft viewer
   const extractedDataToPass = prepareDraftData(draft);
-  console.log("ViewDraft: Prepared data for draft viewer:", extractedDataToPass);
+  console.log("ViewDraft: Prepared extracted data for draft viewer:", extractedDataToPass);
 
   return (
     <div className="min-h-screen bg-background">
@@ -81,7 +88,7 @@ const ViewDraft: React.FC = () => {
           
           <DraftViewer 
             draft={draft} 
-            extractedData={draft.extractedData || extractedDataToPass} 
+            extractedData={extractedDataToPass} 
           />
         </div>
       </main>

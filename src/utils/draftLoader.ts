@@ -31,21 +31,13 @@ export const loadDraftData = (isNew: boolean): Draft | null => {
 
 export const prepareDraftData = (draft: Draft): Record<string, string> | undefined => {
   try {
-    // Create a base object to collect all data
-    const allData: Record<string, string> = {};
-    
     // Use only data extracted from documents
-    if (draft.extractedData) {
+    if (draft.extractedData && Object.keys(draft.extractedData).length > 0) {
       console.log("Using data extracted from documents:", draft.extractedData);
-      Object.assign(allData, draft.extractedData);
+      return draft.extractedData;
     }
     
-    // Return the data if we have any
-    if (Object.keys(allData).length > 0) {
-      console.log("prepareDraftData: Returning extracted data with keys:", Object.keys(allData));
-      return allData;
-    }
-    
+    console.log("prepareDraftData: No extracted data available");
     return undefined;
   } catch (error) {
     console.error("Erro ao preparar dados do draft:", error);
