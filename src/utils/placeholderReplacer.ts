@@ -312,10 +312,6 @@ export const replacePlaceholders = (content: string, localData: Record<string, s
   
   console.log("replacePlaceholders: Content before replacement (first 100 chars):", content.substring(0, 100));
   
-  if (content.includes('¿qualificacao_do(a)(s)_herdeiro(a)(s)>')) {
-    console.log("replacePlaceholders: Found qualificacao placeholder in content");
-  }
-  
   const placeholderRegex = /¿([^>]+)>/g;
   const exactMappings = getPlaceholderMappings();
   
@@ -431,6 +427,12 @@ export const replacePlaceholders = (content: string, localData: Record<string, s
       }
     }
     
+    if (trimmedPlaceholder === 'Data_lav1') {
+      const today = formatarData(new Date());
+      console.log(`Usando data atual para ${trimmedPlaceholder}:`, today);
+      return today;
+    }
+    
     console.log(`Nenhum match encontrado para ${trimmedPlaceholder}`);
     return match;
   });
@@ -445,9 +447,8 @@ export const processLocalData = (extractedData?: Record<string, string>, draft?:
   
   const cleanedData = extractedData 
     ? Object.entries(extractedData).reduce((acc, [key, value]) => {
-        const cleanValue = cleanupDataValue(value);
-        if (cleanValue && !isInvalidData(cleanValue)) {
-          acc[key] = cleanValue;
+        if (value && typeof value === 'string') {
+          acc[key] = value.trim();
         }
         return acc;
       }, {} as Record<string, string>)

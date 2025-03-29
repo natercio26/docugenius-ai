@@ -34,6 +34,7 @@ const ViewDraft: React.FC = () => {
       
       if (loadedDraft) {
         console.log("ViewDraft: Loaded draft with protocol info:", loadedDraft.protocoloInfo);
+        console.log("ViewDraft: Draft contains extracted data:", loadedDraft.extractedData);
         console.log("ViewDraft: Draft content contains qualificacao placeholder:", 
           loadedDraft.content?.includes("¿qualificacao_do(a)(s)_herdeiro(a)(s)>"));
         
@@ -81,7 +82,7 @@ const ViewDraft: React.FC = () => {
           
           <DraftViewer 
             draft={draft} 
-            extractedData={extractedDataToPass} 
+            extractedData={draft.extractedData || extractedDataToPass} 
           />
         </div>
       </main>

@@ -27,7 +27,11 @@ const DraftViewer: React.FC<DraftViewerProps> = ({ draft, extractedData }) => {
   useEffect(() => {
     console.log("DraftViewer: Draft content contains qualificacao placeholder:", 
       draft.content.includes("¿qualificacao_do(a)(s)_herdeiro(a)(s)>"));
-  }, [draft.content]);
+    
+    if (draft.extractedData) {
+      console.log("DraftViewer: Draft contains extracted data:", draft.extractedData);
+    }
+  }, [draft.content, draft.extractedData]);
   
   // Process extracted data into local data
   useEffect(() => {
@@ -36,7 +40,14 @@ const DraftViewer: React.FC<DraftViewerProps> = ({ draft, extractedData }) => {
     // Clear previous local data
     setLocalData({});
     
-    // Primeiro, verificar diretamente no protocolo se existir
+    // Primeiro, verificar dados extraídos diretamente no draft
+    if (draft.extractedData && Object.keys(draft.extractedData).length > 0) {
+      console.log("DraftViewer: Usando dados extraídos do draft:", draft.extractedData);
+      setLocalData(draft.extractedData);
+      return;
+    }
+    
+    // Se não tem dados no draft, verificar diretamente no protocolo se existir
     if (draft.protocoloInfo?.numero) {
       console.log("DraftViewer: Verificando protocolo número:", draft.protocoloInfo.numero);
       const protocolo = getProtocoloByNumero(draft.protocoloInfo.numero);
@@ -101,13 +112,16 @@ const DraftViewer: React.FC<DraftViewerProps> = ({ draft, extractedData }) => {
       console.log("DraftViewer: Sem dados extraídos disponíveis");
       setLocalData({});
     }
-  }, [draft.protocoloInfo, extractedData, draft]);
+  }, [draft.protocoloInfo, draft.extractedData, extractedData, draft]);
 
   // Process content with placeholders
   useEffect(() => {
     if (draft.content) {
       // Obter todas as possíveis fontes de dados
-      const mergedData = { ...localData };
+      const mergedData = { 
+        ...localData,
+        ...(draft.extractedData || {})
+      };
       
       console.log("DraftViewer: Dados finais para substituição:", mergedData);
       console.log("DraftViewer: Qualificação no mergedData:", mergedData['qualificacao_do(a)(s)_herdeiro(a)(s)']);
