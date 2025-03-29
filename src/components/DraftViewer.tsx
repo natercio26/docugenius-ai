@@ -59,6 +59,29 @@ const DraftViewer: React.FC<DraftViewerProps> = ({ draft, extractedData }) => {
     } else {
       console.log("DraftViewer: Props does NOT contain extracted data");
     }
+    
+    // Try to get qualification data from sessionStorage
+    try {
+      const qualificacaoTexto = sessionStorage.getItem('documentoGeradoTexto');
+      if (qualificacaoTexto) {
+        console.log("DraftViewer: Found qualification text in sessionStorage");
+        
+        // Update local data with this qualification
+        setLocalData(prevData => ({
+          ...prevData,
+          qualificacaoCompleta: qualificacaoTexto,
+          'qualificacao_do(a)(s)_herdeiro(a)(s)': qualificacaoTexto
+        }));
+        
+        // Also update draft data if possible
+        if (draft.extractedData) {
+          draft.extractedData.qualificacaoCompleta = qualificacaoTexto;
+          draft.extractedData['qualificacao_do(a)(s)_herdeiro(a)(s)'] = qualificacaoTexto;
+        }
+      }
+    } catch (e) {
+      console.warn("Could not access sessionStorage for qualification data", e);
+    }
   }, [draft, extractedData]);
   
   // Process extracted data into local data
@@ -113,6 +136,21 @@ const DraftViewer: React.FC<DraftViewerProps> = ({ draft, extractedData }) => {
         dataLavratura: new Date().toLocaleDateString('pt-BR')
       });
     }
+    
+    // Try to get qualification data from sessionStorage
+    try {
+      const qualificacaoTexto = sessionStorage.getItem('documentoGeradoTexto');
+      if (qualificacaoTexto) {
+        console.log("DraftViewer: Adding qualification text from sessionStorage");
+        setLocalData(prevData => ({
+          ...prevData,
+          qualificacaoCompleta: qualificacaoTexto,
+          'qualificacao_do(a)(s)_herdeiro(a)(s)': qualificacaoTexto
+        }));
+      }
+    } catch (e) {
+      console.warn("Could not access sessionStorage for qualification data", e);
+    }
   }, [draft.extractedData, extractedData, draft]);
 
   // Process content with placeholders
@@ -128,11 +166,25 @@ const DraftViewer: React.FC<DraftViewerProps> = ({ draft, extractedData }) => {
     // Combine all available data for replacement
     const dataForReplacement = { 
       ...localData,
+      // Try to add data directly from the draft extractedData and props
+      ...(draft.extractedData || {}),
+      ...(extractedData || {}),
       // Add any additional data that might be needed
       dataLavratura: new Date().toLocaleDateString('pt-BR'),
     };
     
-    console.log("DraftViewer: Data for placeholder replacement:", dataForReplacement);
+    // Add special case for qualificacao_do(a)(s)_herdeiro(a)(s)
+    try {
+      const qualificacaoTexto = sessionStorage.getItem('documentoGeradoTexto');
+      if (qualificacaoTexto) {
+        dataForReplacement.qualificacaoCompleta = qualificacaoTexto;
+        dataForReplacement['qualificacao_do(a)(s)_herdeiro(a)(s)'] = qualificacaoTexto;
+      }
+    } catch (e) {
+      console.warn("Could not access sessionStorage", e);
+    }
+    
+    console.log("DraftViewer: Data for placeholder replacement:", Object.keys(dataForReplacement));
     
     // Start the replacement process
     const processedText = replacePlaceholders(
@@ -165,6 +217,10 @@ const DraftViewer: React.FC<DraftViewerProps> = ({ draft, extractedData }) => {
         if (extractedData?.qualificacaoCompleta) {
           console.log("- extractedData.qualificacaoCompleta:", 
             extractedData.qualificacaoCompleta.substring(0, 50) + "...");
+        }
+        if (dataForReplacement['qualificacao_do(a)(s)_herdeiro(a)(s)']) {
+          console.log("- dataForReplacement['qualificacao_do(a)(s)_herdeiro(a)(s)']:", 
+            dataForReplacement['qualificacao_do(a)(s)_herdeiro(a)(s)'].substring(0, 50) + "...");
         }
       }
     }

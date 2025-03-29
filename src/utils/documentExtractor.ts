@@ -12,11 +12,24 @@ export const extractDataFromFiles = async (files: File[]): Promise<Record<string
       dataLavratura: new Date().toLocaleDateString('pt-BR'),
     };
     
+    if (!files || files.length === 0) {
+      console.warn("No files provided for data extraction");
+      return basicData;
+    }
+    
+    // Log the file names for debugging
+    console.log("Processing files:", files.map(f => f.name).join(', '));
+    
     // Identify parties (falecido, conjuge, herdeiros, etc.) from all documents
     const enhancedData = await identifyPartiesAndRoles(files, 'Inventário', basicData);
     
-    // Process and consolidate the extracted data
-    console.log("Document data extraction complete:", enhancedData);
+    // Log extracted data for debugging
+    console.log("Document data extraction complete with keys:", Object.keys(enhancedData));
+    Object.entries(enhancedData).forEach(([key, value]) => {
+      if (typeof value === 'string' && value.length > 0) {
+        console.log(`Extracted ${key}: ${value.substring(0, 50)}${value.length > 50 ? '...' : ''}`);
+      }
+    });
     
     // Format extracted data for replacement in template
     const processedData: Record<string, string> = {
@@ -35,6 +48,7 @@ export const extractDataFromFiles = async (files: File[]): Promise<Record<string
       
       if (herdeiros.length > 0) {
         processedData.nomesFilhos = herdeiros.join(', ');
+        console.log("Created consolidated heir names:", processedData.nomesFilhos);
       }
       
       // Add specific qualificacao herdeiros if available
@@ -44,10 +58,22 @@ export const extractDataFromFiles = async (files: File[]): Promise<Record<string
       if (enhancedData.qualificacaoHerdeiro3) qualificacoes.push(enhancedData.qualificacaoHerdeiro3);
       
       if (qualificacoes.length > 0) {
-        processedData.qualificacaoCompleta = qualificacoes.join('\n');
-        console.log("Created consolidated heir qualification data:", 
-          processedData.qualificacaoCompleta.substring(0, 100) + "...");
+        processedData.qualificacaoCompleta = qualificacoes.join(';\n');
+        processedData['qualificacao_do(a)(s)_herdeiro(a)(s)'] = qualificacoes.join(';\n');
+        console.log("Created consolidated heir qualification data");
       }
+    }
+    
+    // Try to load qualification data from sessionStorage
+    try {
+      const qualificacaoTexto = sessionStorage.getItem('documentoGeradoTexto');
+      if (qualificacaoTexto) {
+        console.log("Found qualification data in sessionStorage");
+        processedData.qualificacaoCompleta = qualificacaoTexto;
+        processedData['qualificacao_do(a)(s)_herdeiro(a)(s)'] = qualificacaoTexto;
+      }
+    } catch (e) {
+      console.warn("Could not access sessionStorage for qualification data", e);
     }
     
     // Build complete qualification for falecido if we have components
@@ -61,7 +87,8 @@ export const extractDataFromFiles = async (files: File[]): Promise<Record<string
       if (enhancedData.enderecoFalecido) qualificacaoFalecido += `, residente e domiciliado à ${enhancedData.enderecoFalecido}`;
       
       processedData.qualificacaoFalecido = qualificacaoFalecido;
-      console.log("Created complete qualification for falecido:", qualificacaoFalecido);
+      processedData.qualificacao_do_autor_da_heranca = qualificacaoFalecido;
+      console.log("Created complete qualification for falecido");
     }
     
     // Build complete qualification for cônjuge if we have components
@@ -75,21 +102,20 @@ export const extractDataFromFiles = async (files: File[]): Promise<Record<string
       if (enhancedData.enderecoConjuge) qualificacaoConjuge += `, residente e domiciliado à ${enhancedData.enderecoConjuge}`;
       
       processedData.qualificacaoConjuge = qualificacaoConjuge;
-      console.log("Created complete qualification for cônjuge:", qualificacaoConjuge);
+      processedData['qualificacao_do(a)_viuvo(a)'] = qualificacaoConjuge;
+      console.log("Created complete qualification for cônjuge");
     }
     
-    // Handle author of estate and spouse mapping
+    // Handle author of estate and spouse mapping - direct mapping
     if (enhancedData.falecido) {
       processedData['nome_do_"de_cujus"'] = enhancedData.falecido;
       processedData.nome_do_autor_da_heranca = enhancedData.falecido;
-      processedData.qualificacao_do_autor_da_heranca = processedData.qualificacaoFalecido || '';
     }
     
     if (enhancedData.conjuge) {
       processedData['nome_do(a)_viuva(o)-meeira(o)'] = enhancedData.conjuge;
       processedData['nome_do(a)_viuvo(a)'] = enhancedData.conjuge;
       processedData['viuvo(a)-meeiro(a)'] = enhancedData.conjuge;
-      processedData['qualificacao_do(a)_viuvo(a)'] = processedData.qualificacaoConjuge || '';
     }
     
     if (enhancedData.inventariante) {
@@ -130,10 +156,13 @@ export const extractDataFromFiles = async (files: File[]): Promise<Record<string
       }
     });
     
-    console.log("Final processed document data:", processedData);
+    console.log("Final processed document data:", Object.keys(processedData));
     return processedData;
   } catch (error) {
     console.error("Error extracting data from documents:", error);
-    return undefined;
+    return {
+      dataLavratura: new Date().toLocaleDateString('pt-BR'),
+      error: "Erro ao extrair dados dos documentos"
+    };
   }
 };

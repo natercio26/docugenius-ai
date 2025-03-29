@@ -20,9 +20,22 @@ export const loadDraftData = (isNew: boolean): Draft | null => {
         // Ensure extracted data is available
         if (!parsedDraft.extractedData) {
           console.warn("loadDraftData: No extracted data available in draft");
+          parsedDraft.extractedData = {};
         } else {
           console.log("loadDraftData: Draft has extracted data with keys:", 
             Object.keys(parsedDraft.extractedData));
+        }
+        
+        // Try to get qualification data from sessionStorage
+        try {
+          const qualificacaoTexto = sessionStorage.getItem('documentoGeradoTexto');
+          if (qualificacaoTexto && !parsedDraft.extractedData.qualificacaoCompleta) {
+            console.log("loadDraftData: Found qualification data in sessionStorage");
+            parsedDraft.extractedData.qualificacaoCompleta = qualificacaoTexto;
+            parsedDraft.extractedData['qualificacao_do(a)(s)_herdeiro(a)(s)'] = qualificacaoTexto;
+          }
+        } catch (e) {
+          console.warn("Could not access sessionStorage for qualification data", e);
         }
         
         return parsedDraft;
@@ -50,6 +63,21 @@ export const prepareDraftData = (draft: Draft): Record<string, string> | undefin
         dataLavratura: new Date().toLocaleDateString('pt-BR')
       };
       
+      // Direct placeholder mapping - key/value pairs that match template placeholders
+      const directPlaceholders: Record<string, string> = {};
+      
+      // Loop through extracted data and create direct placeholder mappings
+      Object.entries(draft.extractedData).forEach(([key, value]) => {
+        if (typeof value === 'string' && value.trim()) {
+          // Convert key to a potential placeholder format
+          const placeholderKey = `¿${key}>`;
+          directPlaceholders[key] = value;
+          
+          // Log for debugging
+          console.log(`Mapped placeholder ${key} to "${value.substring(0, 30)}${value.length > 30 ? '...' : ''}"`);
+        }
+      });
+      
       // Map specific extracted data to common placeholder patterns
       if (draft.extractedData.falecido) {
         enhancedData['nome_do_"de_cujus"'] = draft.extractedData.falecido;
@@ -68,6 +96,10 @@ export const prepareDraftData = (draft: Draft): Record<string, string> | undefin
       // Handle heir information more completely
       if (draft.extractedData.qualificacaoCompleta) {
         enhancedData['qualificacao_do(a)(s)_herdeiro(a)(s)'] = draft.extractedData.qualificacaoCompleta;
+        console.log("prepareDraftData: Using complete qualification data");
+      } else if (draft.extractedData['qualificacao_do(a)(s)_herdeiro(a)(s)']) {
+        enhancedData['qualificacao_do(a)(s)_herdeiro(a)(s)'] = draft.extractedData['qualificacao_do(a)(s)_herdeiro(a)(s)'];
+        console.log("prepareDraftData: Using direct qualification data");
       } else if (draft.extractedData.qualificacaoHerdeiro1) {
         // Consolidate multiple heirs' qualifications if available
         const heirQualifications = [];
@@ -81,7 +113,19 @@ export const prepareDraftData = (draft: Draft): Record<string, string> | undefin
         }
       }
       
-      console.log("prepareDraftData: Enhanced data prepared with keys:", Object.keys(enhancedData));
+      // Try to get qualification data from sessionStorage
+      try {
+        const qualificacaoTexto = sessionStorage.getItem('documentoGeradoTexto');
+        if (qualificacaoTexto && !enhancedData['qualificacao_do(a)(s)_herdeiro(a)(s)']) {
+          console.log("prepareDraftData: Found qualification data in sessionStorage");
+          enhancedData['qualificacao_do(a)(s)_herdeiro(a)(s)'] = qualificacaoTexto;
+        }
+      } catch (e) {
+        console.warn("Could not access sessionStorage for qualification data", e);
+      }
+      
+      // Log the prepared data
+      console.log("prepareDraftData: Final enhanced data with keys:", Object.keys(enhancedData));
       return enhancedData;
     }
     

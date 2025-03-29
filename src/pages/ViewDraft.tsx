@@ -38,6 +38,18 @@ const ViewDraft: React.FC = () => {
         // Diagnostic logging
         if (loadedDraft.content?.includes("¿qualificacao_do(a)(s)_herdeiro(a)(s)>")) {
           console.log("ViewDraft: Draft content contains qualification placeholder");
+          
+          // Try to get qualification data from sessionStorage
+          try {
+            const qualificacaoTexto = sessionStorage.getItem('documentoGeradoTexto');
+            if (qualificacaoTexto && loadedDraft.extractedData) {
+              console.log("ViewDraft: Found qualification data in sessionStorage");
+              loadedDraft.extractedData.qualificacaoCompleta = qualificacaoTexto;
+              loadedDraft.extractedData['qualificacao_do(a)(s)_herdeiro(a)(s)'] = qualificacaoTexto;
+            }
+          } catch (e) {
+            console.warn("Could not access sessionStorage for qualification data", e);
+          }
         }
         
         if (loadedDraft.extractedData) {
@@ -54,10 +66,28 @@ const ViewDraft: React.FC = () => {
         } else {
           console.warn("ViewDraft: Draft does not have any extracted data");
           
-          // Try to create a basic extracted data structure if it doesn't exist
+          // Create a basic extracted data structure if it doesn't exist
           loadedDraft.extractedData = {
             dataLavratura: new Date().toLocaleDateString('pt-BR')
           };
+        }
+        
+        // Create direct mappings from placeholders to values
+        if (loadedDraft.extractedData && loadedDraft.content) {
+          const placeholderRegex = /¿([^>]+)>/g;
+          const matches = [...loadedDraft.content.matchAll(placeholderRegex)];
+          
+          console.log(`ViewDraft: Found ${matches.length} placeholders in content`);
+          
+          // Map any missing placeholders directly
+          matches.forEach(match => {
+            const placeholder = match[1];
+            if (!loadedDraft.extractedData![placeholder] && loadedDraft.extractedData![placeholder.toLowerCase()]) {
+              // Copy lowercase version to exact case version
+              loadedDraft.extractedData![placeholder] = loadedDraft.extractedData![placeholder.toLowerCase()];
+              console.log(`ViewDraft: Mapped lowercase data to placeholder: ${placeholder}`);
+            }
+          });
         }
         
         setDraft(loadedDraft);
