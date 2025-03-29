@@ -17,6 +17,14 @@ export const loadDraftData = (isNew: boolean): Draft | null => {
           console.log("loadDraftData: Draft content does NOT contain qualification placeholder");
         }
         
+        // Ensure extracted data is available
+        if (!parsedDraft.extractedData) {
+          console.warn("loadDraftData: No extracted data available in draft");
+        } else {
+          console.log("loadDraftData: Draft has extracted data with keys:", 
+            Object.keys(parsedDraft.extractedData));
+        }
+        
         return parsedDraft;
       }
     }
@@ -31,10 +39,17 @@ export const loadDraftData = (isNew: boolean): Draft | null => {
 
 export const prepareDraftData = (draft: Draft): Record<string, string> | undefined => {
   try {
-    // Use only data extracted from documents
+    // Only use data extracted from documents
     if (draft.extractedData && Object.keys(draft.extractedData).length > 0) {
-      console.log("Using data extracted from documents:", draft.extractedData);
-      return draft.extractedData;
+      console.log("prepareDraftData: Using data extracted from documents:", draft.extractedData);
+      
+      // Add current date if not present
+      const dataWithDate = {
+        ...draft.extractedData,
+        dataLavratura: new Date().toLocaleDateString('pt-BR')
+      };
+      
+      return dataWithDate;
     }
     
     console.log("prepareDraftData: No extracted data available");

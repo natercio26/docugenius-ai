@@ -33,15 +33,31 @@ const ViewDraft: React.FC = () => {
       const loadedDraft = loadDraftData(isNew);
       
       if (loadedDraft) {
-        console.log("ViewDraft: Loaded draft data successfully");
-        console.log("ViewDraft: Draft content contains qualificacao placeholder:", 
-          loadedDraft.content?.includes("¿qualificacao_do(a)(s)_herdeiro(a)(s)>"));
+        console.log("ViewDraft: Successfully loaded draft data");
+        
+        // Diagnostic logging
+        if (loadedDraft.content?.includes("¿qualificacao_do(a)(s)_herdeiro(a)(s)>")) {
+          console.log("ViewDraft: Draft content contains qualification placeholder");
+        }
         
         if (loadedDraft.extractedData) {
           console.log("ViewDraft: Draft has extracted data with keys:", 
             Object.keys(loadedDraft.extractedData));
+            
+          // Check if qualificacaoCompleta exists in extracted data
+          if (loadedDraft.extractedData.qualificacaoCompleta) {
+            console.log("ViewDraft: Found qualification data:", 
+              loadedDraft.extractedData.qualificacaoCompleta.substring(0, 50) + "...");
+          } else {
+            console.warn("ViewDraft: No qualification data found in extracted data");
+          }
         } else {
-          console.log("ViewDraft: Draft does not have extracted data");
+          console.warn("ViewDraft: Draft does not have any extracted data");
+          
+          // Try to create a basic extracted data structure if it doesn't exist
+          loadedDraft.extractedData = {
+            dataLavratura: new Date().toLocaleDateString('pt-BR')
+          };
         }
         
         setDraft(loadedDraft);
@@ -64,6 +80,7 @@ const ViewDraft: React.FC = () => {
     if (draft) {
       const updatedDraft = saveDraft(draft, title);
       setDraft(updatedDraft);
+      toast.success("Rascunho salvo com sucesso!");
     }
   };
 
@@ -74,7 +91,8 @@ const ViewDraft: React.FC = () => {
 
   // Prepare data for the draft viewer
   const extractedDataToPass = prepareDraftData(draft);
-  console.log("ViewDraft: Prepared extracted data for draft viewer:", extractedDataToPass);
+  console.log("ViewDraft: Prepared extracted data for draft viewer:", 
+    extractedDataToPass ? Object.keys(extractedDataToPass) : "No data prepared");
 
   return (
     <div className="min-h-screen bg-background">

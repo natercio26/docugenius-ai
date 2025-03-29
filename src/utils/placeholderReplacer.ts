@@ -126,7 +126,8 @@ export const getPlaceholderMappings = (): Record<string, string> => {
 export const replacePlaceholders = (content: string, localData: Record<string, string>, draft: Draft, extractedData?: Record<string, string>): string => {
   if (!content) return '';
   
-  console.log("replacePlaceholders: Content before replacement (first 100 chars):", content.substring(0, 100));
+  console.log("replacePlaceholders: Starting replacement process");
+  console.log("replacePlaceholders: Available extracted data keys:", extractedData ? Object.keys(extractedData) : "No extracted data");
   
   const placeholderRegex = /¿([^>]+)>/g;
   const exactMappings = getPlaceholderMappings();
@@ -140,38 +141,47 @@ export const replacePlaceholders = (content: string, localData: Record<string, s
     console.log("replacePlaceholders: Replaced Data_lav1 with current date:", currentDate);
   }
   
+  // Find all placeholders in the text first for logging
+  const allPlaceholders = [...content.matchAll(placeholderRegex)].map(match => match[1].trim());
+  console.log("replacePlaceholders: Found placeholders:", allPlaceholders);
+  
   resultContent = resultContent.replace(placeholderRegex, (match, placeholder) => {
     const trimmedPlaceholder = placeholder.trim();
-    console.log(`Substituindo ${trimmedPlaceholder}`);
+    console.log(`Tentando substituir ${trimmedPlaceholder}`);
     
-    // Check directly in extracted data from document first
-    if (extractedData && extractedData[trimmedPlaceholder]) {
+    // Check directly in extracted data from document first (highest priority)
+    if (extractedData && trimmedPlaceholder in extractedData) {
       console.log(`Match direto nos dados extraídos para ${trimmedPlaceholder}:`, extractedData[trimmedPlaceholder]);
       return extractedData[trimmedPlaceholder];
     }
     
-    // Use direct match in local data
-    if (localData[trimmedPlaceholder]) {
-      console.log(`Match direto encontrado para ${trimmedPlaceholder}:`, localData[trimmedPlaceholder]);
+    // Try to find the exact placeholder in local data
+    if (localData && trimmedPlaceholder in localData) {
+      console.log(`Match direto nos dados locais para ${trimmedPlaceholder}:`, localData[trimmedPlaceholder]);
       return localData[trimmedPlaceholder];
     }
     
-    // Check exact mappings from extracted data
-    if (exactMappings[trimmedPlaceholder] && extractedData && extractedData[exactMappings[trimmedPlaceholder]]) {
-      console.log(`Match exato via mapeamento nos dados extraídos para ${trimmedPlaceholder}:`, 
-        extractedData[exactMappings[trimmedPlaceholder]]);
-      return extractedData[exactMappings[trimmedPlaceholder]];
+    // Check for exact placeholder through mappings
+    const mappedKey = exactMappings[trimmedPlaceholder];
+    if (mappedKey) {
+      // Check in extracted data first
+      if (extractedData && mappedKey in extractedData) {
+        console.log(`Match via mapeamento em dados extraídos para ${trimmedPlaceholder} -> ${mappedKey}:`, extractedData[mappedKey]);
+        return extractedData[mappedKey];
+      }
+      
+      // Then check in local data
+      if (localData && mappedKey in localData) {
+        console.log(`Match via mapeamento em dados locais para ${trimmedPlaceholder} -> ${mappedKey}:`, localData[mappedKey]);
+        return localData[mappedKey];
+      }
     }
     
-    // Check exact mappings from local data
-    if (exactMappings[trimmedPlaceholder] && localData[exactMappings[trimmedPlaceholder]]) {
-      console.log(`Match exato via mapeamento para ${trimmedPlaceholder}:`, localData[exactMappings[trimmedPlaceholder]]);
-      return localData[exactMappings[trimmedPlaceholder]];
-    }
-    
-    // Check for approximated matches in extracted data first
+    // Try fuzzy matching for extracted data
     if (extractedData) {
       for (const [key, value] of Object.entries(extractedData)) {
+        if (!value) continue;
+        
         const simplifiedPlaceholder = trimmedPlaceholder
           .replace(/[()]/g, '')
           .replace(/["']/g, '')
@@ -182,26 +192,30 @@ export const replacePlaceholders = (content: string, localData: Record<string, s
         
         if (simplifiedPlaceholder.includes(simplifiedKey) || 
             simplifiedKey.includes(simplifiedPlaceholder)) {
-          console.log(`Match aproximado encontrado nos dados extraídos para ${trimmedPlaceholder} via ${key}:`, value);
+          console.log(`Match aproximado nos dados extraídos para ${trimmedPlaceholder} via ${key}:`, value);
           return value;
         }
       }
     }
     
-    // Check for approximated matches in local data
-    for (const [key, value] of Object.entries(localData)) {
-      const simplifiedPlaceholder = trimmedPlaceholder
-        .replace(/[()]/g, '')
-        .replace(/["']/g, '')
-        .replace(/[-_]/g, '')
-        .toLowerCase();
+    // Try fuzzy matching for local data
+    if (localData) {
+      for (const [key, value] of Object.entries(localData)) {
+        if (!value) continue;
         
-      const simplifiedKey = key.toLowerCase();
-      
-      if (simplifiedPlaceholder.includes(simplifiedKey) || 
-          simplifiedKey.includes(simplifiedPlaceholder)) {
-        console.log(`Match aproximado encontrado para ${trimmedPlaceholder} via ${key}:`, value);
-        return value;
+        const simplifiedPlaceholder = trimmedPlaceholder
+          .replace(/[()]/g, '')
+          .replace(/["']/g, '')
+          .replace(/[-_]/g, '')
+          .toLowerCase();
+          
+        const simplifiedKey = key.toLowerCase();
+        
+        if (simplifiedPlaceholder.includes(simplifiedKey) || 
+            simplifiedKey.includes(simplifiedPlaceholder)) {
+          console.log(`Match aproximado nos dados locais para ${trimmedPlaceholder} via ${key}:`, value);
+          return value;
+        }
       }
     }
     
@@ -212,17 +226,24 @@ export const replacePlaceholders = (content: string, localData: Record<string, s
       return today;
     }
     
-    console.log(`Nenhum match encontrado para ${trimmedPlaceholder}`);
+    console.log(`Nenhum match encontrado para ${trimmedPlaceholder}, deixando o placeholder intacto`);
     return match;
   });
   
-  console.log("replacePlaceholders: Content after replacement (first 100 chars):", resultContent.substring(0, 100));
+  // Log how many placeholders remain after replacement
+  const remainingPlaceholders = [...resultContent.matchAll(placeholderRegex)].map(match => match[1].trim());
+  console.log(`replacePlaceholders: ${allPlaceholders.length - remainingPlaceholders.length} placeholders replaced, ${remainingPlaceholders.length} remaining`);
+  if (remainingPlaceholders.length > 0) {
+    console.log("replacePlaceholders: Remaining placeholders:", remainingPlaceholders);
+  }
   
   return resultContent;
 };
 
 export const processLocalData = (extractedData?: Record<string, string>, draft?: Draft): Record<string, string> => {
   if (!extractedData) return {};
+  
+  console.log("processLocalData: Processing extracted data:", Object.keys(extractedData));
   
   const cleanedData = extractedData 
     ? Object.entries(extractedData).reduce((acc, [key, value]) => {
