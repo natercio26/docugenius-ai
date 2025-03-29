@@ -66,7 +66,7 @@ const DraftViewer: React.FC<DraftViewerProps> = ({ draft, extractedData }) => {
       if (qualificacaoTexto) {
         console.log("DraftViewer: Found qualification text in sessionStorage");
         
-        // Update local data with this qualification
+        // CRITICAL: This was missing type safety
         setLocalData(prevData => ({
           ...prevData,
           qualificacaoCompleta: qualificacaoTexto,
@@ -88,7 +88,7 @@ const DraftViewer: React.FC<DraftViewerProps> = ({ draft, extractedData }) => {
   useEffect(() => {
     console.log("DraftViewer: Processing data for replacement");
     
-    // Clear previous local data
+    // Clear previous local data - but initialize with empty object to prevent type errors
     setLocalData({});
     
     // First, try to use extracted data directly from the draft
@@ -210,11 +210,12 @@ const DraftViewer: React.FC<DraftViewerProps> = ({ draft, extractedData }) => {
           console.log("- draft.extractedData.qualificacaoCompleta:", 
             draft.extractedData.qualificacaoCompleta.substring(0, 50) + "...");
         }
-        if (localData && localData.qualificacaoCompleta) {
+        // FIX: Add proper type checking to prevent error
+        if (localData && typeof localData === 'object' && 'qualificacaoCompleta' in localData) {
           console.log("- localData.qualificacaoCompleta:", 
             localData.qualificacaoCompleta.substring(0, 50) + "...");
         }
-        if (extractedData?.qualificacaoCompleta) {
+        if (extractedData && 'qualificacaoCompleta' in extractedData) {
           console.log("- extractedData.qualificacaoCompleta:", 
             extractedData.qualificacaoCompleta.substring(0, 50) + "...");
         }
