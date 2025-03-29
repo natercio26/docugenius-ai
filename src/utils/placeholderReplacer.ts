@@ -45,9 +45,11 @@ export const getPlaceholderMappings = (): Record<string, string> => {
   return {
     'nome_do_"de_cujus"': 'falecido',
     'nome_do_autor_da_heranca': 'falecido',
+    'qualificacao_do_autor_da_heranca': 'qualificacaoFalecido',
     'nome_do(a)_viuva(o)-meeira(o)': 'conjuge',
     'nome_do(a)_viuvo(a)': 'conjuge',
     'viuvo(a)-meeiro(a)': 'conjuge',
+    'qualificacao_do(a)_viuvo(a)': 'qualificacaoConjuge',
     'regime': 'regimeBens',
     'data_do_casamento': 'dataCasamento',
     'data_do_falecimento': 'dataFalecimento',
@@ -145,6 +147,17 @@ export const replacePlaceholders = (content: string, localData: Record<string, s
   const allPlaceholders = [...content.matchAll(placeholderRegex)].map(match => match[1].trim());
   console.log("replacePlaceholders: Found placeholders:", allPlaceholders);
   
+  // Special handling for important placeholders
+  if (resultContent.includes('¿qualificacao_do(a)(s)_herdeiro(a)(s)>') && 
+      (extractedData?.qualificacaoCompleta || localData?.qualificacaoCompleta)) {
+    const qualification = extractedData?.qualificacaoCompleta || localData?.qualificacaoCompleta;
+    if (qualification) {
+      console.log("replacePlaceholders: Found qualification data for heirs:", qualification.substring(0, 50) + "...");
+      resultContent = resultContent.replace(/¿qualificacao_do\(a\)\(s\)_herdeiro\(a\)\(s\)>/g, qualification);
+    }
+  }
+  
+  // General placeholder replacement
   resultContent = resultContent.replace(placeholderRegex, (match, placeholder) => {
     const trimmedPlaceholder = placeholder.trim();
     console.log(`Tentando substituir ${trimmedPlaceholder}`);
@@ -174,6 +187,21 @@ export const replacePlaceholders = (content: string, localData: Record<string, s
       if (localData && mappedKey in localData) {
         console.log(`Match via mapeamento em dados locais para ${trimmedPlaceholder} -> ${mappedKey}:`, localData[mappedKey]);
         return localData[mappedKey];
+      }
+    }
+    
+    // Handle common special cases
+    if (trimmedPlaceholder === 'qualificacao_do(a)(s)_herdeiro(a)(s)') {
+      // Try to build qualification from individual heir components
+      const heirQualifications = [];
+      if (extractedData?.qualificacaoHerdeiro1) heirQualifications.push(extractedData.qualificacaoHerdeiro1);
+      if (extractedData?.qualificacaoHerdeiro2) heirQualifications.push(extractedData.qualificacaoHerdeiro2);
+      if (extractedData?.qualificacaoHerdeiro3) heirQualifications.push(extractedData.qualificacaoHerdeiro3);
+      
+      if (heirQualifications.length > 0) {
+        const qualification = heirQualifications.join(';\n');
+        console.log(`Construindo qualificação de herdeiros para ${trimmedPlaceholder}:`, qualification.substring(0, 50) + "...");
+        return qualification;
       }
     }
     
@@ -253,6 +281,13 @@ export const processLocalData = (extractedData?: Record<string, string>, draft?:
         return acc;
       }, {} as Record<string, string>)
     : {};
+    
+  // Add special processing for qualification data
+  if (draft?.extractedData?.qualificacaoCompleta) {
+    cleanedData.qualificacao_do_autor_da_heranca = draft.extractedData.qualificacaoFalecido || '';
+    cleanedData['qualificacao_do(a)_viuvo(a)'] = draft.extractedData.qualificacaoConjuge || '';
+    cleanedData['qualificacao_do(a)(s)_herdeiro(a)(s)'] = draft.extractedData.qualificacaoCompleta;
+  }
     
   return cleanedData;
 };

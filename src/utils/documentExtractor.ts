@@ -45,19 +45,51 @@ export const extractDataFromFiles = async (files: File[]): Promise<Record<string
       
       if (qualificacoes.length > 0) {
         processedData.qualificacaoCompleta = qualificacoes.join('\n');
+        console.log("Created consolidated heir qualification data:", 
+          processedData.qualificacaoCompleta.substring(0, 100) + "...");
       }
+    }
+    
+    // Build complete qualification for falecido if we have components
+    if (enhancedData.falecido) {
+      let qualificacaoFalecido = `${enhancedData.falecido}`;
+      if (enhancedData.nacionalidadeFalecido) qualificacaoFalecido += `, ${enhancedData.nacionalidadeFalecido}`;
+      if (enhancedData.estadoCivilFalecido) qualificacaoFalecido += `, ${enhancedData.estadoCivilFalecido}`;
+      if (enhancedData.profissaoFalecido) qualificacaoFalecido += `, ${enhancedData.profissaoFalecido}`;
+      if (enhancedData.rgFalecido) qualificacaoFalecido += `, RG nº ${enhancedData.rgFalecido}`;
+      if (enhancedData.cpfFalecido) qualificacaoFalecido += `, CPF nº ${enhancedData.cpfFalecido}`;
+      if (enhancedData.enderecoFalecido) qualificacaoFalecido += `, residente e domiciliado à ${enhancedData.enderecoFalecido}`;
+      
+      processedData.qualificacaoFalecido = qualificacaoFalecido;
+      console.log("Created complete qualification for falecido:", qualificacaoFalecido);
+    }
+    
+    // Build complete qualification for cônjuge if we have components
+    if (enhancedData.conjuge) {
+      let qualificacaoConjuge = `${enhancedData.conjuge}`;
+      if (enhancedData.nacionalidadeConjuge) qualificacaoConjuge += `, ${enhancedData.nacionalidadeConjuge}`;
+      if (enhancedData.estadoCivilConjuge) qualificacaoConjuge += `, ${enhancedData.estadoCivilConjuge}`;
+      if (enhancedData.profissaoConjuge) qualificacaoConjuge += `, ${enhancedData.profissaoConjuge}`;
+      if (enhancedData.rgConjuge) qualificacaoConjuge += `, RG nº ${enhancedData.rgConjuge}`;
+      if (enhancedData.cpfConjuge) qualificacaoConjuge += `, CPF nº ${enhancedData.cpfConjuge}`;
+      if (enhancedData.enderecoConjuge) qualificacaoConjuge += `, residente e domiciliado à ${enhancedData.enderecoConjuge}`;
+      
+      processedData.qualificacaoConjuge = qualificacaoConjuge;
+      console.log("Created complete qualification for cônjuge:", qualificacaoConjuge);
     }
     
     // Handle author of estate and spouse mapping
     if (enhancedData.falecido) {
       processedData['nome_do_"de_cujus"'] = enhancedData.falecido;
       processedData.nome_do_autor_da_heranca = enhancedData.falecido;
+      processedData.qualificacao_do_autor_da_heranca = processedData.qualificacaoFalecido || '';
     }
     
     if (enhancedData.conjuge) {
       processedData['nome_do(a)_viuva(o)-meeira(o)'] = enhancedData.conjuge;
       processedData['nome_do(a)_viuvo(a)'] = enhancedData.conjuge;
       processedData['viuvo(a)-meeiro(a)'] = enhancedData.conjuge;
+      processedData['qualificacao_do(a)_viuvo(a)'] = processedData.qualificacaoConjuge || '';
     }
     
     if (enhancedData.inventariante) {
@@ -98,6 +130,7 @@ export const extractDataFromFiles = async (files: File[]): Promise<Record<string
       }
     });
     
+    console.log("Final processed document data:", processedData);
     return processedData;
   } catch (error) {
     console.error("Error extracting data from documents:", error);

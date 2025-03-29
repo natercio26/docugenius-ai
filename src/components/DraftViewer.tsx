@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { Draft } from '@/types';
 import { useLocation } from 'react-router-dom';
@@ -31,6 +32,23 @@ const DraftViewer: React.FC<DraftViewerProps> = ({ draft, extractedData }) => {
     if (draft.extractedData) {
       console.log("DraftViewer: Draft contains extracted data with keys:", 
         Object.keys(draft.extractedData));
+      
+      // Detailed logging of qualification data if available
+      if (draft.extractedData.qualificacaoCompleta) {
+        console.log("DraftViewer: Draft contains complete qualification data:", 
+          draft.extractedData.qualificacaoCompleta.substring(0, 100) + "...");
+      } else if (draft.extractedData.qualificacaoFalecido || 
+                draft.extractedData.qualificacaoConjuge || 
+                draft.extractedData.qualificacaoHerdeiro1) {
+        console.log("DraftViewer: Draft contains individual qualification data for:",
+          [
+            draft.extractedData.qualificacaoFalecido ? "falecido" : "",
+            draft.extractedData.qualificacaoConjuge ? "conjuge" : "",
+            draft.extractedData.qualificacaoHerdeiro1 ? "herdeiro1" : ""
+          ].filter(Boolean).join(", "));
+      } else {
+        console.log("DraftViewer: Draft does NOT contain qualification data");
+      }
     } else {
       console.log("DraftViewer: Draft does NOT contain extracted data");
     }
@@ -57,9 +75,15 @@ const DraftViewer: React.FC<DraftViewerProps> = ({ draft, extractedData }) => {
       const processedData = processLocalData(draft.extractedData, draft);
       setLocalData(processedData);
       
-      // Check if any known important fields are missing
-      if (!draft.extractedData.qualificacaoCompleta && !draft.extractedData.qualificacao_do_herdeiro) {
-        console.warn("DraftViewer: No heir qualification data found in extracted data");
+      // Check if qualification data is available
+      if (draft.extractedData.qualificacaoCompleta) {
+        console.log("DraftViewer: Using complete qualification data from draft");
+      } else if (draft.extractedData.qualificacaoFalecido || 
+                draft.extractedData.qualificacaoConjuge ||
+                draft.extractedData.qualificacaoHerdeiro1) {
+        console.log("DraftViewer: Using individual qualification data from draft");
+      } else {
+        console.warn("DraftViewer: No qualification data found in extracted data");
       }
     }
     // Otherwise, try to use extracted data from props
@@ -68,6 +92,17 @@ const DraftViewer: React.FC<DraftViewerProps> = ({ draft, extractedData }) => {
       
       const processedData = processLocalData(extractedData, draft);
       setLocalData(processedData);
+      
+      // Check if qualification data is available
+      if (extractedData.qualificacaoCompleta) {
+        console.log("DraftViewer: Using complete qualification data from props");
+      } else if (extractedData.qualificacaoFalecido || 
+                extractedData.qualificacaoConjuge ||
+                extractedData.qualificacaoHerdeiro1) {
+        console.log("DraftViewer: Using individual qualification data from props");
+      } else {
+        console.warn("DraftViewer: No qualification data found in props data");
+      }
     }
     else {
       console.warn("DraftViewer: No extracted data available from any source");
@@ -107,9 +142,32 @@ const DraftViewer: React.FC<DraftViewerProps> = ({ draft, extractedData }) => {
       draft.extractedData || extractedData
     );
     
-    // Log whether placeholder was replaced
-    const placeholderWasReplaced = !processedText.includes("¿qualificacao_do(a)(s)_herdeiro(a)(s)>");
-    console.log("DraftViewer: Qualification placeholder was replaced:", placeholderWasReplaced);
+    // Log whether qualification placeholder was replaced
+    const qualificationPlaceholder = "¿qualificacao_do(a)(s)_herdeiro(a)(s)>";
+    const placeholderWasReplaced = !processedText.includes(qualificationPlaceholder);
+    
+    if (draft.content.includes(qualificationPlaceholder)) {
+      console.log("DraftViewer: Qualification placeholder was replaced:", placeholderWasReplaced);
+      
+      if (!placeholderWasReplaced) {
+        console.warn("DraftViewer: Qualification placeholder was NOT replaced");
+        
+        // Log available qualification data
+        console.log("Available qualification data sources:");
+        if (draft.extractedData?.qualificacaoCompleta) {
+          console.log("- draft.extractedData.qualificacaoCompleta:", 
+            draft.extractedData.qualificacaoCompleta.substring(0, 50) + "...");
+        }
+        if (localData.qualificacaoCompleta) {
+          console.log("- localData.qualificacaoCompleta:", 
+            localData.qualificacaoCompleta.substring(0, 50) + "...");
+        }
+        if (extractedData?.qualificacaoCompleta) {
+          console.log("- extractedData.qualificacaoCompleta:", 
+            extractedData.qualificacaoCompleta.substring(0, 50) + "...");
+        }
+      }
+    }
     
     // Count remaining placeholders
     const remainingPlaceholders = (processedText.match(/¿[^>]+>/g) || []).length;
