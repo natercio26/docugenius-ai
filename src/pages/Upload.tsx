@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Navbar from '@/components/Navbar';
@@ -183,7 +182,7 @@ a) Os documentos mencionados no artigo 22 da Resolução nº 35 do Conselho
 Nacional de Justiça, de 24 de abril de 2007, bem como os especificados na lei
 7.433/85, regulamentada pelo Decreto-Lei 93.240/86;
 b) Certidão de matrícula e ônus reais e pessoais reipersecutórias, relativa(s)
-ao(s) imóvel(s) objeto(s) desta escritura, bem como os documentos
+ao(s) imóvel(is) objeto(s) desta escritura, bem como os documentos
 comprobatórios dos demais bens descritos e caracterizados no item "4." da
 presente;
 c) Certidão Negativa de Débitos relativos aos Tributos Federais e à Dívida Ativa
@@ -239,7 +238,7 @@ cumprimento da presente escritura;
 responsabilidade civil e criminal, pelas declarações de bens e pela inexistência
 de outros herdeiros conhecidos e pela veracidade de todos os fatos relatados
 neste instrumento de Inventário e Partilha;
-9.2. Declaram, ainda, que em relação ao(s) imóvel(s) descrito(s) e
+9.2. Declaram, ainda, que em relação ao(s) imóvel(is) descrito(s) e
 caracterizado(s) no item 4, encontram-se quites com suas obrigações
 condominiais;
 9.3. ¿quando_feito_por_procuracao> Pelo(s) mandatário(s) foi declarado sob
