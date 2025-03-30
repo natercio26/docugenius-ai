@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Navbar from '@/components/Navbar';
@@ -18,14 +19,16 @@ import { Button } from '@/components/ui/button';
 import { ArrowRight, FileCheck2, Download } from 'lucide-react';
 import { extractDataFromFiles } from '@/utils/documentExtractor';
 import ModelTemplateInput from '@/components/ModelTemplateInput';
-import { generateDocument, downloadBlob } from '@/services/apiService';
+import MinutaGerada from '@/components/MinutaGerada';
+import { generateDocument, extractTextFromPdfBlob } from '@/services/apiService';
 
 const Upload: React.FC = () => {
   const [status, setStatus] = useState<UploadStatus>('idle');
   const [documentType, setDocumentType] = useState<DraftType>('Inventário');
   const [uploadedFiles, setUploadedFiles] = useState<Record<string, File | null>>({});
   const [modelTemplate, setModelTemplate] = useState<string>('');
-  const [generatedDocumentUrl, setGeneratedDocumentUrl] = useState<string | null>(null);
+  const [pdfBlob, setPdfBlob] = useState<Blob | null>(null);
+  const [extractedText, setExtractedText] = useState<string | null>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -294,21 +297,28 @@ conforme, aceitam e assinam.`;
       const files = Object.values(uploadedFiles).filter(file => file !== null) as File[];
       
       setStatus('uploading');
+      setPdfBlob(null);
+      setExtractedText(null);
       
       toast({
         title: "Processando documentos",
         description: "Seus documentos estão sendo enviados para a API de OCR. Isso pode levar alguns minutos...",
       });
 
-      const pdfBlob = await generateDocument(files, modelTemplate);
+      const responseBlob = await generateDocument(files, modelTemplate);
+      setPdfBlob(responseBlob);
       
-      downloadBlob(pdfBlob, `minuta_${documentType.toLowerCase().replace(' ', '_')}.pdf`);
+      // Try to extract text from the response
+      const textContent = await extractTextFromPdfBlob(responseBlob);
+      setExtractedText(textContent);
       
       setStatus('success');
       
       toast({
         title: "Minuta gerada com sucesso!",
-        description: "O download da minuta foi iniciado automaticamente.",
+        description: textContent 
+          ? "O conteúdo foi extraído e exibido abaixo." 
+          : "Clique no botão de download para baixar o PDF.",
       });
       
     } catch (error) {
@@ -517,6 +527,14 @@ conforme, aceitam e assinam.`;
                     )}
                   </Button>
                 </div>
+                
+                {(pdfBlob || extractedText) && status === 'success' && (
+                  <MinutaGerada 
+                    textContent={extractedText}
+                    pdfBlob={pdfBlob}
+                    fileName={`minuta_${documentType.toLowerCase().replace(' ', '_')}.pdf`}
+                  />
+                )}
               </div>
             </TabsContent>
             

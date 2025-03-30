@@ -41,6 +41,28 @@ export const generateDocument = async (
 };
 
 /**
+ * Attempts to extract text from a PDF blob
+ * If extraction fails, returns null
+ */
+export const extractTextFromPdfBlob = async (blob: Blob): Promise<string | null> => {
+  try {
+    // This is a simple implementation - for real PDF text extraction,
+    // you would need a PDF parsing library like pdf.js
+    const text = await blob.text();
+    
+    // Check if the extracted content seems like text (basic heuristic)
+    if (text && !text.includes('%PDF') && text.length > 0) {
+      return text;
+    }
+    
+    return null; // Not extractable as text
+  } catch (error) {
+    console.error('Error extracting text from PDF:', error);
+    return null;
+  }
+};
+
+/**
  * Downloads a blob as a file
  */
 export const downloadBlob = (blob: Blob, fileName: string): void => {
