@@ -1,4 +1,3 @@
-
 /**
  * Service for handling API requests
  */
@@ -21,7 +20,7 @@ export const generateDocument = async (
   formData.append('modelo_minuta', modelTemplate);
   
   try {
-    const response = await fetch('https://minuta-ocr.onrender.com/gerar-minuta', {
+    const response = await fetch('https://docugenius-ai.onrender.com/gerar-minuta', {
       method: 'POST',
       body: formData,
       // No need to set Content-Type header when using FormData, 
