@@ -15,13 +15,17 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import SingleFileUpload from '@/components/SingleFileUpload';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, FileCheck2 } from 'lucide-react';
+import { ArrowRight, FileCheck2, Download } from 'lucide-react';
 import { extractDataFromFiles } from '@/utils/documentExtractor';
+import ModelTemplateInput from '@/components/ModelTemplateInput';
+import { generateDocument, downloadBlob } from '@/services/apiService';
 
 const Upload: React.FC = () => {
   const [status, setStatus] = useState<UploadStatus>('idle');
   const [documentType, setDocumentType] = useState<DraftType>('Inventário');
   const [uploadedFiles, setUploadedFiles] = useState<Record<string, File | null>>({});
+  const [modelTemplate, setModelTemplate] = useState<string>('');
+  const [generatedDocumentUrl, setGeneratedDocumentUrl] = useState<string | null>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -261,8 +265,65 @@ lhes lavrei a presente escritura, que feita e lhes sendo lida, foi achada em tud
 conforme, aceitam e assinam.`;
   };
 
+  const handleModelTemplateChange = (template: string) => {
+    setModelTemplate(template);
+  };
+
+  const handleSubmitToApi = async () => {
+    const hasFiles = Object.values(uploadedFiles).some(file => file !== null);
+    
+    if (!hasFiles) {
+      toast({
+        title: "Nenhum arquivo selecionado",
+        description: "Por favor, anexe pelo menos um documento para continuar.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!modelTemplate.trim()) {
+      toast({
+        title: "Modelo não fornecido",
+        description: "Por favor, insira o modelo da minuta com as variáveis.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    try {
+      const files = Object.values(uploadedFiles).filter(file => file !== null) as File[];
+      
+      setStatus('uploading');
+      
+      toast({
+        title: "Processando documentos",
+        description: "Seus documentos estão sendo enviados para a API de OCR. Isso pode levar alguns minutos...",
+      });
+
+      const pdfBlob = await generateDocument(files, modelTemplate);
+      
+      downloadBlob(pdfBlob, `minuta_${documentType.toLowerCase().replace(' ', '_')}.pdf`);
+      
+      setStatus('success');
+      
+      toast({
+        title: "Minuta gerada com sucesso!",
+        description: "O download da minuta foi iniciado automaticamente.",
+      });
+      
+    } catch (error) {
+      console.error("Erro ao processar documentos:", error);
+      setStatus('error');
+      
+      toast({
+        title: "Erro ao processar documentos",
+        description: "Ocorreu um erro ao processar seus documentos. Por favor, tente novamente.",
+        variant: "destructive"
+      });
+    }
+  };
+
   const handleSubmit = async () => {
-    // Check if at least one file has been uploaded
     const hasFiles = Object.values(uploadedFiles).some(file => file !== null);
     
     if (!hasFiles) {
@@ -275,10 +336,8 @@ conforme, aceitam e assinam.`;
     }
     
     try {
-      // Convert the object to an array of files, filtering out null values
       const files = Object.values(uploadedFiles).filter(file => file !== null) as File[];
       
-      // Simulate processing
       setStatus('uploading');
       
       toast({
@@ -286,14 +345,11 @@ conforme, aceitam e assinam.`;
         description: "Seus documentos estão sendo processados para gerar a minuta.",
       });
       
-      // Start the actual document processing
       console.log("Extracting data from files:", files.length, "files");
       
-      // Extract data from the uploaded documents
       const extractedData = await extractDataFromFiles(files);
       console.log("Extracted data:", extractedData);
       
-      // Store extracted data in sessionStorage for later use in the draft viewer
       if (extractedData) {
         sessionStorage.setItem('documentExtractedData', JSON.stringify(extractedData));
         console.log("Document data saved to sessionStorage");
@@ -304,10 +360,8 @@ conforme, aceitam e assinam.`;
       setTimeout(() => {
         setStatus('success');
         
-        // Generate a unique ID for the draft
         const draftId = Math.random().toString(36).substring(2, 9);
         
-        // Set the template content based on document type
         let templateContent = '';
         if (documentType === 'Inventário') {
           templateContent = getInventarioTemplate();
@@ -322,7 +376,7 @@ conforme, aceitam e assinam.`;
           content: templateContent,
           createdAt: new Date(),
           updatedAt: new Date(),
-          extractedData: extractedData || {}, // Add the extracted data
+          extractedData: extractedData || {},
           uploadedDocuments: Object.entries(uploadedFiles)
             .filter(([_, file]) => file !== null)
             .map(([key, file]) => ({
@@ -331,7 +385,6 @@ conforme, aceitam e assinam.`;
             }))
         };
         
-        // Store draft in session storage
         sessionStorage.setItem('generatedDraft', JSON.stringify(newDraft));
         
         toast({
@@ -339,7 +392,6 @@ conforme, aceitam e assinam.`;
           description: "Você será redirecionado para visualizar a minuta.",
         });
         
-        // Navigate to the draft view page
         setTimeout(() => {
           navigate(`/view/new`);
         }, 1000);
@@ -411,7 +463,14 @@ conforme, aceitam e assinam.`;
                   </div>
                 </ScrollArea>
                 
-                <div className="mt-6 flex justify-center">
+                <div className="mt-6">
+                  <ModelTemplateInput 
+                    value={modelTemplate} 
+                    onChange={handleModelTemplateChange} 
+                  />
+                </div>
+
+                <div className="mt-6 flex justify-center gap-4">
                   <Button 
                     onClick={handleSubmit} 
                     disabled={status !== 'idle'}
@@ -420,7 +479,7 @@ conforme, aceitam e assinam.`;
                     {status === 'idle' ? (
                       <>
                         <FileCheck2 className="h-4 w-4" />
-                        Gerar Minuta com IA
+                        Usar IA Local
                       </>
                     ) : status === 'uploading' ? (
                       <div className="flex items-center gap-2">
@@ -437,6 +496,24 @@ conforme, aceitam e assinam.`;
                         <ArrowRight className="h-4 w-4" />
                         <span>Minuta Gerada com Sucesso!</span>
                       </div>
+                    )}
+                  </Button>
+                  
+                  <Button 
+                    onClick={handleSubmitToApi} 
+                    disabled={status === 'uploading'}
+                    className="min-w-[200px] gap-2 bg-accent text-accent-foreground hover:bg-accent/80"
+                  >
+                    {status === 'uploading' ? (
+                      <div className="flex items-center gap-2">
+                        <div className="animate-spin h-4 w-4 border-2 border-current rounded-full border-t-transparent"></div>
+                        <span>Enviando para API...</span>
+                      </div>
+                    ) : (
+                      <>
+                        <Download className="h-4 w-4" />
+                        <span>Gerar Minuta com IA</span>
+                      </>
                     )}
                   </Button>
                 </div>
