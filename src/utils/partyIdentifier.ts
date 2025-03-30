@@ -1,6 +1,4 @@
 
-import { extractTextFromFile } from './documentExtractor';
-
 // This is a placeholder function that would typically use NLP/AI to identify parties and roles from document text
 export const identifyPartiesAndRoles = async (
   files: File[], 
@@ -93,3 +91,14 @@ export const identifyPartiesAndRoles = async (
   console.log("Extracted data:", extractedData);
   return extractedData;
 };
+
+// Simple text extraction function (placeholder)
+const extractTextFromFile = async (file: File): Promise<string> => {
+  return new Promise((resolve) => {
+    // In a real implementation, this would use PDF.js, Tesseract.js or similar
+    // For now, just return the filename as a placeholder
+    console.log(`Extracting text from ${file.name} (placeholder implementation)`);
+    resolve(`Content of ${file.name} would be extracted here`);
+  });
+};
+
