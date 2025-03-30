@@ -19,8 +19,8 @@ VARIAVEIS = [
     "¿valor_da_meacao>", "¿incluir_o_nome_dos_herdeiros>", "¿incluir_o_percentual>", "¿incluir_valor_que_pertence_a_cada_herdeiro>"
 ]
 
-def extract_text_with_ocr(file_bytes):
-    images = convert_from_bytes(file_bytes.read())
+def extract_text_with_ocr(file_path):
+    images = convert_from_path(file_path)
     text = ""
     for img in images:
         text += pytesseract.image_to_string(img, lang='por') + "\n"
