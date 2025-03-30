@@ -16,13 +16,13 @@ const ModelTemplateInput: React.FC<ModelTemplateInputProps> = ({ onChange, value
       </Label>
       <Textarea
         id="modelTemplate"
-        placeholder="Cole aqui o modelo da minuta com as variáveis no formato ¿nome_variavel>"
+        placeholder="Cole aqui o modelo da minuta com as variáveis no formato [nome_variavel]"
         className="min-h-[200px] font-mono text-sm"
         value={value}
         onChange={(e) => onChange(e.target.value)}
       />
       <p className="text-xs text-muted-foreground">
-        Use o formato ¿nome_variavel> para especificar onde os dados extraídos serão inseridos.
+        Use o formato [nome_variavel] para especificar onde os dados extraídos serão inseridos.
       </p>
     </div>
   );
