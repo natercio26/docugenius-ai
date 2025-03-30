@@ -117,11 +117,11 @@ const DraftViewer: React.FC<DraftViewerProps> = ({ draft, extractedData }) => {
       setLocalData(processedData);
       
       // Check if qualification data is available
-      if (extractedData.qualificacaoCompleta) {
+      if ('qualificacaoCompleta' in extractedData) {
         console.log("DraftViewer: Using complete qualification data from props");
-      } else if (extractedData.qualificacaoFalecido || 
-                extractedData.qualificacaoConjuge ||
-                extractedData.qualificacaoHerdeiro1) {
+      } else if ('qualificacaoFalecido' in extractedData || 
+                'qualificacaoConjuge' in extractedData ||
+                'qualificacaoHerdeiro1' in extractedData) {
         console.log("DraftViewer: Using individual qualification data from props");
       } else {
         console.warn("DraftViewer: No qualification data found in props data");
@@ -219,7 +219,7 @@ const DraftViewer: React.FC<DraftViewerProps> = ({ draft, extractedData }) => {
           console.log("- extractedData.qualificacaoCompleta:", 
             extractedData.qualificacaoCompleta.substring(0, 50) + "...");
         }
-        if (dataForReplacement['qualificacao_do(a)(s)_herdeiro(a)(s)']) {
+        if ('qualificacao_do(a)(s)_herdeiro(a)(s)' in dataForReplacement) {
           console.log("- dataForReplacement['qualificacao_do(a)(s)_herdeiro(a)(s)']:", 
             dataForReplacement['qualificacao_do(a)(s)_herdeiro(a)(s)'].substring(0, 50) + "...");
         }
