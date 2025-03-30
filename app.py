@@ -41,8 +41,8 @@ def gerar_minuta():
 
     texto_geral = ""
     for f in files:
-    text = extract_text_with_ocr(f)
-    texto_geral += f"\n--- {f.filename} ---\n{text}"
+        text = extract_text_with_ocr(f)
+        texto_geral += f"\n--- {f.filename} ---\n{text}"
 
     texto_final = preencher_variaveis(modelo_minuta, texto_geral)
 
