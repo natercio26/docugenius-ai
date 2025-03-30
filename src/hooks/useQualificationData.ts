@@ -1,6 +1,7 @@
 
 import { useEffect } from 'react';
 import { Draft } from '@/types';
+import { toast } from 'sonner';
 
 /**
  * Custom hook to handle loading and managing qualification data
@@ -39,18 +40,36 @@ export const useQualificationData = (draft: Draft) => {
     
     // Try to get qualification data from sessionStorage
     try {
+      // First try documentoGeradoTexto (original approach)
       const qualificacaoTexto = sessionStorage.getItem('documentoGeradoTexto');
       if (qualificacaoTexto) {
         console.log("useQualificationData: Found qualification text in sessionStorage");
         
-        // CRITICAL: This was missing type safety
-        if (draft.extractedData) {
-          draft.extractedData.qualificacaoCompleta = qualificacaoTexto;
-          draft.extractedData['qualificacao_do(a)(s)_herdeiro(a)(s)'] = qualificacaoTexto;
+        if (!draft.extractedData) {
+          draft.extractedData = {};
         }
+        
+        draft.extractedData.qualificacaoCompleta = qualificacaoTexto;
+        draft.extractedData['qualificacao_do(a)(s)_herdeiro(a)(s)'] = qualificacaoTexto;
+      }
+      
+      // Then try complete document data
+      const documentData = sessionStorage.getItem('documentExtractedData');
+      if (documentData) {
+        console.log("useQualificationData: Found document data in sessionStorage");
+        const parsedData = JSON.parse(documentData);
+        
+        // Make sure extractedData exists
+        if (!draft.extractedData) {
+          draft.extractedData = {};
+        }
+        
+        // Merge with existing data
+        Object.assign(draft.extractedData, parsedData);
       }
     } catch (e) {
       console.warn("Could not access sessionStorage for qualification data", e);
+      toast.error("Erro ao acessar dados dos documentos. Por favor, tente novamente.");
     }
   }, [draft]);
 };

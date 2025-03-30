@@ -27,6 +27,21 @@ const ViewDraft: React.FC = () => {
   // Load draft data
   useEffect(() => {
     try {
+      // Check if we have document data in sessionStorage before loading draft
+      let documentData: Record<string, string> | null = null;
+      try {
+        const docDataStr = sessionStorage.getItem('documentExtractedData');
+        if (docDataStr) {
+          documentData = JSON.parse(docDataStr);
+          console.log("ViewDraft: Found document data in sessionStorage with keys:", 
+            Object.keys(documentData || {}));
+        } else {
+          console.warn("ViewDraft: No document data found in sessionStorage");
+        }
+      } catch (e) {
+        console.warn("ViewDraft: Error reading document data from sessionStorage", e);
+      }
+      
       // Force reload any draft data from sessionStorage
       sessionStorage.removeItem('loadedDraft');
       
@@ -34,6 +49,17 @@ const ViewDraft: React.FC = () => {
       
       if (loadedDraft) {
         console.log("ViewDraft: Successfully loaded draft data");
+        
+        // Apply document data if available
+        if (documentData && Object.keys(documentData).length > 0) {
+          if (!loadedDraft.extractedData) {
+            loadedDraft.extractedData = {};
+          }
+          
+          // Merge document data with draft data
+          Object.assign(loadedDraft.extractedData, documentData);
+          console.log("ViewDraft: Applied document data to draft");
+        }
         
         // Diagnostic logging
         if (loadedDraft.content?.includes("¿qualificacao_do(a)(s)_herdeiro(a)(s)>")) {
