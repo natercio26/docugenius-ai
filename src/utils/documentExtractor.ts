@@ -1,4 +1,3 @@
-
 import { identifyPartiesAndRoles } from './partyIdentifier';
 import { DraftType } from '@/types';
 

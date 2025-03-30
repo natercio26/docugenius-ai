@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Navbar from '@/components/Navbar';
@@ -293,6 +292,12 @@ conforme, aceitam e assinam.`;
       // Extract data from the uploaded documents
       const extractedData = await extractDataFromFiles(files);
       console.log("Extracted data:", extractedData);
+      
+      // Store extracted data in sessionStorage for later use in the draft viewer
+      if (extractedData) {
+        sessionStorage.setItem('documentExtractedData', JSON.stringify(extractedData));
+        console.log("Document data saved to sessionStorage");
+      }
       
       setStatus('processing');
       

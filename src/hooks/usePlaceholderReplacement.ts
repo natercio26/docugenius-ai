@@ -22,41 +22,17 @@ export const usePlaceholderReplacement = (
     
     // First, try to use extracted data directly from the draft
     if (draft.extractedData && Object.keys(draft.extractedData).length > 0) {
-      console.log("usePlaceholderReplacement: Using data extracted from draft:", draft.extractedData);
+      console.log("usePlaceholderReplacement: Using data extracted from draft:", Object.keys(draft.extractedData));
       
       const processedData = processLocalData(draft.extractedData, draft);
       setLocalData(processedData);
-      
-      // Check if qualification data is available - with proper type checking
-      if (draft.extractedData && 'qualificacaoCompleta' in draft.extractedData) {
-        console.log("usePlaceholderReplacement: Using complete qualification data from draft");
-      } else if (draft.extractedData && 
-                ('qualificacaoFalecido' in draft.extractedData || 
-                'qualificacaoConjuge' in draft.extractedData ||
-                'qualificacaoHerdeiro1' in draft.extractedData)) {
-        console.log("usePlaceholderReplacement: Using individual qualification data from draft");
-      } else {
-        console.warn("usePlaceholderReplacement: No qualification data found in extracted data");
-      }
     }
     // Otherwise, try to use extracted data from props
     else if (extractedData && Object.keys(extractedData).length > 0) {
-      console.log("usePlaceholderReplacement: Using extracted data from props:", extractedData);
+      console.log("usePlaceholderReplacement: Using extracted data from props:", Object.keys(extractedData));
       
       const processedData = processLocalData(extractedData, draft);
       setLocalData(processedData);
-      
-      // Check if qualification data is available - with proper type checking
-      if (extractedData && typeof extractedData === 'object' && 'qualificacaoCompleta' in extractedData) {
-        console.log("usePlaceholderReplacement: Using complete qualification data from props");
-      } else if (extractedData && typeof extractedData === 'object' && 
-                ('qualificacaoFalecido' in extractedData || 
-                'qualificacaoConjuge' in extractedData ||
-                'qualificacaoHerdeiro1' in extractedData)) {
-        console.log("usePlaceholderReplacement: Using individual qualification data from props");
-      } else {
-        console.warn("usePlaceholderReplacement: No qualification data found in props data");
-      }
     }
     else {
       console.warn("usePlaceholderReplacement: No extracted data available from any source");
@@ -79,8 +55,19 @@ export const usePlaceholderReplacement = (
           'qualificacao_do(a)(s)_herdeiro(a)(s)': qualificacaoTexto
         }));
       }
+      
+      // Try to load document data from sessionStorage if needed
+      const documentData = sessionStorage.getItem('documentExtractedData');
+      if (documentData) {
+        const parsedData = JSON.parse(documentData);
+        console.log("usePlaceholderReplacement: Adding document data from sessionStorage");
+        setLocalData(prevData => ({
+          ...prevData,
+          ...parsedData
+        }));
+      }
     } catch (e) {
-      console.warn("Could not access sessionStorage for qualification data", e);
+      console.warn("Could not access sessionStorage", e);
     }
   }, [draft.extractedData, extractedData, draft]);
 
@@ -111,6 +98,13 @@ export const usePlaceholderReplacement = (
         dataForReplacement.qualificacaoCompleta = qualificacaoTexto;
         dataForReplacement['qualificacao_do(a)(s)_herdeiro(a)(s)'] = qualificacaoTexto;
       }
+      
+      // Try to load document data from sessionStorage if needed
+      const documentData = sessionStorage.getItem('documentExtractedData');
+      if (documentData) {
+        const parsedData = JSON.parse(documentData);
+        Object.assign(dataForReplacement, parsedData);
+      }
     } catch (e) {
       console.warn("Could not access sessionStorage", e);
     }
@@ -125,49 +119,6 @@ export const usePlaceholderReplacement = (
       draft.extractedData || extractedData
     );
     
-    // Log whether qualification placeholder was replaced
-    const qualificationPlaceholder = "¿qualificacao_do(a)(s)_herdeiro(a)(s)>";
-    const placeholderWasReplaced = !processedText.includes(qualificationPlaceholder);
-    
-    if (draft.content.includes(qualificationPlaceholder)) {
-      console.log("usePlaceholderReplacement: Qualification placeholder was replaced:", placeholderWasReplaced);
-      
-      if (!placeholderWasReplaced) {
-        console.warn("usePlaceholderReplacement: Qualification placeholder was NOT replaced");
-        
-        // Log available qualification data
-        console.log("Available qualification data sources:");
-        if (draft.extractedData?.qualificacaoCompleta) {
-          const qualText = draft.extractedData.qualificacaoCompleta;
-          if (typeof qualText === 'string') {
-            console.log("- draft.extractedData.qualificacaoCompleta:", 
-              qualText.substring(0, 50) + "...");
-          }
-        }
-        if (localData && 'qualificacaoCompleta' in localData) {
-          const qualText = localData.qualificacaoCompleta;
-          if (typeof qualText === 'string') {
-            console.log("- localData.qualificacaoCompleta:", 
-              qualText.substring(0, 50) + "...");
-          }
-        }
-        if (extractedData && typeof extractedData === 'object' && 'qualificacaoCompleta' in extractedData) {
-          const qualText = extractedData.qualificacaoCompleta;
-          if (typeof qualText === 'string') {
-            console.log("- extractedData.qualificacaoCompleta:", 
-              qualText.substring(0, 50) + "...");
-          }
-        }
-        if ('qualificacao_do(a)(s)_herdeiro(a)(s)' in dataForReplacement) {
-          const qualText = dataForReplacement['qualificacao_do(a)(s)_herdeiro(a)(s)'];
-          if (typeof qualText === 'string') {
-            console.log("- dataForReplacement['qualificacao_do(a)(s)_herdeiro(a)(s)']:", 
-              qualText.substring(0, 50) + "...");
-          }
-        }
-      }
-    }
-    
     // Count remaining placeholders
     const remainingPlaceholders = (processedText.match(/¿[^>]+>/g) || []).length;
     console.log(`usePlaceholderReplacement: Document still contains ${remainingPlaceholders} unreplaced placeholders`);
@@ -179,10 +130,10 @@ export const usePlaceholderReplacement = (
       finalContent = processedText.replace(/¿[^>]+>/g, "DADO NÃO ENCONTRADO");
       setProcessedContent(finalContent);
       
-      toast.warning(`${remainingPlaceholders} campos não foram encontrados e foram preenchidos com "DADO NÃO ENCONTRADO"`);
+      toast.warning(`${remainingPlaceholders} campos não foram encontrados nos documentos e foram preenchidos com "DADO NÃO ENCONTRADO"`);
     } else {
       finalContent = processedText;
-      toast.success("Todos os campos foram preenchidos com sucesso!");
+      toast.success("Todos os campos foram preenchidos com sucesso com os dados dos documentos!");
     }
     
     setProcessedContent(finalContent);
