@@ -116,12 +116,13 @@ const DraftViewer: React.FC<DraftViewerProps> = ({ draft, extractedData }) => {
       const processedData = processLocalData(extractedData, draft);
       setLocalData(processedData);
       
-      // Check if qualification data is available
-      if ('qualificacaoCompleta' in extractedData) {
+      // Check if qualification data is available - FIX: Add proper type checking
+      if (extractedData && typeof extractedData === 'object' && 'qualificacaoCompleta' in extractedData) {
         console.log("DraftViewer: Using complete qualification data from props");
-      } else if ('qualificacaoFalecido' in extractedData || 
+      } else if (extractedData && typeof extractedData === 'object' && 
+                ('qualificacaoFalecido' in extractedData || 
                 'qualificacaoConjuge' in extractedData ||
-                'qualificacaoHerdeiro1' in extractedData) {
+                'qualificacaoHerdeiro1' in extractedData)) {
         console.log("DraftViewer: Using individual qualification data from props");
       } else {
         console.warn("DraftViewer: No qualification data found in props data");
@@ -210,18 +211,27 @@ const DraftViewer: React.FC<DraftViewerProps> = ({ draft, extractedData }) => {
           console.log("- draft.extractedData.qualificacaoCompleta:", 
             draft.extractedData.qualificacaoCompleta.substring(0, 50) + "...");
         }
-        // FIX: Add proper type checking to prevent error
+        // FIX: Add proper type checking
         if (localData && typeof localData === 'object' && 'qualificacaoCompleta' in localData) {
-          console.log("- localData.qualificacaoCompleta:", 
-            localData.qualificacaoCompleta.substring(0, 50) + "...");
+          const qualText = localData.qualificacaoCompleta;
+          if (typeof qualText === 'string') {
+            console.log("- localData.qualificacaoCompleta:", 
+              qualText.substring(0, 50) + "...");
+          }
         }
-        if (extractedData && 'qualificacaoCompleta' in extractedData) {
-          console.log("- extractedData.qualificacaoCompleta:", 
-            extractedData.qualificacaoCompleta.substring(0, 50) + "...");
+        if (extractedData && typeof extractedData === 'object' && 'qualificacaoCompleta' in extractedData) {
+          const qualText = extractedData.qualificacaoCompleta;
+          if (typeof qualText === 'string') {
+            console.log("- extractedData.qualificacaoCompleta:", 
+              qualText.substring(0, 50) + "...");
+          }
         }
         if ('qualificacao_do(a)(s)_herdeiro(a)(s)' in dataForReplacement) {
-          console.log("- dataForReplacement['qualificacao_do(a)(s)_herdeiro(a)(s)']:", 
-            dataForReplacement['qualificacao_do(a)(s)_herdeiro(a)(s)'].substring(0, 50) + "...");
+          const qualText = dataForReplacement['qualificacao_do(a)(s)_herdeiro(a)(s)'];
+          if (typeof qualText === 'string') {
+            console.log("- dataForReplacement['qualificacao_do(a)(s)_herdeiro(a)(s)']:", 
+              qualText.substring(0, 50) + "...");
+          }
         }
       }
     }
