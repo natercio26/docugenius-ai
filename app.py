@@ -6,6 +6,7 @@ import pdfplumber
 import tempfile
 import re
 from fpdf import FPDF
+import os
 
 app = Flask(__name__)
 
@@ -70,3 +71,7 @@ def gerar_minuta():
     pdf.output(temp.name)
 
     return send_file(temp.name, as_attachment=True, download_name='minuta_final.pdf')
+
+if __name__ == '__main__':
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host='0.0.0.0', port=port)
