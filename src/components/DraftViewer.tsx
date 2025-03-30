@@ -245,9 +245,12 @@ const DraftViewer: React.FC<DraftViewerProps> = ({ draft, extractedData }) => {
     
     setProcessedContent(processedText);
     
-    // Notify user about replacement status
+    // Handle any missing placeholders from your list by filling them with "DADO NÃO ENCONTRADO"
     if (remainingPlaceholders > 0) {
-      toast.warning(`${remainingPlaceholders} campos não foram preenchidos automaticamente`);
+      const fillMissingPlaceholders = processedText.replace(/¿[^>]+>/g, "DADO NÃO ENCONTRADO");
+      setProcessedContent(fillMissingPlaceholders);
+      
+      toast.warning(`${remainingPlaceholders} campos não foram encontrados e foram preenchidos com "DADO NÃO ENCONTRADO"`);
     } else {
       toast.success("Todos os campos foram preenchidos com sucesso!");
     }
@@ -264,4 +267,3 @@ const DraftViewer: React.FC<DraftViewerProps> = ({ draft, extractedData }) => {
 };
 
 export default DraftViewer;
-
