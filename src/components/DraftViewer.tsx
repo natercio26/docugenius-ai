@@ -98,12 +98,13 @@ const DraftViewer: React.FC<DraftViewerProps> = ({ draft, extractedData }) => {
       const processedData = processLocalData(draft.extractedData, draft);
       setLocalData(processedData);
       
-      // Check if qualification data is available
-      if (draft.extractedData.qualificacaoCompleta) {
+      // Check if qualification data is available - with proper type checking
+      if (draft.extractedData && 'qualificacaoCompleta' in draft.extractedData) {
         console.log("DraftViewer: Using complete qualification data from draft");
-      } else if (draft.extractedData.qualificacaoFalecido || 
-                draft.extractedData.qualificacaoConjuge ||
-                draft.extractedData.qualificacaoHerdeiro1) {
+      } else if (draft.extractedData && 
+                ('qualificacaoFalecido' in draft.extractedData || 
+                'qualificacaoConjuge' in draft.extractedData ||
+                'qualificacaoHerdeiro1' in draft.extractedData)) {
         console.log("DraftViewer: Using individual qualification data from draft");
       } else {
         console.warn("DraftViewer: No qualification data found in extracted data");
@@ -116,7 +117,7 @@ const DraftViewer: React.FC<DraftViewerProps> = ({ draft, extractedData }) => {
       const processedData = processLocalData(extractedData, draft);
       setLocalData(processedData);
       
-      // Check if qualification data is available - FIX: Add proper type checking
+      // Check if qualification data is available - with proper type checking
       if (extractedData && typeof extractedData === 'object' && 'qualificacaoCompleta' in extractedData) {
         console.log("DraftViewer: Using complete qualification data from props");
       } else if (extractedData && typeof extractedData === 'object' && 
@@ -165,7 +166,7 @@ const DraftViewer: React.FC<DraftViewerProps> = ({ draft, extractedData }) => {
     console.log("DraftViewer: Replacing placeholders in content");
     
     // Combine all available data for replacement
-    const dataForReplacement = { 
+    const dataForReplacement: Record<string, string> = { 
       ...localData,
       // Try to add data directly from the draft extractedData and props
       ...(draft.extractedData || {}),
@@ -208,11 +209,13 @@ const DraftViewer: React.FC<DraftViewerProps> = ({ draft, extractedData }) => {
         // Log available qualification data
         console.log("Available qualification data sources:");
         if (draft.extractedData?.qualificacaoCompleta) {
-          console.log("- draft.extractedData.qualificacaoCompleta:", 
-            draft.extractedData.qualificacaoCompleta.substring(0, 50) + "...");
+          const qualText = draft.extractedData.qualificacaoCompleta;
+          if (typeof qualText === 'string') {
+            console.log("- draft.extractedData.qualificacaoCompleta:", 
+              qualText.substring(0, 50) + "...");
+          }
         }
-        // FIX: Add proper type checking
-        if (localData && typeof localData === 'object' && 'qualificacaoCompleta' in localData) {
+        if (localData && 'qualificacaoCompleta' in localData) {
           const qualText = localData.qualificacaoCompleta;
           if (typeof qualText === 'string') {
             console.log("- localData.qualificacaoCompleta:", 
@@ -261,3 +264,4 @@ const DraftViewer: React.FC<DraftViewerProps> = ({ draft, extractedData }) => {
 };
 
 export default DraftViewer;
+
