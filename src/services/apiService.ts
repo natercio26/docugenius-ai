@@ -54,3 +54,17 @@ export const downloadBlob = (blob: Blob, fileName: string): void => {
     window.URL.revokeObjectURL(url);
   }, 100);
 };
+
+/**
+ * Extracts text content from a PDF blob
+ */
+export const extractTextFromPdfBlob = async (pdfBlob: Blob): Promise<string | null> => {
+  try {
+    // For now, we'll return a simple message as we don't have PDF text extraction implemented
+    // In a real implementation, this would use a library like pdf.js to extract text
+    return "Conteúdo da minuta gerada pela API. Para visualizar o documento completo, use a opção de download.";
+  } catch (error) {
+    console.error("Erro ao extrair texto do PDF:", error);
+    return null;
+  }
+};
