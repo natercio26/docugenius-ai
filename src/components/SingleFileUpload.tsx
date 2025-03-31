@@ -1,8 +1,7 @@
 
 import React, { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import { File, X, Upload } from 'lucide-react';
-import { AcceptedFileTypes } from '@/types';
+import { Upload, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface SingleFileUploadProps {
@@ -15,63 +14,12 @@ const SingleFileUpload: React.FC<SingleFileUploadProps> = ({ id, label, onFileCh
   const [file, setFile] = useState<File | null>(null);
   const { toast } = useToast();
 
-  const FILE_SIZE_LIMIT = 50 * 1024 * 1024; // 50MB
-
-  const acceptedTypes: AcceptedFileTypes[] = [
-    'application/pdf',
-    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-    'image/jpeg',
-    'image/png'
-  ];
-
-  const isAcceptedFileType = (file: File): boolean => {
-    if (!file.type) {
-      const extension = file.name.split('.').pop()?.toLowerCase();
-      return extension === 'pdf' || extension === 'docx' || 
-              extension === 'jpg' || extension === 'jpeg' || extension === 'png';
-    }
-    
-    const isAcceptedMimetype = acceptedTypes.includes(file.type as AcceptedFileTypes);
-    
-    if (!isAcceptedMimetype) {
-      const filename = file.name.toLowerCase();
-      return filename.endsWith('.pdf') || 
-              filename.endsWith('.docx') || 
-              filename.endsWith('.jpg') || 
-              filename.endsWith('.jpeg') || 
-              filename.endsWith('.png');
-    }
-    
-    return true;
-  };
-
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || e.target.files.length === 0) {
       return;
     }
     
     const selectedFile = e.target.files[0];
-    
-    if (selectedFile.size > FILE_SIZE_LIMIT) {
-      toast({
-        title: "Arquivo muito grande",
-        description: `O arquivo ${selectedFile.name} excede o limite de 50MB.`,
-        variant: "destructive"
-      });
-      e.target.value = '';
-      return;
-    }
-    
-    if (!isAcceptedFileType(selectedFile)) {
-      toast({
-        title: "Formato não suportado",
-        description: `O arquivo ${selectedFile.name} não é suportado. Por favor, use PDF, DOCX, JPG ou PNG.`,
-        variant: "destructive"
-      });
-      e.target.value = '';
-      return;
-    }
-    
     setFile(selectedFile);
     onFileChange(selectedFile);
     e.target.value = '';
@@ -82,26 +30,12 @@ const SingleFileUpload: React.FC<SingleFileUploadProps> = ({ id, label, onFileCh
     onFileChange(null);
   };
 
-  const getFileIcon = (type: string) => {
-    if (type.includes('pdf') || type === '' && file?.name.endsWith('.pdf')) return 'PDF';
-    if (type.includes('document') || type === '' && file?.name.endsWith('.docx')) return 'DOC';
-    if (type.includes('image') || 
-        type === '' && (file?.name.endsWith('.jpg') || file?.name.endsWith('.jpeg') || file?.name.endsWith('.png'))) 
-      return 'IMG';
-    return 'FILE';
-  };
-
   return (
     <div className="w-full">
       <div className="flex items-center justify-between mb-1">
         <label htmlFor={`file-${id}`} className="block text-sm font-medium">
           {label}
         </label>
-        {file && (
-          <span className="text-xs text-muted-foreground">
-            {(file.size / 1024 / 1024).toFixed(2)}MB
-          </span>
-        )}
       </div>
 
       {!file ? (
@@ -122,12 +56,7 @@ const SingleFileUpload: React.FC<SingleFileUploadProps> = ({ id, label, onFileCh
         </div>
       ) : (
         <div className="flex items-center justify-between bg-secondary rounded-md p-3">
-          <div className="flex items-center overflow-hidden">
-            <div className="bg-accent/10 text-accent font-medium text-xs rounded-md px-2 py-1 mr-3 shrink-0">
-              {getFileIcon(file.type)}
-            </div>
-            <span className="text-sm truncate max-w-[200px]">{file.name}</span>
-          </div>
+          <span className="text-sm truncate max-w-[200px]">{file.name}</span>
           <Button 
             variant="ghost" 
             size="sm" 

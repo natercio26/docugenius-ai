@@ -1,3 +1,4 @@
+
 /**
  * Service for handling API requests
  */
@@ -23,41 +24,16 @@ export const generateDocument = async (
     const response = await fetch('https://docugenius-ai.onrender.com/gerar-minuta', {
       method: 'POST',
       body: formData,
-      // No need to set Content-Type header when using FormData, 
-      // the browser will set it automatically with the boundary
     });
     
     if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Erro na API: ${response.status} - ${errorText}`);
+      throw new Error(`Erro na API: ${response.status}`);
     }
     
     return await response.blob();
   } catch (error) {
     console.error('Erro ao gerar minuta:', error);
     throw error;
-  }
-};
-
-/**
- * Attempts to extract text from a PDF blob
- * If extraction fails, returns null
- */
-export const extractTextFromPdfBlob = async (blob: Blob): Promise<string | null> => {
-  try {
-    // This is a simple implementation - for real PDF text extraction,
-    // you would need a PDF parsing library like pdf.js
-    const text = await blob.text();
-    
-    // Check if the extracted content seems like text (basic heuristic)
-    if (text && !text.includes('%PDF') && text.length > 0) {
-      return text;
-    }
-    
-    return null; // Not extractable as text
-  } catch (error) {
-    console.error('Error extracting text from PDF:', error);
-    return null;
   }
 };
 
