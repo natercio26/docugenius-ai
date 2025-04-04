@@ -14,8 +14,7 @@ import {
 import SingleFileUpload from '@/components/SingleFileUpload';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, FileCheck2, Download } from 'lucide-react';
-import { extractDataFromFiles } from '@/utils/documentExtractor';
+import { Download } from 'lucide-react';
 import ModelTemplateInput from '@/components/ModelTemplateInput';
 import MinutaGerada from '@/components/MinutaGerada';
 import { generateDocument } from '@/services/generateDocument';
@@ -28,7 +27,7 @@ const Upload: React.FC = () => {
   const [extractedText, setExtractedText] = useState<string | null>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
-
+  
   const documentTypes: DraftType[] = [
     'Inventário',
     'Escritura de Compra e Venda',
@@ -181,6 +180,7 @@ const Upload: React.FC = () => {
                   <MinutaGerada 
                     textContent={extractedText}
                     fileName={`minuta_${documentType.toLowerCase().replace(' ', '_')}.txt`}
+                    pdfBlob={null}
                   />
                 )}
               </div>
