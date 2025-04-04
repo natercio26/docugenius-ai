@@ -18,7 +18,6 @@ import { ArrowRight, FileCheck2, Download } from 'lucide-react';
 import { extractDataFromFiles } from '@/utils/documentExtractor';
 import ModelTemplateInput from '@/components/ModelTemplateInput';
 import MinutaGerada from '@/components/MinutaGerada';
-import { generateDocument } from '@/services/apiService';
 import { generateDocument } from '@/services/generateDocument';
 
 const Upload: React.FC = () => {
