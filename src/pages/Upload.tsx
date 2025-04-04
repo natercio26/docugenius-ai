@@ -11,7 +11,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import SingleFileUpload from '@/components/SingleFileUpload';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
@@ -24,7 +23,7 @@ import { generateDocument, extractTextFromPdfBlob } from '@/services/apiService'
 const Upload: React.FC = () => {
   const [status, setStatus] = useState<UploadStatus>('idle');
   const [documentType, setDocumentType] = useState<DraftType>('Inventário');
-  const [uploadedFiles, setUploadedFiles] = useState<Record<string, File | null>>({});
+  const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
   const [modelTemplate, setModelTemplate] = useState<string>('');
   const [pdfBlob, setPdfBlob] = useState<Blob | null>(null);
   const [extractedText, setExtractedText] = useState<string | null>(null);
@@ -43,38 +42,12 @@ const Upload: React.FC = () => {
     'Outro'
   ];
 
-  const documentFields = [
-    { id: 'peticao', name: 'Petição' },
-    { id: 'processoInventario', name: 'Processo do Inventário' },
-    { id: 'iptu', name: 'IPTU' },
-    { id: 'extratoBancario', name: 'Extrato Bancário' },
-    { id: 'escrituraCompraVenda', name: 'Escritura de Compra e Venda' },
-    { id: 'dossie', name: 'Dossiê' },
-    { id: 'cnd', name: 'CND' },
-    { id: 'pgfn', name: 'PGFN' },
-    { id: 'trt', name: 'TRT' },
-    { id: 'trf', name: 'TRF' },
-    { id: 'tst', name: 'TST' },
-    { id: 'certidoesMunicipais', name: 'Certidões Municipais' },
-    { id: 'registroImovel', name: 'Registro do Imóvel' },
-    { id: 'certidaoDebitos', name: 'Certidão Positiva de Débitos com Efeito de Negativa - GDF' },
-    { id: 'pesquisaTestamentos', name: 'Pesquisa de Testamentos' },
-    { id: 'uniaoEstavel', name: 'União Estável' },
-    { id: 'certidaoObitoInventariante', name: 'Certidão de Óbito do Inventariante' },
-    { id: 'cadastroInventariante', name: 'Cadastro do Inventariante' },
-    { id: 'cadastroViuvo', name: 'Cadastro do viúvo(a)' },
-    { id: 'cadastroHerdeiros', name: 'Cadastro dos herdeiros' }
-  ];
-
   const handleDocumentTypeChange = (value: string) => {
     setDocumentType(value as DraftType);
   };
 
-  const handleFileChange = (fieldId: string, file: File | null) => {
-    setUploadedFiles(prev => ({
-      ...prev,
-      [fieldId]: file
-    }));
+  const handleFileChange = (files: File[]) => {
+    setUploadedFiles(files);
   };
 
   const getInventarioTemplate = (): string => {
@@ -272,9 +245,7 @@ conforme, aceitam e assinam.`;
   };
 
   const handleSubmitToApi = async () => {
-    const hasFiles = Object.values(uploadedFiles).some(file => file !== null);
-    
-    if (!hasFiles) {
+    if (uploadedFiles.length === 0) {
       toast({
         title: "Nenhum arquivo selecionado",
         description: "Por favor, anexe pelo menos um documento para continuar.",
@@ -293,8 +264,6 @@ conforme, aceitam e assinam.`;
     }
     
     try {
-      const files = Object.values(uploadedFiles).filter(file => file !== null) as File[];
-      
       setStatus('uploading');
       setPdfBlob(null);
       setExtractedText(null);
@@ -304,7 +273,7 @@ conforme, aceitam e assinam.`;
         description: "Seus documentos estão sendo enviados para a API de OCR. Isso pode levar alguns minutos...",
       });
 
-      const responseBlob = await generateDocument(files, modelTemplate);
+      const responseBlob = await generateDocument(uploadedFiles, modelTemplate);
       setPdfBlob(responseBlob);
       
       // Try to extract text from the response
@@ -333,9 +302,7 @@ conforme, aceitam e assinam.`;
   };
 
   const handleSubmit = async () => {
-    const hasFiles = Object.values(uploadedFiles).some(file => file !== null);
-    
-    if (!hasFiles) {
+    if (uploadedFiles.length === 0) {
       toast({
         title: "Nenhum arquivo selecionado",
         description: "Por favor, anexe pelo menos um documento para continuar.",
@@ -345,8 +312,6 @@ conforme, aceitam e assinam.`;
     }
     
     try {
-      const files = Object.values(uploadedFiles).filter(file => file !== null) as File[];
-      
       setStatus('uploading');
       
       toast({
@@ -354,9 +319,9 @@ conforme, aceitam e assinam.`;
         description: "Seus documentos estão sendo processados para gerar a minuta.",
       });
       
-      console.log("Extracting data from files:", files.length, "files");
+      console.log("Extracting data from files:", uploadedFiles.length, "files");
       
-      const extractedData = await extractDataFromFiles(files);
+      const extractedData = await extractDataFromFiles(uploadedFiles);
       console.log("Extracted data:", extractedData);
       
       if (extractedData) {
@@ -386,12 +351,10 @@ conforme, aceitam e assinam.`;
           createdAt: new Date(),
           updatedAt: new Date(),
           extractedData: extractedData || {},
-          uploadedDocuments: Object.entries(uploadedFiles)
-            .filter(([_, file]) => file !== null)
-            .map(([key, file]) => ({
-              type: documentFields.find(field => field.id === key)?.name || key,
-              filename: file?.name || ''
-            }))
+          uploadedDocuments: uploadedFiles.map(file => ({
+            type: 'Documento',
+            filename: file.name
+          }))
         };
         
         sessionStorage.setItem('generatedDraft', JSON.stringify(newDraft));
@@ -453,24 +416,18 @@ conforme, aceitam e assinam.`;
             </TabsList>
             
             <TabsContent value="upload" className="mt-4">
-              <div className="bg-card border rounded-lg shadow-sm p-4">
+              <div className="bg-card border rounded-lg shadow-sm p-6">
                 <h2 className="text-lg font-medium mb-4">Anexar Documentos</h2>
                 <p className="text-sm text-muted-foreground mb-6">
-                  Selecione os documentos necessários para gerar sua minuta. Cada documento deve ser anexado no campo correspondente.
+                  Selecione os documentos necessários para gerar sua minuta. Você pode selecionar múltiplos arquivos ao mesmo tempo.
                 </p>
                 
-                <ScrollArea className="h-[500px] pr-4">
-                  <div className="space-y-4">
-                    {documentFields.map((field) => (
-                      <SingleFileUpload
-                        key={field.id}
-                        id={field.id}
-                        label={field.name}
-                        onFileChange={(file) => handleFileChange(field.id, file)}
-                      />
-                    ))}
-                  </div>
-                </ScrollArea>
+                <SingleFileUpload
+                  id="documentos"
+                  label="Documentos"
+                  onFileChange={handleFileChange}
+                  multiple={true}
+                />
                 
                 <div className="mt-6">
                   <ModelTemplateInput 
