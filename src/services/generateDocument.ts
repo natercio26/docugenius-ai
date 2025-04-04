@@ -7,7 +7,7 @@ export async function generateDocument(files: File[], modelo: string): Promise<s
 
   formData.append('modelo', modelo);
 
-  const response = await fetch('https://documentum-ia-api.seunome.repl.co/api/gerar-minuta', {
+  const response = await fetch('https://documentum-ia-api.timelegal4455.repl.co/api/gerar-minuta', {
     method: 'POST',
     body: formData,
   });
