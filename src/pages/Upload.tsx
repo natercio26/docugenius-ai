@@ -27,7 +27,7 @@ const Upload: React.FC = () => {
   const [extractedText, setExtractedText] = useState<string | null>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
-  
+
   const documentTypes: DraftType[] = [
     'Inventário',
     'Escritura de Compra e Venda',
@@ -179,8 +179,7 @@ const Upload: React.FC = () => {
                 {extractedText && status === 'success' && (
                   <MinutaGerada 
                     textContent={extractedText}
-                    fileName={`minuta_${documentType.toLowerCase().replace(' ', '_')}.txt`}
-                    pdfBlob={null}
+                    fileName={`minuta_${documentType.toLowerCase().replace(' ', '_')}.pdf`}
                   />
                 )}
               </div>
