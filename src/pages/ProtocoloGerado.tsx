@@ -195,6 +195,73 @@ const ProtocoloGerado: React.FC = () => {
     }
   };
 
+  const renderDadosPessoaisPDF = (doc: jsPDF, startY: number): number => {
+    let y = startY;
+
+    doc.setFontSize(14);
+    doc.setFont("helvetica", "bold");
+    doc.text("DADOS PESSOAIS", 20, y);
+    y += 10;
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(12);
+
+    // Dados do titular
+    doc.text(`Nome: ${formData.nome}`, 20, y);
+    y += 8;
+    doc.text(`CPF: ${formData.cpf}`, 20, y);
+    y += 8;
+    doc.text(`RG: ${formData.rg} - ${formData.orgaoExpedidor}`, 20, y);
+    y += 8;
+    doc.text(`Data de Nascimento: ${formatarData(formData.dataNascimento)}`, 20, y);
+    y += 8;
+    doc.text(`Naturalidade: ${formData.naturalidade}-${formData.uf}`, 20, y);
+    y += 8;
+    doc.text(`Filiação: ${formData.filiacao}`, 20, y);
+    y += 8;
+    doc.text(`Profissão: ${formData.profissao}`, 20, y);
+    y += 8;
+    doc.text(`Estado Civil: ${formData.estadoCivil}`, 20, y);
+    y += 8;
+    doc.text(`E-mail: ${formData.email}`, 20, y);
+    y += 8;
+    doc.text(`Endereço: ${formData.endereco}`, 20, y);
+    y += 8;
+
+    // Se for casado, adiciona os dados do cônjuge
+    if (formData.estadoCivil === "Casado(a)" && formData.nomeConjuge) {
+      y += 10;
+      doc.setFontSize(14);
+      doc.setFont("helvetica", "bold");
+      doc.text("DADOS DO CÔNJUGE", 20, y);
+      y += 10;
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(12);
+
+      doc.text(`Nome: ${formData.nomeConjuge}`, 20, y);
+      y += 8;
+      doc.text(`CPF: ${formData.cpfConjuge}`, 20, y);
+      y += 8;
+      doc.text(`RG: ${formData.rgConjuge} - ${formData.orgaoExpedidorConjuge}`, 20, y);
+      y += 8;
+      doc.text(`Data de Nascimento: ${formatarData(formData.dataNascimentoConjuge)}`, 20, y);
+      y += 8;
+      doc.text(`Naturalidade: ${formData.naturalidadeConjuge}-${formData.ufConjuge}`, 20, y);
+      y += 8;
+      doc.text(`Filiação: ${formData.filiacaoConjuge}`, 20, y);
+      y += 8;
+      doc.text(`Profissão: ${formData.profissaoConjuge}`, 20, y);
+      y += 8;
+      doc.text(`E-mail: ${formData.emailConjuge}`, 20, y);
+      y += 8;
+      doc.text(`Data do Casamento: ${formatarData(formData.dataCasamento)}`, 20, y);
+      y += 8;
+      doc.text(`Regime de Bens: ${formatPropertyRegime(formData.regimeBens || "")}`, 20, y);
+      y += 8;
+    }
+
+    return y;
+  };
+
   const baixarDocumento = () => {
     try {
       const doc = new jsPDF({
@@ -215,13 +282,34 @@ const ProtocoloGerado: React.FC = () => {
       const texto = document.getElementById('documento-texto')?.innerText || "";
       
       const margemEsquerda = 20;
-      const margemSuperior = 35;
+      let margemSuperior = 35;
       const larguraUtil = doc.internal.pageSize.width - 40;
+      
+      doc.text("QUALIFICAÇÃO COMPLETA:", margemEsquerda, margemSuperior);
+      margemSuperior += 10;
       
       doc.text(texto, margemEsquerda, margemSuperior, { 
         maxWidth: larguraUtil,
         align: "justify"
       });
+      
+      // Calcula a altura do texto para posicionar os dados pessoais abaixo
+      const textLines = doc.splitTextToSize(texto, larguraUtil);
+      const textHeight = textLines.length * 7; // aproximadamente 7mm por linha
+      
+      // Adiciona uma linha separadora
+      margemSuperior += textHeight + 20;
+      doc.setDrawColor(200, 200, 200);
+      doc.line(20, margemSuperior - 10, doc.internal.pageSize.width - 20, margemSuperior - 10);
+      
+      // Verificar se é necessária uma nova página para os dados pessoais
+      if (margemSuperior > 240) { // 297mm é a altura da página A4, deixando margem de segurança
+        doc.addPage();
+        margemSuperior = 20;
+      }
+      
+      // Renderiza os dados pessoais formatados
+      renderDadosPessoaisPDF(doc, margemSuperior);
       
       const nomeArquivo = `documento_${protocoloNumero.replace(/-/g, '_').toLowerCase()}.pdf`;
       
