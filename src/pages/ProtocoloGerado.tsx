@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { format } from "date-fns";
@@ -72,24 +71,21 @@ const ProtocoloGerado: React.FC = () => {
     }
   }, [formData, navigate, toast, protocolo, protocoloNumero]);
 
-  // Função melhorada para formatar data por extenso com validação adequada
   const formatarDataPorExtenso = (data: Date | string | undefined) => {
     if (!data) return "Não informada";
     
     try {
-      // Se a data for uma string no formato DD/MM/YYYY, converte para Date
       if (typeof data === 'string') {
         if (data === '00/00/0000' || data === '') return "Não informada";
         
         const parts = data.split('/');
         if (parts.length === 3) {
           const day = parseInt(parts[0], 10);
-          const month = parseInt(parts[1], 10) - 1; // Mês em JS começa em 0
+          const month = parseInt(parts[1], 10) - 1;
           const year = parseInt(parts[2], 10);
           
           if (!isNaN(day) && !isNaN(month) && !isNaN(year)) {
             const dateObj = new Date(year, month, day);
-            // Verifica se a data é válida antes de formatar
             if (isNaN(dateObj.getTime())) {
               console.log(`Data inválida: ${data}, convertida para: ${dateObj}`);
               return "Não informada";
@@ -99,7 +95,6 @@ const ProtocoloGerado: React.FC = () => {
         }
       }
       
-      // Tenta formatar diretamente se for um objeto Date
       const dateObj = new Date(data);
       if (isNaN(dateObj.getTime())) {
         console.log(`Data inválida: ${data}, convertida para: ${dateObj}`);
@@ -113,12 +108,10 @@ const ProtocoloGerado: React.FC = () => {
     }
   };
   
-  // Função melhorada para formatar data com validação adequada
   const formatarData = (data: Date | string | undefined) => {
     if (!data) return "Não informada";
     
     try {
-      // Se a data for uma string no formato DD/MM/YYYY, retorna diretamente
       if (typeof data === 'string') {
         if (data === '00/00/0000' || data === '') return "Não informada";
         
@@ -128,7 +121,6 @@ const ProtocoloGerado: React.FC = () => {
         }
       }
       
-      // Tenta formatar se for um objeto Date
       const dateObj = typeof data === 'string' ? new Date(data) : data;
       if (isNaN(dateObj.getTime())) {
         console.log(`Data inválida ao formatar data: ${data}`);
@@ -205,7 +197,6 @@ const ProtocoloGerado: React.FC = () => {
     doc.setFont("helvetica", "normal");
     doc.setFontSize(12);
 
-    // Dados do titular
     doc.text(`Nome: ${formData.nome}`, 20, y);
     y += 8;
     doc.text(`CPF: ${formData.cpf}`, 20, y);
@@ -227,7 +218,6 @@ const ProtocoloGerado: React.FC = () => {
     doc.text(`Endereço: ${formData.endereco}`, 20, y);
     y += 8;
 
-    // Se for casado, adiciona os dados do cônjuge
     if (formData.estadoCivil === "Casado(a)" && formData.nomeConjuge) {
       y += 10;
       doc.setFontSize(14);
@@ -293,23 +283,16 @@ const ProtocoloGerado: React.FC = () => {
         align: "justify"
       });
       
-      // Calcula a altura do texto para posicionar os dados pessoais abaixo
-      const textLines = doc.splitTextToSize(texto, larguraUtil);
-      const textHeight = textLines.length * 7; // aproximadamente 7mm por linha
+      doc.addPage();
       
-      // Adiciona uma linha separadora
-      margemSuperior += textHeight + 20;
-      doc.setDrawColor(200, 200, 200);
-      doc.line(20, margemSuperior - 10, doc.internal.pageSize.width - 20, margemSuperior - 10);
+      doc.setFontSize(14);
+      doc.setFont("helvetica", "bold");
+      doc.text(`Protocolo: ${protocoloNumero}`, 20, 20);
+      doc.text("DADOS CADASTRAIS", 20, 30);
+      doc.setDrawColor(100, 100, 100);
+      doc.line(20, 32, doc.internal.pageSize.width - 20, 32);
       
-      // Verificar se é necessária uma nova página para os dados pessoais
-      if (margemSuperior > 240) { // 297mm é a altura da página A4, deixando margem de segurança
-        doc.addPage();
-        margemSuperior = 20;
-      }
-      
-      // Renderiza os dados pessoais formatados
-      renderDadosPessoaisPDF(doc, margemSuperior);
+      renderDadosPessoaisPDF(doc, 40);
       
       const nomeArquivo = `documento_${protocoloNumero.replace(/-/g, '_').toLowerCase()}.pdf`;
       
@@ -336,7 +319,6 @@ const ProtocoloGerado: React.FC = () => {
   const prepareProtocoloData = () => {
     if (!formData) return null;
     
-    // Garantir texto do documento seja válido, adicionando tratamento de erro
     let documentoTexto;
     try {
       documentoTexto = getDocumentoTexto(formData);
@@ -369,7 +351,6 @@ const ProtocoloGerado: React.FC = () => {
     };
     
     if (formData.estadoCivil === "Casado(a)" && formData.nomeConjuge) {
-      // Format dates safely with our utility function instead of directly converting to ISO string
       const spouseBirthDate = formatarData(formData.dataNascimentoConjuge);
       const marriageDate = formatarData(formData.dataCasamento);
       
