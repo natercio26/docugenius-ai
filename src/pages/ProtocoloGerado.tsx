@@ -71,6 +71,16 @@ const ProtocoloGerado: React.FC = () => {
     }
   }, [formData, navigate, toast, protocolo, protocoloNumero]);
 
+  const formatCPF = (cpf: string): string => {
+    const cleanCPF = cpf.replace(/\D/g, '');
+    
+    if (cleanCPF.length === 11) {
+      return cleanCPF.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
+    }
+    
+    return cpf;
+  };
+
   const formatarDataPorExtenso = (data: Date | string | undefined) => {
     if (!data) return "Não informada";
     
@@ -199,7 +209,7 @@ const ProtocoloGerado: React.FC = () => {
 
     doc.text(`Nome: ${formData.nome}`, 20, y);
     y += 8;
-    doc.text(`CPF: ${formData.cpf}`, 20, y);
+    doc.text(`CPF: ${formatCPF(formData.cpf)}`, 20, y);
     y += 8;
     doc.text(`RG: ${formData.rg} - ${formData.orgaoExpedidor}`, 20, y);
     y += 8;
@@ -229,7 +239,7 @@ const ProtocoloGerado: React.FC = () => {
 
       doc.text(`Nome: ${formData.nomeConjuge}`, 20, y);
       y += 8;
-      doc.text(`CPF: ${formData.cpfConjuge}`, 20, y);
+      doc.text(`CPF: ${formatCPF(formData.cpfConjuge)}`, 20, y);
       y += 8;
       doc.text(`RG: ${formData.rgConjuge} - ${formData.orgaoExpedidorConjuge}`, 20, y);
       y += 8;
