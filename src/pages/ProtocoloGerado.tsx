@@ -72,6 +72,7 @@ const ProtocoloGerado: React.FC = () => {
     }
   }, [formData, navigate, toast, protocolo, protocoloNumero]);
 
+  // Função melhorada para formatar data por extenso com validação adequada
   const formatarDataPorExtenso = (data: Date | string | undefined) => {
     if (!data) return "Não informada";
     
@@ -90,6 +91,7 @@ const ProtocoloGerado: React.FC = () => {
             const dateObj = new Date(year, month, day);
             // Verifica se a data é válida antes de formatar
             if (isNaN(dateObj.getTime())) {
+              console.log(`Data inválida: ${data}, convertida para: ${dateObj}`);
               return "Não informada";
             }
             return format(dateObj, "dd 'de' MMMM 'de' yyyy", { locale: ptBR });
@@ -100,6 +102,7 @@ const ProtocoloGerado: React.FC = () => {
       // Tenta formatar diretamente se for um objeto Date
       const dateObj = new Date(data);
       if (isNaN(dateObj.getTime())) {
+        console.log(`Data inválida: ${data}, convertida para: ${dateObj}`);
         return "Não informada";
       }
       
@@ -110,6 +113,7 @@ const ProtocoloGerado: React.FC = () => {
     }
   };
   
+  // Função melhorada para formatar data com validação adequada
   const formatarData = (data: Date | string | undefined) => {
     if (!data) return "Não informada";
     
@@ -127,6 +131,7 @@ const ProtocoloGerado: React.FC = () => {
       // Tenta formatar se for um objeto Date
       const dateObj = typeof data === 'string' ? new Date(data) : data;
       if (isNaN(dateObj.getTime())) {
+        console.log(`Data inválida ao formatar data: ${data}`);
         return "Não informada";
       }
       
@@ -156,12 +161,19 @@ const ProtocoloGerado: React.FC = () => {
   };
   
   const getDocumentoTexto = (data: FormData): string => {
-    if (data.estadoCivil === "Casado(a)" && data.nomeConjuge) {
-      const propertyRegime = formatPropertyRegime(data.regimeBens || "");
-      
-      return `${data.nome}, ${data.nacionalidade || "brasileiro"}, nascido na cidade de ${data.naturalidade}-${data.uf}, aos ${formatarData(data.dataNascimento)}, filho de ${data.filiacao}, profissão ${data.profissao}, portador da Cédula de Identidade nº ${data.rg}-${data.orgaoExpedidor} e inscrito no CPF/MF sob o nº ${data.cpf}, endereço eletrônico: ${data.email}, casado, desde ${formatarData(data.dataCasamento)}, sob o regime da ${propertyRegime}, na vigência da Lei nº 6.515/77, com ${data.nomeConjuge}, ${data.nacionalidade || "brasileira"}, nascida na cidade de ${data.naturalidadeConjuge}-${data.ufConjuge}, aos ${formatarData(data.dataNascimentoConjuge)}, filha de ${data.filiacaoConjuge}, profissão ${data.profissaoConjuge}, portadora da Cédula de Identidade nº ${data.rgConjuge}-${data.orgaoExpedidorConjuge} e inscrita no CPF/MF sob o nº ${data.cpfConjuge}, endereço eletrônico: ${data.emailConjuge}, residentes e domiciliados na ${data.endereco};`;
-    } else {
-      return `${data.nome}, ${data.nacionalidade ? data.nacionalidade : "brasileiro(a)"}, natural de ${data.naturalidade}-${data.uf}, nascido(a) aos ${formatarDataPorExtenso(data.dataNascimento)}, filho(a) de ${data.filiacao}, profissão ${data.profissao}, estado civil ${data.estadoCivil}, portador(a) da Cédula de Identidade nº ${data.rg}-${data.orgaoExpedidor} e inscrito(a) no CPF/MF sob o nº ${data.cpf}, endereço eletrônico: ${data.email}, residente e domiciliado(a) na ${data.endereco};`;
+    if (!data) return "";
+    
+    try {
+      if (data.estadoCivil === "Casado(a)" && data.nomeConjuge) {
+        const propertyRegime = formatPropertyRegime(data.regimeBens || "");
+        
+        return `${data.nome}, ${data.nacionalidade || "brasileiro"}, nascido na cidade de ${data.naturalidade}-${data.uf}, aos ${formatarData(data.dataNascimento)}, filho de ${data.filiacao}, profissão ${data.profissao}, portador da Cédula de Identidade nº ${data.rg}-${data.orgaoExpedidor} e inscrito no CPF/MF sob o nº ${data.cpf}, endereço eletrônico: ${data.email}, casado, desde ${formatarData(data.dataCasamento)}, sob o regime da ${propertyRegime}, na vigência da Lei nº 6.515/77, com ${data.nomeConjuge}, ${data.nacionalidade || "brasileira"}, nascida na cidade de ${data.naturalidadeConjuge}-${data.ufConjuge}, aos ${formatarData(data.dataNascimentoConjuge)}, filha de ${data.filiacaoConjuge}, profissão ${data.profissaoConjuge}, portadora da Cédula de Identidade nº ${data.rgConjuge}-${data.orgaoExpedidorConjuge} e inscrita no CPF/MF sob o nº ${data.cpfConjuge}, endereço eletrônico: ${data.emailConjuge}, residentes e domiciliados na ${data.endereco};`;
+      } else {
+        return `${data.nome}, ${data.nacionalidade ? data.nacionalidade : "brasileiro(a)"}, natural de ${data.naturalidade}-${data.uf}, nascido(a) aos ${formatarDataPorExtenso(data.dataNascimento)}, filho(a) de ${data.filiacao}, profissão ${data.profissao}, estado civil ${data.estadoCivil}, portador(a) da Cédula de Identidade nº ${data.rg}-${data.orgaoExpedidor} e inscrito(a) no CPF/MF sob o nº ${data.cpf}, endereço eletrônico: ${data.email}, residente e domiciliado(a) na ${data.endereco};`;
+      }
+    } catch (error) {
+      console.error("Erro ao gerar texto do documento:", error);
+      return "Erro ao gerar texto do documento. Por favor, tente novamente.";
     }
   };
 
@@ -236,7 +248,14 @@ const ProtocoloGerado: React.FC = () => {
   const prepareProtocoloData = () => {
     if (!formData) return null;
     
-    const documentoTexto = getDocumentoTexto(formData);
+    // Garantir texto do documento seja válido, adicionando tratamento de erro
+    let documentoTexto;
+    try {
+      documentoTexto = getDocumentoTexto(formData);
+    } catch (error) {
+      console.error("Erro ao gerar texto do documento:", error);
+      documentoTexto = "Erro ao gerar documento. Por favor, verifique os dados informados.";
+    }
     
     sessionStorage.setItem('documentoGeradoTexto', documentoTexto);
     console.log("Qualificação completa armazenada do protocolo:", documentoTexto);
@@ -245,7 +264,7 @@ const ProtocoloGerado: React.FC = () => {
       type: formData.estadoCivil === "Casado(a)" ? 'casado' : 'solteiro',
       personalInfo: {
         name: formData.nome,
-        birthDate: typeof formData.dataNascimento === 'string' ? formData.dataNascimento : formData.dataNascimento?.toISOString() || "",
+        birthDate: formatarData(formData.dataNascimento),
         cpf: formData.cpf,
         rg: formData.rg,
         address: formData.endereco,
@@ -262,21 +281,10 @@ const ProtocoloGerado: React.FC = () => {
     };
     
     if (formData.estadoCivil === "Casado(a)" && formData.nomeConjuge) {
-      // Safely convert the date to ISO string
-      let spouseBirthDate = "";
-      if (formData.dataNascimentoConjuge) {
-        spouseBirthDate = typeof formData.dataNascimentoConjuge === 'string' ? 
-          formData.dataNascimentoConjuge : 
-          formData.dataNascimentoConjuge.toISOString();
-      }
+      // Format dates safely with our utility function instead of directly converting to ISO string
+      const spouseBirthDate = formatarData(formData.dataNascimentoConjuge);
+      const marriageDate = formatarData(formData.dataCasamento);
       
-      let marriageDate = "";
-      if (formData.dataCasamento) {
-        marriageDate = typeof formData.dataCasamento === 'string' ?
-          formData.dataCasamento :
-          formData.dataCasamento.toISOString();
-      }
-
       registrationData.spouseInfo = {
         name: formData.nomeConjuge || "",
         birthDate: spouseBirthDate,
@@ -301,6 +309,8 @@ const ProtocoloGerado: React.FC = () => {
 
   if (!formData) return null;
 
+  const documentoTexto = getDocumentoTexto(formData);
+
   return (
     <>
       <Navbar />
@@ -319,7 +329,7 @@ const ProtocoloGerado: React.FC = () => {
             
             <div className="bg-white p-6 border rounded-md">
               <p id="documento-texto" className="text-justify leading-relaxed whitespace-pre-line">
-                {getDocumentoTexto(formData)}
+                {documentoTexto}
               </p>
             </div>
           </CardContent>
