@@ -8,7 +8,7 @@ import { downloadBlob } from '@/services/apiService';
 
 interface MinutaGeradaProps {
   textContent: string | null;
-  pdfBlob: Blob | null;
+  pdfBlob?: Blob | null;  // Make this prop optional with ?
   fileName: string;
 }
 
@@ -16,6 +16,10 @@ const MinutaGerada: React.FC<MinutaGeradaProps> = ({ textContent, pdfBlob, fileN
   const handleDownload = () => {
     if (pdfBlob) {
       downloadBlob(pdfBlob, fileName);
+    } else if (textContent) {
+      // If we only have text content, create a text blob for download
+      const textBlob = new Blob([textContent], { type: 'text/plain' });
+      downloadBlob(textBlob, fileName);
     }
   };
 
@@ -23,14 +27,14 @@ const MinutaGerada: React.FC<MinutaGeradaProps> = ({ textContent, pdfBlob, fileN
     <div className="space-y-4 mt-6 p-4 border rounded-md bg-card">
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-semibold">Resultado da Minuta</h3>
-        {pdfBlob && (
+        {(pdfBlob || textContent) && (
           <Button 
             onClick={handleDownload} 
             variant="outline" 
             className="flex items-center gap-2"
           >
             <Download className="h-4 w-4" />
-            Baixar PDF
+            Baixar {pdfBlob ? 'PDF' : 'Texto'}
           </Button>
         )}
       </div>

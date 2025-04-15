@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Navbar from '@/components/Navbar';
@@ -179,7 +180,8 @@ const Upload: React.FC = () => {
                 {extractedText && status === 'success' && (
                   <MinutaGerada 
                     textContent={extractedText}
-                    fileName={`minuta_${documentType.toLowerCase().replace(' ', '_')}.pdf`}
+                    pdfBlob={null}
+                    fileName={`minuta_${documentType.toLowerCase().replace(' ', '_')}.txt`}
                   />
                 )}
               </div>
