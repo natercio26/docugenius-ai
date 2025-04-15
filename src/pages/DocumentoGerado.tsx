@@ -1,3 +1,4 @@
+
 import React, { useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { format } from "date-fns";
@@ -9,35 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { ScrollArea } from "@/components/ui/scroll-area";
-
-interface FormData {
-  nome: string;
-  naturalidade: string;
-  uf: string;
-  dataNascimento: Date;
-  filiacao: string;
-  profissao: string;
-  estadoCivil: string;
-  rg: string;
-  orgaoExpedidor: string;
-  cpf: string;
-  email: string;
-  endereco: string;
-  nacionalidade?: string;
-  // Campos específicos para pessoa casada
-  nomeConjuge?: string;
-  naturalidadeConjuge?: string;
-  ufConjuge?: string;
-  dataNascimentoConjuge?: Date;
-  filiacaoConjuge?: string;
-  profissaoConjuge?: string;
-  rgConjuge?: string;
-  orgaoExpedidorConjuge?: string;
-  cpfConjuge?: string;
-  emailConjuge?: string;
-  dataCasamento?: Date;
-  regimeBens?: string;
-}
+import { FormData } from "@/components/review/types";
 
 const DocumentoGerado: React.FC = () => {
   const location = useLocation();
@@ -75,14 +48,69 @@ const DocumentoGerado: React.FC = () => {
     };
   }, [formData, navigate, toast]);
 
-  const formatarDataPorExtenso = (data: Date) => {
-    if (!data) return "";
-    return format(data, "dd 'de' MMMM 'de' yyyy", { locale: ptBR });
+  const formatarDataPorExtenso = (data: Date | string | undefined) => {
+    if (!data) return "Não informada";
+    
+    try {
+      // Se a data for uma string no formato DD/MM/YYYY, converte para Date
+      if (typeof data === 'string') {
+        if (data === '00/00/0000' || data === '') return "Não informada";
+        
+        const parts = data.split('/');
+        if (parts.length === 3) {
+          const day = parseInt(parts[0], 10);
+          const month = parseInt(parts[1], 10) - 1; // Mês em JS começa em 0
+          const year = parseInt(parts[2], 10);
+          
+          if (!isNaN(day) && !isNaN(month) && !isNaN(year)) {
+            const dateObj = new Date(year, month, day);
+            // Verifica se a data é válida antes de formatar
+            if (isNaN(dateObj.getTime())) {
+              return "Não informada";
+            }
+            return format(dateObj, "dd 'de' MMMM 'de' yyyy", { locale: ptBR });
+          }
+        }
+      }
+      
+      // Tenta formatar diretamente se for um objeto Date
+      const dateObj = new Date(data);
+      if (isNaN(dateObj.getTime())) {
+        return "Não informada";
+      }
+      
+      return format(dateObj, "dd 'de' MMMM 'de' yyyy", { locale: ptBR });
+    } catch (error) {
+      console.error("Erro ao formatar data por extenso:", error, data);
+      return "Não informada";
+    }
   };
   
-  const formatarData = (data: Date) => {
-    if (!data) return "";
-    return format(data, "dd/MM/yyyy");
+  const formatarData = (data: Date | string | undefined) => {
+    if (!data) return "Não informada";
+    
+    try {
+      // Se a data for uma string no formato DD/MM/YYYY, retorna diretamente
+      if (typeof data === 'string') {
+        if (data === '00/00/0000' || data === '') return "Não informada";
+        
+        const parts = data.split('/');
+        if (parts.length === 3) {
+          return data;
+        }
+      }
+      
+      // Tenta formatar se for um objeto Date
+      const dateObj = typeof data === 'string' ? new Date(data) : data;
+      if (isNaN(dateObj.getTime())) {
+        return "Não informada";
+      }
+      
+      return format(dateObj, "dd/MM/yyyy");
+    } catch (error) {
+      console.error("Erro ao formatar data:", error, data);
+      return "Não informada";
+    }
   };
 
   const formatPropertyRegime = (regime: string): string => {
