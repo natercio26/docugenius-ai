@@ -1,15 +1,14 @@
 import React from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, Controller } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
-import { CalendarIcon, ChevronRight, ArrowLeft } from 'lucide-react';
+import { ChevronRight, ArrowLeft } from 'lucide-react';
 
 import Navbar from '@/components/Navbar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { InputMask } from '@/components/ui/input-mask';
 import {
   Form,
   FormControl,
@@ -25,13 +24,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
-import { Calendar } from '@/components/ui/calendar';
-import { cn } from '@/lib/utils';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
@@ -42,7 +34,12 @@ const formSchema = z.object({
   nome: z.string().min(3, { message: 'O nome deve ter pelo menos 3 caracteres' }),
   naturalidade: z.string().min(2, { message: 'Informe a naturalidade' }),
   uf: z.string().min(2, { message: 'Selecione um estado' }),
-  dataNascimento: z.date({ required_error: 'Informe a data de nascimento' }),
+  dataNascimento: z.string()
+    .min(10, { message: 'Data de nascimento é obrigatória' })
+    .refine((date) => {
+      const regex = /^\d{2}\/\d{2}\/\d{4}$/;
+      return regex.test(date);
+    }, { message: 'Formato inválido. Use DD/MM/AAAA' }),
   filiacao: z.string().min(3, { message: 'Informe a filiação' }),
   profissao: z.string().min(2, { message: 'Informe a profissão' }),
   rg: z.string().min(5, { message: 'Informe o RG' }),
@@ -55,7 +52,12 @@ const formSchema = z.object({
   nomeConjuge: z.string().min(3, { message: 'O nome deve ter pelo menos 3 caracteres' }),
   naturalidadeConjuge: z.string().min(2, { message: 'Informe a naturalidade' }),
   ufConjuge: z.string().min(2, { message: 'Selecione um estado' }),
-  dataNascimentoConjuge: z.date({ required_error: 'Informe a data de nascimento' }),
+  dataNascimentoConjuge: z.string()
+    .min(10, { message: 'Data de nascimento é obrigatória' })
+    .refine((date) => {
+      const regex = /^\d{2}\/\d{2}\/\d{4}$/;
+      return regex.test(date);
+    }, { message: 'Formato inválido. Use DD/MM/AAAA' }),
   filiacaoConjuge: z.string().min(3, { message: 'Informe a filiação' }),
   profissaoConjuge: z.string().min(2, { message: 'Informe a profissão' }),
   rgConjuge: z.string().min(5, { message: 'Informe o RG' }),
@@ -64,7 +66,12 @@ const formSchema = z.object({
   emailConjuge: z.string().email({ message: 'Informe um e-mail válido' }),
   
   // Marriage information
-  dataCasamento: z.date({ required_error: 'Informe a data de casamento' }),
+  dataCasamento: z.string()
+    .min(10, { message: 'Data de casamento é obrigatória' })
+    .refine((date) => {
+      const regex = /^\d{2}\/\d{2}\/\d{4}$/;
+      return regex.test(date);
+    }, { message: 'Formato inválido. Use DD/MM/AAAA' }),
   regimeBens: z.string().min(2, { message: 'Selecione o regime de bens' }),
 });
 
@@ -118,6 +125,7 @@ const CadastroCasado: React.FC = () => {
       nome: '',
       naturalidade: '',
       uf: '',
+      dataNascimento: '',
       filiacao: '',
       profissao: '',
       rg: '',
@@ -128,18 +136,19 @@ const CadastroCasado: React.FC = () => {
       nomeConjuge: '',
       naturalidadeConjuge: '',
       ufConjuge: '',
+      dataNascimentoConjuge: '',
       filiacaoConjuge: '',
       profissaoConjuge: '',
       rgConjuge: '',
       orgaoExpedidorConjuge: '',
       cpfConjuge: '',
       emailConjuge: '',
+      dataCasamento: '',
       regimeBens: '',
     },
   });
 
   const onSubmit = (data: z.infer<typeof formSchema>) => {
-    // Process form data and navigate to review page
     navigate('/cadastro/revisar', { 
       state: { 
         formData: {
@@ -256,40 +265,15 @@ const CadastroCasado: React.FC = () => {
                     control={form.control}
                     name="dataNascimento"
                     render={({ field }) => (
-                      <FormItem className="flex flex-col">
+                      <FormItem>
                         <FormLabel>Data de Nascimento</FormLabel>
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <FormControl>
-                              <Button
-                                variant="outline"
-                                className={cn(
-                                  "w-full pl-3 text-left font-normal",
-                                  !field.value && "text-muted-foreground"
-                                )}
-                              >
-                                {field.value ? (
-                                  format(field.value, "dd/MM/yyyy", { locale: ptBR })
-                                ) : (
-                                  <span>dd/mm/aaaa</span>
-                                )}
-                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                              </Button>
-                            </FormControl>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-auto p-0" align="start">
-                            <Calendar
-                              mode="single"
-                              selected={field.value}
-                              onSelect={field.onChange}
-                              disabled={(date) =>
-                                date > new Date() || date < new Date("1900-01-01")
-                              }
-                              initialFocus
-                              className={cn("p-3 pointer-events-auto")}
-                            />
-                          </PopoverContent>
-                        </Popover>
+                        <FormControl>
+                          <InputMask 
+                            mask="date" 
+                            placeholder="DD/MM/AAAA" 
+                            {...field}
+                          />
+                        </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -452,40 +436,15 @@ const CadastroCasado: React.FC = () => {
                     control={form.control}
                     name="dataNascimentoConjuge"
                     render={({ field }) => (
-                      <FormItem className="flex flex-col">
+                      <FormItem>
                         <FormLabel>Data de Nascimento</FormLabel>
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <FormControl>
-                              <Button
-                                variant="outline"
-                                className={cn(
-                                  "w-full pl-3 text-left font-normal",
-                                  !field.value && "text-muted-foreground"
-                                )}
-                              >
-                                {field.value ? (
-                                  format(field.value, "dd/MM/yyyy", { locale: ptBR })
-                                ) : (
-                                  <span>dd/mm/aaaa</span>
-                                )}
-                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                              </Button>
-                            </FormControl>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-auto p-0" align="start">
-                            <Calendar
-                              mode="single"
-                              selected={field.value}
-                              onSelect={field.onChange}
-                              disabled={(date) =>
-                                date > new Date() || date < new Date("1900-01-01")
-                              }
-                              initialFocus
-                              className={cn("p-3 pointer-events-auto")}
-                            />
-                          </PopoverContent>
-                        </Popover>
+                        <FormControl>
+                          <InputMask 
+                            mask="date" 
+                            placeholder="DD/MM/AAAA" 
+                            {...field}
+                          />
+                        </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -590,40 +549,15 @@ const CadastroCasado: React.FC = () => {
                     control={form.control}
                     name="dataCasamento"
                     render={({ field }) => (
-                      <FormItem className="flex flex-col">
+                      <FormItem>
                         <FormLabel>Data do Casamento</FormLabel>
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <FormControl>
-                              <Button
-                                variant="outline"
-                                className={cn(
-                                  "w-full pl-3 text-left font-normal",
-                                  !field.value && "text-muted-foreground"
-                                )}
-                              >
-                                {field.value ? (
-                                  format(field.value, "dd/MM/yyyy", { locale: ptBR })
-                                ) : (
-                                  <span>dd/mm/aaaa</span>
-                                )}
-                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                              </Button>
-                            </FormControl>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-auto p-0" align="start">
-                            <Calendar
-                              mode="single"
-                              selected={field.value}
-                              onSelect={field.onChange}
-                              disabled={(date) =>
-                                date > new Date()
-                              }
-                              initialFocus
-                              className={cn("p-3 pointer-events-auto")}
-                            />
-                          </PopoverContent>
-                        </Popover>
+                        <FormControl>
+                          <InputMask 
+                            mask="date" 
+                            placeholder="DD/MM/AAAA" 
+                            {...field}
+                          />
+                        </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}

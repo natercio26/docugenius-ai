@@ -1,11 +1,9 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { useForm } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
-import { CalendarIcon, Check } from "lucide-react";
+import { Check } from "lucide-react";
 
 import Navbar from "@/components/Navbar";
 import { useToast } from "@/hooks/use-toast";
@@ -20,6 +18,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { InputMask } from "@/components/ui/input-mask";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -29,20 +28,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { Calendar } from "@/components/ui/calendar";
 
 const formSchema = z.object({
   nome: z.string().min(3, "Nome deve ter pelo menos 3 caracteres"),
   naturalidade: z.string().min(2, "Informe sua naturalidade"),
   uf: z.string().min(2, "Selecione um estado"),
-  dataNascimento: z.date({
-    required_error: "Data de nascimento é obrigatória",
-  }),
+  dataNascimento: z.string()
+    .min(10, "Data de nascimento é obrigatória")
+    .refine((date) => {
+      const regex = /^\d{2}\/\d{2}\/\d{4}$/;
+      return regex.test(date);
+    }, "Formato inválido. Use DD/MM/AAAA"),
   filiacao: z.string().min(3, "Informe a filiação"),
   profissao: z.string().min(2, "Informe sua profissão"),
   estadoCivil: z.string().min(2, "Informe seu estado civil"),
@@ -112,6 +108,7 @@ const CadastroSolteiro: React.FC = () => {
       nome: "",
       naturalidade: "",
       uf: "",
+      dataNascimento: "",
       filiacao: "",
       profissao: "",
       estadoCivil: "",
@@ -246,41 +243,15 @@ const CadastroSolteiro: React.FC = () => {
                     control={form.control}
                     name="dataNascimento"
                     render={({ field }) => (
-                      <FormItem className="flex flex-col">
+                      <FormItem>
                         <FormLabel>Data de Nascimento</FormLabel>
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <FormControl>
-                              <Button
-                                variant={"outline"}
-                                className={cn(
-                                  "w-full pl-3 text-left font-normal",
-                                  !field.value && "text-muted-foreground"
-                                )}
-                              >
-                                {field.value ? (
-                                  format(field.value, "dd/MM/yyyy", { locale: ptBR })
-                                ) : (
-                                  <span>dd/mm/aaaa</span>
-                                )}
-                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                              </Button>
-                            </FormControl>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-auto p-0" align="start">
-                            <Calendar
-                              mode="single"
-                              selected={field.value}
-                              onSelect={field.onChange}
-                              disabled={(date) =>
-                                date > new Date() || date < new Date("1900-01-01")
-                              }
-                              initialFocus
-                              locale={ptBR}
-                              className="pointer-events-auto"
-                            />
-                          </PopoverContent>
-                        </Popover>
+                        <FormControl>
+                          <InputMask 
+                            mask="date" 
+                            placeholder="DD/MM/AAAA" 
+                            {...field} 
+                          />
+                        </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
