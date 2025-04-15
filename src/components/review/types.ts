@@ -3,7 +3,7 @@ export interface FormData {
   nome: string;
   naturalidade: string;
   uf: string;
-  dataNascimento: Date;
+  dataNascimento: Date | string;
   filiacao: string;
   profissao: string;
   estadoCivil: string;
@@ -17,13 +17,13 @@ export interface FormData {
   nomeConjuge?: string;
   naturalidadeConjuge?: string;
   ufConjuge?: string;
-  dataNascimentoConjuge?: Date;
+  dataNascimentoConjuge?: Date | string;
   filiacaoConjuge?: string;
   profissaoConjuge?: string;
   rgConjuge?: string;
   orgaoExpedidorConjuge?: string;
   cpfConjuge?: string;
   emailConjuge?: string;
-  dataCasamento?: Date;
+  dataCasamento?: Date | string;
   regimeBens?: string;
 }
