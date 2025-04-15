@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { format } from "date-fns";
@@ -11,35 +12,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/componen
 import { useToast } from "@/hooks/use-toast";
 import { useProtocolo } from "@/contexts/ProtocoloContext";
 import { RegistrationData } from "@/types";
-
-interface FormData {
-  nome: string;
-  naturalidade: string;
-  uf: string;
-  dataNascimento: Date;
-  filiacao: string;
-  profissao: string;
-  estadoCivil: string;
-  rg: string;
-  orgaoExpedidor: string;
-  cpf: string;
-  email: string;
-  endereco: string;
-  nacionalidade?: string;
-  // Campos específicos para pessoa casada
-  nomeConjuge?: string;
-  naturalidadeConjuge?: string;
-  ufConjuge?: string;
-  dataNascimentoConjuge?: Date;
-  filiacaoConjuge?: string;
-  profissaoConjuge?: string;
-  rgConjuge?: string;
-  orgaoExpedidorConjuge?: string;
-  cpfConjuge?: string;
-  emailConjuge?: string;
-  dataCasamento?: Date;
-  regimeBens?: string;
-}
+import { FormData } from "@/components/review/types";
 
 const ProtocoloGerado: React.FC = () => {
   const location = useLocation();
@@ -99,14 +72,69 @@ const ProtocoloGerado: React.FC = () => {
     }
   }, [formData, navigate, toast, protocolo, protocoloNumero]);
 
-  const formatarDataPorExtenso = (data: Date) => {
-    if (!data) return "";
-    return format(data, "dd 'de' MMMM 'de' yyyy", { locale: ptBR });
+  const formatarDataPorExtenso = (data: Date | string | undefined) => {
+    if (!data) return "Não informada";
+    
+    try {
+      // Se a data for uma string no formato DD/MM/YYYY, converte para Date
+      if (typeof data === 'string') {
+        if (data === '00/00/0000' || data === '') return "Não informada";
+        
+        const parts = data.split('/');
+        if (parts.length === 3) {
+          const day = parseInt(parts[0], 10);
+          const month = parseInt(parts[1], 10) - 1; // Mês em JS começa em 0
+          const year = parseInt(parts[2], 10);
+          
+          if (!isNaN(day) && !isNaN(month) && !isNaN(year)) {
+            const dateObj = new Date(year, month, day);
+            // Verifica se a data é válida antes de formatar
+            if (isNaN(dateObj.getTime())) {
+              return "Não informada";
+            }
+            return format(dateObj, "dd 'de' MMMM 'de' yyyy", { locale: ptBR });
+          }
+        }
+      }
+      
+      // Tenta formatar diretamente se for um objeto Date
+      const dateObj = new Date(data);
+      if (isNaN(dateObj.getTime())) {
+        return "Não informada";
+      }
+      
+      return format(dateObj, "dd 'de' MMMM 'de' yyyy", { locale: ptBR });
+    } catch (error) {
+      console.error("Erro ao formatar data por extenso:", error, data);
+      return "Não informada";
+    }
   };
   
-  const formatarData = (data: Date) => {
-    if (!data) return "";
-    return format(data, "dd/MM/yyyy");
+  const formatarData = (data: Date | string | undefined) => {
+    if (!data) return "Não informada";
+    
+    try {
+      // Se a data for uma string no formato DD/MM/YYYY, retorna diretamente
+      if (typeof data === 'string') {
+        if (data === '00/00/0000' || data === '') return "Não informada";
+        
+        const parts = data.split('/');
+        if (parts.length === 3) {
+          return data;
+        }
+      }
+      
+      // Tenta formatar se for um objeto Date
+      const dateObj = typeof data === 'string' ? new Date(data) : data;
+      if (isNaN(dateObj.getTime())) {
+        return "Não informada";
+      }
+      
+      return format(dateObj, "dd/MM/yyyy");
+    } catch (error) {
+      console.error("Erro ao formatar data:", error, data);
+      return "Não informada";
+    }
   };
   
   const formatPropertyRegime = (regime: string): string => {
@@ -131,7 +159,7 @@ const ProtocoloGerado: React.FC = () => {
     if (data.estadoCivil === "Casado(a)" && data.nomeConjuge) {
       const propertyRegime = formatPropertyRegime(data.regimeBens || "");
       
-      return `${data.nome}, ${data.nacionalidade || "brasileiro"}, nascido na cidade de ${data.naturalidade}-${data.uf}, aos ${formatarData(data.dataNascimento)}, filho de ${data.filiacao}, profissão ${data.profissao}, portador da Cédula de Identidade nº ${data.rg}-${data.orgaoExpedidor} e inscrito no CPF/MF sob o nº ${data.cpf}, endereço eletrônico: ${data.email}, casado, desde ${formatarData(data.dataCasamento!)}, sob o regime da ${propertyRegime}, na vigência da Lei nº 6.515/77, com ${data.nomeConjuge}, ${data.nacionalidade || "brasileira"}, nascida na cidade de ${data.naturalidadeConjuge}-${data.ufConjuge}, aos ${formatarData(data.dataNascimentoConjuge!)}, filha de ${data.filiacaoConjuge}, profissão ${data.profissaoConjuge}, portadora da Cédula de Identidade nº ${data.rgConjuge}-${data.orgaoExpedidorConjuge} e inscrita no CPF/MF sob o nº ${data.cpfConjuge}, endereço eletrônico: ${data.emailConjuge}, residentes e domiciliados na ${data.endereco};`;
+      return `${data.nome}, ${data.nacionalidade || "brasileiro"}, nascido na cidade de ${data.naturalidade}-${data.uf}, aos ${formatarData(data.dataNascimento)}, filho de ${data.filiacao}, profissão ${data.profissao}, portador da Cédula de Identidade nº ${data.rg}-${data.orgaoExpedidor} e inscrito no CPF/MF sob o nº ${data.cpf}, endereço eletrônico: ${data.email}, casado, desde ${formatarData(data.dataCasamento)}, sob o regime da ${propertyRegime}, na vigência da Lei nº 6.515/77, com ${data.nomeConjuge}, ${data.nacionalidade || "brasileira"}, nascida na cidade de ${data.naturalidadeConjuge}-${data.ufConjuge}, aos ${formatarData(data.dataNascimentoConjuge)}, filha de ${data.filiacaoConjuge}, profissão ${data.profissaoConjuge}, portadora da Cédula de Identidade nº ${data.rgConjuge}-${data.orgaoExpedidorConjuge} e inscrita no CPF/MF sob o nº ${data.cpfConjuge}, endereço eletrônico: ${data.emailConjuge}, residentes e domiciliados na ${data.endereco};`;
     } else {
       return `${data.nome}, ${data.nacionalidade ? data.nacionalidade : "brasileiro(a)"}, natural de ${data.naturalidade}-${data.uf}, nascido(a) aos ${formatarDataPorExtenso(data.dataNascimento)}, filho(a) de ${data.filiacao}, profissão ${data.profissao}, estado civil ${data.estadoCivil}, portador(a) da Cédula de Identidade nº ${data.rg}-${data.orgaoExpedidor} e inscrito(a) no CPF/MF sob o nº ${data.cpf}, endereço eletrônico: ${data.email}, residente e domiciliado(a) na ${data.endereco};`;
     }
@@ -217,7 +245,7 @@ const ProtocoloGerado: React.FC = () => {
       type: formData.estadoCivil === "Casado(a)" ? 'casado' : 'solteiro',
       personalInfo: {
         name: formData.nome,
-        birthDate: formData.dataNascimento.toISOString(),
+        birthDate: typeof formData.dataNascimento === 'string' ? formData.dataNascimento : formData.dataNascimento?.toISOString() || "",
         cpf: formData.cpf,
         rg: formData.rg,
         address: formData.endereco,
@@ -234,9 +262,24 @@ const ProtocoloGerado: React.FC = () => {
     };
     
     if (formData.estadoCivil === "Casado(a)" && formData.nomeConjuge) {
+      // Safely convert the date to ISO string
+      let spouseBirthDate = "";
+      if (formData.dataNascimentoConjuge) {
+        spouseBirthDate = typeof formData.dataNascimentoConjuge === 'string' ? 
+          formData.dataNascimentoConjuge : 
+          formData.dataNascimentoConjuge.toISOString();
+      }
+      
+      let marriageDate = "";
+      if (formData.dataCasamento) {
+        marriageDate = typeof formData.dataCasamento === 'string' ?
+          formData.dataCasamento :
+          formData.dataCasamento.toISOString();
+      }
+
       registrationData.spouseInfo = {
         name: formData.nomeConjuge || "",
-        birthDate: formData.dataNascimentoConjuge?.toISOString() || "",
+        birthDate: spouseBirthDate,
         cpf: formData.cpfConjuge || "",
         rg: formData.rgConjuge || "",
         naturality: formData.naturalidadeConjuge || "",
@@ -245,7 +288,7 @@ const ProtocoloGerado: React.FC = () => {
         profession: formData.profissaoConjuge || "",
         issuer: formData.orgaoExpedidorConjuge || "",
         email: formData.emailConjuge || "",
-        marriageDate: formData.dataCasamento?.toISOString() || "",
+        marriageDate: marriageDate,
         propertyRegime: formData.regimeBens || ""
       };
     }
