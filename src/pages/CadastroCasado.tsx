@@ -378,6 +378,7 @@ const CadastroCasado: React.FC = () => {
                         <FormLabel>CPF</FormLabel>
                         <FormControl>
                           <InputMask
+                            mask="cpf"
                             placeholder="CPF"
                             className={inputVariants({ 
                               variant: errors.cpf ? 'destructive' : 'default' 
@@ -578,17 +579,20 @@ const CadastroCasado: React.FC = () => {
                       control={control}
                       name="cpfConjuge"
                       render={({ field }) => (
-                        <InputMask
-                          {...field}
-                          placeholder="CPF do Cônjuge"
-                          onChange={(e) => {
-                            handleCPFChange(e);
-                            field.onChange(e);
-                          }}
-                          className={inputVariants({ 
-                            variant: errors.cpfConjuge ? 'destructive' : 'default' 
-                          })}
-                        />
+                        <FormItem>
+                          <FormLabel>CPF do Cônjuge</FormLabel>
+                          <FormControl>
+                            <InputMask
+                              mask="cpf"
+                              placeholder="CPF do Cônjuge"
+                              className={inputVariants({ 
+                                variant: errors.cpfConjuge ? 'destructive' : 'default' 
+                              })}
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
                       )}
                     />
                   </div>
