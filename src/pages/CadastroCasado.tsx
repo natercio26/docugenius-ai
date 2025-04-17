@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { z } from 'zod';
@@ -22,6 +23,15 @@ import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { Icons } from "@/components/icons";
 import Navbar from "@/components/Navbar";
+
+// Define estadosCivis before using it in the schema
+const estadosCivis = [
+  "Solteiro(a)",
+  "Divorciado(a)", 
+  "Viúvo(a)", 
+  "Separado(a) judicialmente",
+  "Falecido(a)"
+] as const; // Make it a readonly tuple type
 
 const formSchema = z.object({
   nome: z.string().min(2, {
@@ -108,14 +118,6 @@ const inputVariants = ({ className, variant }: { className?: string, variant?: '
     variant === 'destructive' ? "focus-visible:ring-destructive" : "",
     className
   )
-
-const estadosCivis = [
-  "Solteiro(a)",
-  "Divorciado(a)", 
-  "Viúvo(a)", 
-  "Separado(a) judicialmente",
-  "Falecido(a)"
-];
 
 const CadastroCasado: React.FC = () => {
   const [isLoading, setIsLoading] = React.useState(false);
