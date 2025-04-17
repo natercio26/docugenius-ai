@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useForm, Controller } from "react-hook-form";
@@ -373,7 +374,7 @@ const CadastroSolteiro: React.FC = () => {
                       <FormItem>
                         <FormLabel>E-mail</FormLabel>
                         <FormControl>
-                          <Input placeholder="seu@email.com" type="email" {...field} />
+                          <Input placeholder="seu@email.com" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
