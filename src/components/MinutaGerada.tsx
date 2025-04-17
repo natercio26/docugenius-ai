@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Download, Edit } from 'lucide-react';
+import { Download, Edit, Save } from 'lucide-react';
 import { downloadBlob } from '@/services/apiService';
 
 interface MinutaGeradaProps {
@@ -16,15 +16,6 @@ const MinutaGerada: React.FC<MinutaGeradaProps> = ({ textContent, pdfBlob, fileN
   const [isEditing, setIsEditing] = useState(false);
   const [editedContent, setEditedContent] = useState(textContent);
 
-  const handleDownload = () => {
-    if (pdfBlob) {
-      downloadBlob(pdfBlob, fileName);
-    } else if (editedContent) {
-      const textBlob = new Blob([editedContent], { type: 'text/plain' });
-      downloadBlob(textBlob, fileName);
-    }
-  };
-
   const handleEdit = () => {
     if (isEditing) {
       // Save changes
@@ -32,6 +23,15 @@ const MinutaGerada: React.FC<MinutaGeradaProps> = ({ textContent, pdfBlob, fileN
     } else {
       // Enter edit mode
       setIsEditing(true);
+    }
+  };
+
+  const handleDownload = () => {
+    if (pdfBlob) {
+      downloadBlob(pdfBlob, fileName);
+    } else if (editedContent) {
+      const textBlob = new Blob([editedContent], { type: 'text/plain' });
+      downloadBlob(textBlob, fileName);
     }
   };
 

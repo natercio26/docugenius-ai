@@ -33,69 +33,35 @@ const estadosCivis = [
 ] as const;
 
 const formSchema = z.object({
-  nome: z.string().min(2, {
-    message: 'Nome deve ter pelo menos 2 caracteres.',
-  }),
-  naturalidade: z.string().min(2, {
-    message: 'Naturalidade deve ter pelo menos 2 caracteres.',
-  }),
-  uf: z.string().length(2, {
-    message: 'UF deve ter 2 caracteres.',
-  }),
-  dataNascimento: z.string().min(10, {
-    message: 'Data de nascimento inválida.',
-  }),
-  filiacao: z.string().min(2, {
-    message: 'Filiação deve ter pelo menos 2 caracteres.',
-  }),
-  profissao: z.string().min(2, {
-    message: 'Profissão deve ter pelo menos 2 caracteres.',
-  }),
-  estadoCivil: z.enum(estadosCivis),
-  rg: z.string().min(5, {
-    message: 'RG deve ter pelo menos 5 caracteres.',
-  }),
-  orgaoExpedidor: z.string().min(2, {
-    message: 'Órgão expedidor deve ter pelo menos 2 caracteres.',
-  }),
-  cpf: z.string().min(14, {
-    message: 'CPF inválido.',
-  }),
-  email: z.string().email("E-mail inválido").optional(),
-  endereco: z.string().min(5, {
-    message: 'Endereço deve ter pelo menos 5 caracteres.',
-  }),
-  nomeConjuge: z.string().min(2, {
-    message: 'Nome do cônjuge deve ter pelo menos 2 caracteres.',
-  }),
-  naturalidadeConjuge: z.string().min(2, {
-    message: 'Naturalidade do cônjuge deve ter pelo menos 2 caracteres.',
-  }),
-  ufConjuge: z.string().length(2, {
-    message: 'UF do cônjuge deve ter 2 caracteres.',
-  }),
-  dataNascimentoConjuge: z.string().min(10, {
-    message: 'Data de nascimento do cônjuge inválida.',
-  }),
-  filiacaoConjuge: z.string().min(2, {
-    message: 'Filiação do cônjuge deve ter pelo menos 2 caracteres.',
-  }),
-  profissaoConjuge: z.string().min(2, {
-    message: 'Profissão do cônjuge deve ter pelo menos 2 caracteres.',
-  }),
-  rgConjuge: z.string().min(5, {
-    message: 'RG do cônjuge deve ter pelo menos 5 caracteres.',
-  }),
-  orgaoExpedidorConjuge: z.string().min(2, {
-    message: 'Órgão expedidor do cônjuge deve ter pelo menos 2 caracteres.',
-  }),
-  cpfConjuge: z.string().min(14, {
-    message: 'CPF do cônjuge inválido.',
-  }),
+  nome: z.string().min(3, "Nome deve ter pelo menos 3 caracteres"),
+  naturalidade: z.string().min(2, "Informe sua naturalidade"),
+  uf: z.string().min(2, "Selecione um estado"),
+  dataNascimento: z.string()
+    .min(10, "Data de nascimento é obrigatória")
+    .refine((date) => {
+      const regex = /^\d{2}\/\d{2}\/\d{4}$/;
+      return regex.test(date);
+    }, "Formato inválido. Use DD/MM/AAAA"),
+  filiacao: z.string().min(3, "Informe a filiação"),
+  profissao: z.string().min(2, "Informe sua profissão"),
+  estadoCivil: z.string().min(2, "Informe seu estado civil"),
+  rg: z.string().min(1, "Informe o número do documento de identidade"),
+  orgaoExpedidor: z.string().min(2, "Informe o órgão expedidor"),
+  cpf: z.string().regex(/^\d{3}\.\d{3}\.\d{3}-\d{2}$/, "CPF inválido (formato: 000.000.000-00)"),
+  email: z.string().optional(),
+  endereco: z.string().min(5, "Endereço deve ter pelo menos 5 caracteres"),
+  nacionalidade: z.string().optional(),
+  nomeConjuge: z.string().min(2, "Nome do cônjuge deve ter pelo menos 2 caracteres"),
+  naturalidadeConjuge: z.string().min(2, "Naturalidade do cônjuge deve ter pelo menos 2 caracteres"),
+  ufConjuge: z.string().length(2, "UF do cônjuge deve ter 2 caracteres"),
+  dataNascimentoConjuge: z.string().min(10, "Data de nascimento do cônjuge inválida"),
+  filiacaoConjuge: z.string().min(2, "Filiação do cônjuge deve ter pelo menos 2 caracteres"),
+  profissaoConjuge: z.string().min(2, "Profissão do cônjuge deve ter pelo menos 2 caracteres"),
+  rgConjuge: z.string().min(5, "RG do cônjuge deve ter pelo menos 5 caracteres"),
+  orgaoExpedidorConjuge: z.string().min(2, "Órgão expedidor do cônjuge deve ter pelo menos 2 caracteres"),
+  cpfConjuge: z.string().min(14, "CPF do cônjuge inválido"),
   emailConjuge: z.string().email("E-mail inválido").optional(),
-  dataCasamento: z.string().min(10, {
-    message: 'Data de casamento inválida.',
-  }),
+  dataCasamento: z.string().min(10, "Data de casamento inválida"),
   regimeBens: z.enum([
     'comunhao_parcial',
     'comunhao_universal',
