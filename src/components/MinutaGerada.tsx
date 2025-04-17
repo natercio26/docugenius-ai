@@ -56,7 +56,7 @@ const MinutaGerada: React.FC<MinutaGeradaProps> = ({ textContent, pdfBlob, fileN
               variant="outline" 
               className="flex items-center gap-2"
             >
-              <Edit className="h-4 w-4" />
+              {isEditing ? <Save className="h-4 w-4" /> : <Edit className="h-4 w-4" />}
               {isEditing ? 'Salvar' : 'Editar'}
             </Button>
           )}

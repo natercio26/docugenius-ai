@@ -60,7 +60,7 @@ const formSchema = z.object({
   rgConjuge: z.string().min(5, "RG do cônjuge deve ter pelo menos 5 caracteres"),
   orgaoExpedidorConjuge: z.string().min(2, "Órgão expedidor do cônjuge deve ter pelo menos 2 caracteres"),
   cpfConjuge: z.string().min(14, "CPF do cônjuge inválido"),
-  emailConjuge: z.string().email("E-mail inválido").optional(),
+  emailConjuge: z.string().optional(),
   dataCasamento: z.string().min(10, "Data de casamento inválida"),
   regimeBens: z.enum([
     'comunhao_parcial',

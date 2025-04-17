@@ -1,23 +1,27 @@
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { ArrowLeft, Copy, FileText } from "lucide-react";
+import { ArrowLeft, Copy, FileText, Edit, Save } from "lucide-react";
 
 import Navbar from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Textarea } from "@/components/ui/textarea";
 import { FormData } from "@/components/review/types";
+import MinutaGerada from "@/components/MinutaGerada";
 
 const DocumentoGerado: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const [isEditing, setIsEditing] = useState(false);
   
   const formData = location.state?.formData as FormData;
+  const [editedText, setEditedText] = useState<string>("");
   
   useEffect(() => {
     if (!formData) {
@@ -139,9 +143,9 @@ const DocumentoGerado: React.FC = () => {
     if (formData.estadoCivil === "Casado(a)" && formData.nomeConjuge) {
       const propertyRegime = formatPropertyRegime(formData.regimeBens || "");
       
-      qualificacao = `${formData.nome}, ${formData.nacionalidade || "brasileiro"}, nascido na cidade de ${formData.naturalidade}-${formData.uf}, aos ${formatarData(formData.dataNascimento)}, filho de ${formData.filiacao}, profissão ${formData.profissao}, portador da Cédula de Identidade nº ${formData.rg}-${formData.orgaoExpedidor} e inscrito no CPF/MF sob o nº ${formData.cpf}, endereço eletrônico: ${formData.email}, casado, desde ${formatarData(formData.dataCasamento!)}, sob o regime da ${propertyRegime}, na vigência da Lei nº 6.515/77, com ${formData.nomeConjuge}, ${formData.nacionalidade || "brasileira"}, nascida na cidade de ${formData.naturalidadeConjuge}-${formData.ufConjuge}, aos ${formatarData(formData.dataNascimentoConjuge!)}, filha de ${formData.filiacaoConjuge}, profissão ${formData.profissaoConjuge}, portadora da Cédula de Identidade nº ${formData.rgConjuge}-${formData.orgaoExpedidorConjuge} e inscrita no CPF/MF sob o nº ${formData.cpfConjuge}, endereço eletrônico: ${formData.emailConjuge}, residentes e domiciliados na ${formData.endereco};`;
+      qualificacao = `${formData.nome}, ${formData.nacionalidade || "brasileiro"}, nascido na cidade de ${formData.naturalidade}-${formData.uf}, aos ${formatarData(formData.dataNascimento)}, filho de ${formData.filiacao}, profissão ${formData.profissao}, portador da Cédula de Identidade nº ${formData.rg}-${formData.orgaoExpedidor} e inscrito no CPF/MF sob o nº ${formData.cpf}, endereço eletrônico: ${formData.email || "não declarado"}, casado, desde ${formatarData(formData.dataCasamento!)}, sob o regime da ${propertyRegime}, na vigência da Lei nº 6.515/77, com ${formData.nomeConjuge}, ${formData.nacionalidade || "brasileira"}, nascida na cidade de ${formData.naturalidadeConjuge}-${formData.ufConjuge}, aos ${formatarData(formData.dataNascimentoConjuge!)}, filha de ${formData.filiacaoConjuge}, profissão ${formData.profissaoConjuge}, portadora da Cédula de Identidade nº ${formData.rgConjuge}-${formData.orgaoExpedidorConjuge} e inscrita no CPF/MF sob o nº ${formData.cpfConjuge}, endereço eletrônico: ${formData.emailConjuge || "não declarado"}, residentes e domiciliados na ${formData.endereco};`;
     } else {
-      qualificacao = `${formData.nome}, ${formData.nacionalidade ? formData.nacionalidade : "brasileiro(a)"}, natural de ${formData.naturalidade}-${formData.uf}, nascido(a) aos ${formatarDataPorExtenso(formData.dataNascimento)}, filho(a) de ${formData.filiacao}, profissão ${formData.profissao}, estado civil ${formData.estadoCivil}, portador(a) da Cédula de Identidade nº ${formData.rg}-${formData.orgaoExpedidor} e inscrito(a) no CPF/MF sob o nº ${formData.cpf}, endereço eletrônico: ${formData.email}, residente e domiciliado(a) na ${formData.endereco};`;
+      qualificacao = `${formData.nome}, ${formData.nacionalidade ? formData.nacionalidade : "brasileiro(a)"}, natural de ${formData.naturalidade}-${formData.uf}, nascido(a) aos ${formatarDataPorExtenso(formData.dataNascimento)}, filho(a) de ${formData.filiacao}, profissão ${formData.profissao}, estado civil ${formData.estadoCivil}, portador(a) da Cédula de Identidade nº ${formData.rg}-${formData.orgaoExpedidor} e inscrito(a) no CPF/MF sob o nº ${formData.cpf}, endereço eletrônico: ${formData.email || "não declarado"}, residente e domiciliado(a) na ${formData.endereco};`;
     }
     
     if (qualificacao && qualificacao.trim() !== '') {
@@ -156,11 +160,12 @@ const DocumentoGerado: React.FC = () => {
     if (formData) {
       const qualificacaoTexto = gerarQualificacaoCompleta();
       console.log("Texto de qualificação gerado no DocumentoGerado useEffect:", qualificacaoTexto);
+      setEditedText(qualificacaoTexto);
     }
   }, [formData]);
 
   const copiarTexto = () => {
-    const texto = document.getElementById('documento-texto')?.innerText;
+    const texto = isEditing ? editedText : document.getElementById('documento-texto')?.innerText;
     if (texto) {
       navigator.clipboard.writeText(texto).then(() => {
         toast({
@@ -177,8 +182,12 @@ const DocumentoGerado: React.FC = () => {
     }
   };
 
+  const handleEdit = () => {
+    setIsEditing(!isEditing);
+  };
+
   const gerarProtocolo = () => {
-    const textoQualificacao = gerarQualificacaoCompleta();
+    const textoQualificacao = isEditing ? editedText : gerarQualificacaoCompleta();
     console.log("Texto de qualificação gerado antes de navegar:", textoQualificacao);
     navigate('/cadastro/protocolo', { state: { formData } });
   };
@@ -201,9 +210,17 @@ const DocumentoGerado: React.FC = () => {
           </CardHeader>
           <CardContent className="py-6">
             <ScrollArea className="bg-white p-6 border rounded-md h-[50vh]">
-              <p id="documento-texto" className="text-justify leading-relaxed whitespace-pre-line">
-                {textoQualificacao}
-              </p>
+              {isEditing ? (
+                <Textarea
+                  className="w-full h-full min-h-[300px] font-mono text-sm"
+                  value={editedText}
+                  onChange={(e) => setEditedText(e.target.value)}
+                />
+              ) : (
+                <p id="documento-texto" className="text-justify leading-relaxed whitespace-pre-line">
+                  {editedText || textoQualificacao}
+                </p>
+              )}
             </ScrollArea>
           </CardContent>
           <CardFooter className="flex justify-between border-t bg-slate-50 p-4">
@@ -216,6 +233,14 @@ const DocumentoGerado: React.FC = () => {
               Voltar para Revisão
             </Button>
             <div className="flex gap-2">
+              <Button 
+                variant="outline"
+                onClick={handleEdit}
+                className="gap-2"
+              >
+                {isEditing ? <Save className="h-4 w-4" /> : <Edit className="h-4 w-4" />}
+                {isEditing ? 'Salvar' : 'Editar Texto'}
+              </Button>
               <Button 
                 variant="outline"
                 onClick={copiarTexto}
