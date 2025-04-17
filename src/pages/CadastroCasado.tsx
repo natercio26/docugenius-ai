@@ -163,20 +163,6 @@ const CadastroCasado: React.FC = () => {
     }, 1500)
   };
 
-  const handleCPFChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    let value = e.target.value.replace(/\D/g, '');
-    
-    if (value.length > 11) {
-      value = value.slice(0, 11);
-    }
-    
-    if (value.length === 11) {
-      value = value.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
-    }
-    
-    e.target.value = value;
-  };
-
   return (
     <>
       <Navbar />
