@@ -1,25 +1,37 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Download } from 'lucide-react';
+import { Download, Edit } from 'lucide-react';
 import { downloadBlob } from '@/services/apiService';
 
 interface MinutaGeradaProps {
   textContent: string | null;
-  pdfBlob?: Blob | null;  // Make this prop optional with ?
+  pdfBlob?: Blob | null;
   fileName: string;
 }
 
 const MinutaGerada: React.FC<MinutaGeradaProps> = ({ textContent, pdfBlob, fileName }) => {
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedContent, setEditedContent] = useState(textContent);
+
   const handleDownload = () => {
     if (pdfBlob) {
       downloadBlob(pdfBlob, fileName);
-    } else if (textContent) {
-      // If we only have text content, create a text blob for download
-      const textBlob = new Blob([textContent], { type: 'text/plain' });
+    } else if (editedContent) {
+      const textBlob = new Blob([editedContent], { type: 'text/plain' });
       downloadBlob(textBlob, fileName);
+    }
+  };
+
+  const handleEdit = () => {
+    if (isEditing) {
+      // Save changes
+      setIsEditing(false);
+    } else {
+      // Enter edit mode
+      setIsEditing(true);
     }
   };
 
@@ -27,16 +39,28 @@ const MinutaGerada: React.FC<MinutaGeradaProps> = ({ textContent, pdfBlob, fileN
     <div className="space-y-4 mt-6 p-4 border rounded-md bg-card">
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-semibold">Resultado da Minuta</h3>
-        {(pdfBlob || textContent) && (
-          <Button 
-            onClick={handleDownload} 
-            variant="outline" 
-            className="flex items-center gap-2"
-          >
-            <Download className="h-4 w-4" />
-            Baixar {pdfBlob ? 'PDF' : 'Texto'}
-          </Button>
-        )}
+        <div className="flex gap-2">
+          {(pdfBlob || editedContent) && (
+            <Button 
+              onClick={handleDownload} 
+              variant="outline" 
+              className="flex items-center gap-2"
+            >
+              <Download className="h-4 w-4" />
+              Baixar {pdfBlob ? 'PDF' : 'Texto'}
+            </Button>
+          )}
+          {textContent && (
+            <Button 
+              onClick={handleEdit} 
+              variant="outline" 
+              className="flex items-center gap-2"
+            >
+              <Edit className="h-4 w-4" />
+              {isEditing ? 'Salvar' : 'Editar'}
+            </Button>
+          )}
+        </div>
       </div>
 
       {textContent ? (
@@ -44,8 +68,9 @@ const MinutaGerada: React.FC<MinutaGeradaProps> = ({ textContent, pdfBlob, fileN
           <Label htmlFor="minuta_gerada">Conteúdo da Minuta Gerada</Label>
           <Textarea
             id="minuta_gerada"
-            value={textContent}
-            readOnly
+            value={isEditing ? editedContent : textContent}
+            onChange={(e) => setEditedContent(e.target.value)}
+            readOnly={!isEditing}
             className="min-h-[300px] font-mono text-sm"
           />
         </div>

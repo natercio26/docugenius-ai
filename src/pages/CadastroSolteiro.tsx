@@ -45,7 +45,7 @@ const formSchema = z.object({
   rg: z.string().min(1, "Informe o número do documento de identidade"),
   orgaoExpedidor: z.string().min(2, "Informe o órgão expedidor"),
   cpf: z.string().regex(/^\d{3}\.\d{3}\.\d{3}-\d{2}$/, "CPF inválido (formato: 000.000.000-00)"),
-  email: z.string().email("E-mail inválido"),
+  email: z.string().email("E-mail inválido").optional(),
   endereco: z.string().min(5, "Endereço deve ter pelo menos 5 caracteres"),
   nacionalidade: z.string().optional(),
 });

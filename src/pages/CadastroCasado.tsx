@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { z } from 'zod';
@@ -24,7 +23,6 @@ import { cn } from "@/lib/utils";
 import { Icons } from "@/components/icons";
 import Navbar from "@/components/Navbar";
 
-// Define estadosCivis before using it in the schema
 const estadosCivis = [
   "Casado(a)",
   "Solteiro(a)",
@@ -32,7 +30,7 @@ const estadosCivis = [
   "Viúvo(a)", 
   "Separado(a) judicialmente",
   "Falecido(a)"
-] as const; // Make it a readonly tuple type
+] as const;
 
 const formSchema = z.object({
   nome: z.string().min(2, {
@@ -63,9 +61,7 @@ const formSchema = z.object({
   cpf: z.string().min(14, {
     message: 'CPF inválido.',
   }),
-  email: z.string().email({
-    message: 'Email inválido.',
-  }),
+  email: z.string().email("E-mail inválido").optional(),
   endereco: z.string().min(5, {
     message: 'Endereço deve ter pelo menos 5 caracteres.',
   }),
@@ -96,9 +92,7 @@ const formSchema = z.object({
   cpfConjuge: z.string().min(14, {
     message: 'CPF do cônjuge inválido.',
   }),
-  emailConjuge: z.string().email({
-    message: 'Email do cônjuge inválido.',
-  }),
+  emailConjuge: z.string().email("E-mail inválido").optional(),
   dataCasamento: z.string().min(10, {
     message: 'Data de casamento inválida.',
   }),
