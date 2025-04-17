@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { z } from 'zod';
@@ -683,7 +684,7 @@ const CadastroCasado: React.FC = () => {
                         <FormLabel>Regime de Bens</FormLabel>
                         <Select onValueChange={field.onChange} defaultValue={field.value}>
                           <FormControl>
-                            <SelectTrigger className={inputVariants()}>
+                            <SelectTrigger className={inputVariants({})}>
                               <SelectValue placeholder="Selecione o regime de bens" />
                             </SelectTrigger>
                           </FormControl>
