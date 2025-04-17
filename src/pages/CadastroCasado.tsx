@@ -26,6 +26,7 @@ import Navbar from "@/components/Navbar";
 
 // Define estadosCivis before using it in the schema
 const estadosCivis = [
+  "Casado(a)",
   "Solteiro(a)",
   "Divorciado(a)", 
   "Viúvo(a)", 
