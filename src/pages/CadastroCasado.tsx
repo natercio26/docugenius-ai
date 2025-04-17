@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { z } from 'zod';
@@ -43,7 +42,7 @@ const formSchema = z.object({
   profissao: z.string().min(2, {
     message: 'Profissão deve ter pelo menos 2 caracteres.',
   }),
-  estadoCivil: z.enum(['Casado(a)']),
+  estadoCivil: z.enum(estadosCivis),
   rg: z.string().min(5, {
     message: 'RG deve ter pelo menos 5 caracteres.',
   }),
@@ -109,6 +108,14 @@ const inputVariants = ({ className, variant }: { className?: string, variant?: '
     variant === 'destructive' ? "focus-visible:ring-destructive" : "",
     className
   )
+
+const estadosCivis = [
+  "Solteiro(a)",
+  "Divorciado(a)", 
+  "Viúvo(a)", 
+  "Separado(a) judicialmente",
+  "Falecido(a)"
+];
 
 const CadastroCasado: React.FC = () => {
   const [isLoading, setIsLoading] = React.useState(false);

@@ -91,7 +91,8 @@ const CadastroSolteiro: React.FC = () => {
     "Solteiro(a)",
     "Divorciado(a)",
     "Viúvo(a)",
-    "Separado(a) judicialmente"
+    "Separado(a) judicialmente",
+    "Falecido(a)"
   ];
 
   const nacionalidades = [
